@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Michael Stapelberg <michael+i3lock@stapelberg.de>
 Build-Depends: debhelper (>= 5), libx11-dev
 Standards-Version: 3.8.0
-Homepage: http://i3.zekjur.net/
+Homepage: http://i3.zekjur.net/i3lock/
 
 Package: i3lock
 Architecture: any
@@ -13,7 +13,7 @@ Section: x11
 Depends: ${shlibs:Depends}
 Description: a slightly improved version of slock
  i3lock improves slock by making it fork() and therefore combinable with
- commands to suspend your computer. Additionally, instead of turning of
+ commands to suspend your computer. Additionally, instead of turning off
  your screen via DPMS and/or displaying a black screen, i3lock displays a
  white screen so you can see if your computer failed to resume from suspend
  or if your screen is just locked. Also, when entering a wrong password,
