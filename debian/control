@@ -10,7 +10,7 @@ Package: i3lock
 Architecture: any
 Priority: optional
 Section: x11
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}
 Description: a slightly improved version of slock
  i3lock improves slock by making it fork() and therefore combinable with
  commands to suspend your computer. Additionally, instead of turning of
