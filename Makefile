@@ -32,7 +32,7 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p i3lock-${VERSION}
-	@cp -R LICENSE Makefile README config.mk ${SRC} slock-${VERSION}
+	@cp -R LICENSE Makefile README config.mk i3lock.1 ${SRC} i3lock-${VERSION}
 	@tar -cf i3lock-${VERSION}.tar i3lock-${VERSION}
 	@gzip i3lock-${VERSION}.tar
 	@rm -rf i3lock-${VERSION}
