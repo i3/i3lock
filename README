@@ -1,0 +1,31 @@
+i3lock - slightly improved screen locker based on slock
+============================
+i3lock improves slock by making it fork() and therefore combinable with
+commands to suspend your computer. Additionally, instead of turning of
+your screen via DPMS and/or displaying a black screen, i3lock displays a
+white screen so you can see if your computer failed to resume from suspend
+or if your screen is just locked. Also, when entering a wrong password,
+i3lock does not call XBell(). This is important because i3lock/slock think
+you’ve entered a password when resuming from suspend, at least sometimes.
+
+i3lock was forked from slock-0.9
+
+Requirements
+------------
+In order to build i3lock you need the Xlib header files.
+
+
+Installation
+------------
+Edit config.mk to match your local setup (slock is installed into
+the /usr/local namespace by default).
+
+Afterwards enter the following command to build and install slock
+(if necessary as root):
+
+    make clean install
+
+
+Running i3lock
+-------------
+Simply invoke the 'i3lock' command. To get out of it, enter your password.
