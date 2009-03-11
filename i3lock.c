@@ -80,7 +80,8 @@ main(int argc, char **argv) {
 	XSetWindowAttributes wa;
 
 	if((argc == 2) && !strcmp("-v", argv[1]))
-		die("slock-"VERSION", © 2006-2008 Anselm R Garbe\n");
+		die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
+		    "based on slock, which is © 2006-2008 Anselm R Garbe\n");
 	else if(argc != 1)
 		die("usage: slock [-v]\n");
 
