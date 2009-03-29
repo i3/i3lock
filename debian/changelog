@@ -1,5 +1,5 @@
 i3lock (0.9-1) unstable; urgency=low
 
-  * First release, forked from slock 0.9
+  * First release, forked from slock 0.9 (Closes: #521707)
 
- -- Michael Stapelberg <michael+i3lock@stapelberg.de>  Wed, 11 Mar 2009 23:24:01 +0100
+ -- Michael Stapelberg <michael+i3lock@stapelberg.de>  Sun, 29 Mar 2009 18:13:06 +0200
