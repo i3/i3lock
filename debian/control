@@ -1,7 +1,8 @@
 Source: i3lock
 Section: utils
 Priority: optional
-Maintainer: Michael Stapelberg <michael+i3lock@stapelberg.de>
+Maintainer: Michael Stapelberg <michael@stapelberg.de>
+DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 5), libx11-dev
 Standards-Version: 3.8.0
 Homepage: http://i3.zekjur.net/i3lock/
