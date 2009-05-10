@@ -66,7 +66,7 @@ binary-arch: build install
 	dh_link
 #	dh_strip
 	dh_compress
-	dh_fixperms -Xusr/bin/i3lock
+	dh_fixperms
 #	dh_perl
 #	dh_makeshlibs
 	dh_installdeb

@@ -1,3 +1,10 @@
+i3lock (1.0-1) unstable; urgency=low
+
+  * Implement PAM support
+  * Implement options for forking, beeping, DPMS
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Sun, 10 May 2009 12:54:05 +0200
+
 i3lock (0.9-1) unstable; urgency=low
 
   * First release, forked from slock 0.9 (Closes: #521707)

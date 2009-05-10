@@ -41,7 +41,7 @@ install: all
 	@echo installing executable file to $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(MANDIR)/man1
-	$(INSTALL) -m 4755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
+	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
 	$(INSTALL) -m 644 i3lock.1 $(MANDIR)/man1/i3lock.1
 
 uninstall:
