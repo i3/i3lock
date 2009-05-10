@@ -1,5 +1,5 @@
-# slock version
-VERSION = 0.9
+# i3lock version
+VERSION = 1.0
 
 # Customize below to fit your system
 
@@ -13,15 +13,12 @@ MANDIR = $(DESTDIR)$(PREFIX)/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include -I${X11INC}
-LIBS = -L/usr/lib -L${X11LIB} -lX11 -lpam
+LIBS = -L${X11LIB} -lX11 -lpam -lXext
 
 # flags
-CPPFLAGS = -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
+CPPFLAGS = -DVERSION=\"${VERSION}\"
 CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
-
-# On *BSD remove -DHAVE_SHADOW_H from CPPFLAGS and add -DHAVE_BSD_AUTH
-# On OpenBSD and Darwin remove -lcrypt from LIBS
 
 # compiler and linker
 CC = cc

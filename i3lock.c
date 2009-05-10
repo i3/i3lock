@@ -26,7 +26,9 @@
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/dpms.h>
 #include <stdbool.h>
+#include <getopt.h>
 
 #include <security/pam_appl.h>
 
@@ -75,10 +77,16 @@ static int conv_callback(int num_msg, const struct pam_message **msg,
 int main(int argc, char *argv[]) {
         char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
         char buf[32];
+        char *username;
         int num, screen;
 
         unsigned int len;
         bool running = true;
+
+        /* By default, fork, don’t beep and don’t turn off monitor */
+        bool dont_fork = false;
+        bool beep = false;
+        bool dpms = false;
         Cursor invisible;
         Display *dpy;
         KeySym ksym;
@@ -88,30 +96,54 @@ int main(int argc, char *argv[]) {
         XEvent ev;
         XSetWindowAttributes wa;
 
-        /* TODO: use getopt */
-        if((argc == 2) && !strcmp("-v", argv[1]))
-                die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
-                    "based on slock, which is © 2006-2008 Anselm R Garbe\n");
-        else if(argc != 1)
-                die("usage: i3lock [-v]\n");
-
         pam_handle_t *handle;
+        struct pam_conv conv = {conv_callback, NULL};
 
-        struct pam_conv conv;
-        conv.conv = conv_callback;
+        char opt;
+        int optind = 0;
+        static struct option long_options[] = {
+                {"version", no_argument, NULL, 'v'},
+                {"nofork", no_argument, NULL, 'n'},
+                {"beep", no_argument, NULL, 'b'},
+                {"dpms", no_argument, NULL, 'd'},
+                {NULL, no_argument, NULL, 0}
+        };
 
-        int ret = pam_start("i3lock", getenv("USER"), &conv, &handle);
-        printf("pam_start = %d\n", ret);
+        while ((opt = getopt_long(argc, argv, "vnbd", long_options, &optind)) != -1) {
+                switch (opt) {
+                        case 'v':
+                                die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
+                                    "based on slock, which is © 2006-2008 Anselm R Garbe\n");
+                        case 'n':
+                                dont_fork = true;
+                                break;
+                        case 'b':
+                                beep = true;
+                                break;
+                        case 'd':
+                                dpms = true;
+                                break;
+                        default:
+                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d]\n");
+                }
+        }
+
+        if ((username = getenv("USER")) == NULL)
+                die("USER environment variable not set, please set it.\n");
+
+        int ret = pam_start("i3lock", username, &conv, &handle);
         if (ret != PAM_SUCCESS)
-                die("error = %s\n", pam_strerror(handle, ret));
+                die("PAM: %s\n", pam_strerror(handle, ret));
 
         if(!(dpy = XOpenDisplay(0)))
-                die("slock: cannot open display\n");
+                die("i3lock: cannot open display\n");
         screen = DefaultScreen(dpy);
         root = RootWindow(dpy, screen);
 
-        if (fork() != 0)
-                return 0;
+        if (!dont_fork) {
+                if (fork() != 0)
+                        return 0;
+        }
 
         /* init */
         wa.override_redirect = 1;
@@ -144,41 +176,53 @@ int main(int argc, char *argv[]) {
 
         /* main event loop */
         while(running && !XNextEvent(dpy, &ev)) {
-                if(ev.type == KeyPress) {
-                        buf[0] = 0;
-                        num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
-                        if(IsKeypadKey(ksym)) {
-                                if(ksym == XK_KP_Enter)
-                                        ksym = XK_Return;
-                                else if(ksym >= XK_KP_0 && ksym <= XK_KP_9)
-                                        ksym = (ksym - XK_KP_0) + XK_0;
+                if (len == 0 && dpms && DPMSCapable(dpy)) {
+                        DPMSEnable(dpy);
+                        DPMSForceLevel(dpy, DPMSModeOff);
+                }
+
+                if(ev.type != KeyPress)
+                        continue;
+
+                buf[0] = 0;
+                num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
+                if(IsKeypadKey(ksym)) {
+                        if(ksym == XK_KP_Enter)
+                                ksym = XK_Return;
+                        else if(ksym >= XK_KP_0 && ksym <= XK_KP_9)
+                                ksym = (ksym - XK_KP_0) + XK_0;
+                }
+                if(IsFunctionKey(ksym) ||
+                   IsKeypadKey(ksym) ||
+                   IsMiscFunctionKey(ksym) ||
+                   IsPFKey(ksym) ||
+                   IsPrivateKeypadKey(ksym))
+                        continue;
+                switch(ksym) {
+                case XK_Return:
+                        passwd[len] = 0;
+                        if ((ret = pam_authenticate(handle, 0)) == PAM_SUCCESS)
+                                running = false;
+                        else {
+                                fprintf(stderr, "PAM: %s\n", pam_strerror(handle, ret));
+                                if (beep)
+                                        XBell(dpy, 100);
                         }
-                        if(IsFunctionKey(ksym) || IsKeypadKey(ksym)
-                                        || IsMiscFunctionKey(ksym) || IsPFKey(ksym)
-                                        || IsPrivateKeypadKey(ksym))
-                                continue;
-                        switch(ksym) {
-                        case XK_Return:
-                                passwd[len] = 0;
-                                if ((ret = pam_authenticate(handle, 0)) == PAM_SUCCESS)
-                                        running = false;
-                                else fprintf(stderr, "PAM: %s\n", pam_strerror(handle, ret));
-                                len = 0;
-                                break;
-                        case XK_Escape:
-                                len = 0;
-                                break;
-                        case XK_BackSpace:
-                                if (len > 0)
-                                        len--;
-                                break;
-                        default:
-                                if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
-                                        memcpy(passwd + len, buf, num);
-                                        len += num;
-                                }
-                                break;
+                        len = 0;
+                        break;
+                case XK_Escape:
+                        len = 0;
+                        break;
+                case XK_BackSpace:
+                        if (len > 0)
+                                len--;
+                        break;
+                default:
+                        if(num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
+                                memcpy(passwd + len, buf, num);
+                                len += num;
                         }
+                        break;
                 }
         }
         XUngrabPointer(dpy, CurrentTime);
