@@ -13,7 +13,7 @@ MANDIR = $(DESTDIR)$(PREFIX)/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include -I${X11INC}
-LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11
+LIBS = -L/usr/lib -L${X11LIB} -lX11 -lpam
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
