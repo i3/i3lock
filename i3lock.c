@@ -26,6 +26,7 @@
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/xpm.h>
 #include <X11/extensions/dpms.h>
 #include <stdbool.h>
 #include <getopt.h>
@@ -42,6 +43,22 @@ static void die(const char *errstr, ...) {
         va_end(ap);
         exit(EXIT_FAILURE);
 }
+
+/*
+ * Check if given file can be opened => exists
+ *
+ */
+bool file_exists(const char * filename)
+{
+        FILE * file = fopen(filename, "r");
+        if(file)
+        {
+                fclose(file);
+                return true;
+        }
+        return false;
+}
+
 
 /*
  * Callback function for PAM. We only react on password request callbacks.
@@ -87,6 +104,8 @@ int main(int argc, char *argv[]) {
         bool dont_fork = false;
         bool beep = false;
         bool dpms = false;
+        bool xpm_image = false;
+        char xpm_image_path[256];
         Cursor invisible;
         Display *dpy;
         KeySym ksym;
@@ -106,10 +125,11 @@ int main(int argc, char *argv[]) {
                 {"nofork", no_argument, NULL, 'n'},
                 {"beep", no_argument, NULL, 'b'},
                 {"dpms", no_argument, NULL, 'd'},
+                {"image", required_argument, NULL, 'i'},
                 {NULL, no_argument, NULL, 0}
         };
 
-        while ((opt = getopt_long(argc, argv, "vnbd", long_options, &optind)) != -1) {
+        while ((opt = getopt_long(argc, argv, "vnbdi:", long_options, &optind)) != -1) {
                 switch (opt) {
                         case 'v':
                                 die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
@@ -123,8 +143,12 @@ int main(int argc, char *argv[]) {
                         case 'd':
                                 dpms = true;
                                 break;
+                        case 'i':
+                                strncpy(xpm_image_path, optarg, 255);
+                                xpm_image = true;
+                                break;
                         default:
-                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d]\n");
+                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm]\n");
                 }
         }
 
@@ -156,6 +180,18 @@ int main(int argc, char *argv[]) {
         invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
         XDefineCursor(dpy, w, invisible);
         XMapRaised(dpy, w);
+
+        if(xpm_image && file_exists(xpm_image_path))
+        {
+                GC gc = XDefaultGC(dpy, 0);
+                int depth = DefaultDepth(dpy, screen);
+                int disp_width = DisplayWidth(dpy, screen);
+                int disp_height = DisplayHeight(dpy, screen);
+                Pixmap pix = XCreatePixmap(dpy, w, disp_width, disp_height, depth);
+                XpmReadFileToPixmap(dpy, w, xpm_image_path, &pix, 0, 0);
+                XCopyArea(dpy, pix, w, gc, 0, 0, disp_width, disp_height, 0, 0);
+        }
+
         for(len = 1000; len; len--) {
                 if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                         GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
