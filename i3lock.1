@@ -8,7 +8,7 @@
 .fi
 ..
 
-.TH i3lock 1 "MAY 2009" Linux "User Manuals"
+.TH i3lock 1 "JUNE 2009" Linux "User Manuals"
 
 .SH NAME
 i3lock \- slightly improved version of slock
@@ -19,6 +19,8 @@ i3lock \- slightly improved version of slock
 .RB [\|\-n\|]
 .RB [\|\-b\|]
 .RB [\|\-d\|]
+.RB [\|\-i
+.IR image.xpm \|]
 
 .SH DESCRIPTION
 .B i3lock
@@ -63,6 +65,11 @@ like when opening your laptop in a boring lecture.
 Enable turning off your screen using DPMS. Note that, when you do not specify this
 option, DPMS will turn off your screen after 15 minutes of inactivity anyways (if
 you did not disable this in your X server).
+
+.TP
+.B \-i, \-\-image
+Display the given XPM image instead of a blank screen. You can convert an image to
+XPM by using convert(1) from ImageMagick or GIMP for example.
 
 .SH AUTHOR
 Michael Stapelberg <michael+i3lock at stapelberg dot de>
