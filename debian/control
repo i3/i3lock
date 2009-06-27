@@ -3,8 +3,8 @@ Section: utils
 Priority: extra
 Maintainer: Michael Stapelberg <michael@stapelberg.de>
 DM-Upload-Allowed: yes
-Build-Depends: debhelper (>= 5), libx11-dev, libpam0g-dev, libxext-dev
-Standards-Version: 3.8.1
+Build-Depends: debhelper (>= 5), libx11-dev, libpam0g-dev, libxext-dev, libxpm-dev
+Standards-Version: 3.8.2
 Homepage: http://i3.zekjur.net/i3lock/
 
 Package: i3lock
