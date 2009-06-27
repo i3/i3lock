@@ -48,7 +48,7 @@ static void die(const char *errstr, ...) {
  * Check if given file can be opened => exists
  *
  */
-bool file_exists(const char * filename)
+bool file_exists(const char *filename)
 {
         FILE * file = fopen(filename, "r");
         if(file)
@@ -57,6 +57,31 @@ bool file_exists(const char * filename)
                 return true;
         }
         return false;
+}
+
+/*
+ * Puts the given XPM error code to stderr
+ *
+ */
+void print_xpm_error(int err)
+{
+        switch (err) {
+                case XpmColorError:
+                        fprintf(stderr, "XPM: Could not parse or alloc requested color\n");
+                        break;
+                case XpmOpenFailed:
+                        fprintf(stderr, "XPM: Cannot open file\n");
+                        break;
+                case XpmFileInvalid:
+                        fprintf(stderr, "XPM: invalid XPM file\n");
+                        break;
+                case XpmNoMemory:
+                        fprintf(stderr, "XPM: Not enough memory\n");
+                        break;
+                case XpmColorFailed:
+                        fprintf(stderr, "XPM: Color not found\n");
+                        break;
+        }
 }
 
 
@@ -188,12 +213,16 @@ int main(int argc, char *argv[]) {
                 int disp_width = DisplayWidth(dpy, screen);
                 int disp_height = DisplayHeight(dpy, screen);
                 Pixmap pix = XCreatePixmap(dpy, w, disp_width, disp_height, depth);
-                XpmReadFileToPixmap(dpy, w, xpm_image_path, &pix, 0, 0);
+                int err = XpmReadFileToPixmap(dpy, w, xpm_image_path, &pix, 0, 0);
+                if (err != 0) {
+                        print_xpm_error(err);
+                        return 1;
+                }
                 XCopyArea(dpy, pix, w, gc, 0, 0, disp_width, disp_height, 0, 0);
         }
 
         for(len = 1000; len; len--) {
-                if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+                if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask,
                         GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
                         break;
                 usleep(1000);
