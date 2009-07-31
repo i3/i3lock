@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -42,6 +43,27 @@ static void die(const char *errstr, ...) {
         vfprintf(stderr, errstr, ap);
         va_end(ap);
         exit(EXIT_FAILURE);
+}
+
+
+/*
+ * Returns the colorpixel to use for the given hex color (think of HTML).
+ *
+ * The hex_color may not start with #, for example FF00FF works.
+ *
+ * NOTE that get_colorpixel() does _NOT_ check the given color code for validity.
+ * This has to be done by the caller.
+ *
+ */
+uint32_t get_colorpixel(char *hex) {
+        char strgroups[3][3] = {{hex[0], hex[1], '\0'},
+                                {hex[2], hex[3], '\0'},
+                                {hex[4], hex[5], '\0'}};
+        uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
+                             (strtol(strgroups[1], NULL, 16)),
+                             (strtol(strgroups[2], NULL, 16))};
+
+        return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
 }
 
 /*
@@ -131,6 +153,7 @@ int main(int argc, char *argv[]) {
         bool dpms = false;
         bool xpm_image = false;
         char xpm_image_path[256];
+        char color[7] = "ffffff"; // white
         Cursor invisible;
         Display *dpy;
         KeySym ksym;
@@ -151,10 +174,11 @@ int main(int argc, char *argv[]) {
                 {"beep", no_argument, NULL, 'b'},
                 {"dpms", no_argument, NULL, 'd'},
                 {"image", required_argument, NULL, 'i'},
+                {"color", required_argument, NULL, 'c'},
                 {NULL, no_argument, NULL, 0}
         };
 
-        while ((opt = getopt_long(argc, argv, "vnbdi:", long_options, &optind)) != -1) {
+        while ((opt = getopt_long(argc, argv, "vnbdi:c:", long_options, &optind)) != -1) {
                 switch (opt) {
                         case 'v':
                                 die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
@@ -172,8 +196,16 @@ int main(int argc, char *argv[]) {
                                 strncpy(xpm_image_path, optarg, 255);
                                 xpm_image = true;
                                 break;
+                        case 'c':
+                                strncpy(color, optarg, 6);
+                                color[6] = 0;
+
+                                char parsed_color[7];
+                                if (strlen(color) != 6 || sscanf(color, "%06[0-9a-fA-F]", parsed_color) != 1)
+                                    die("color is invalid, color must be given in 6-byte format: rrggbb\n");
+                                break;
                         default:
-                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm]\n");
+                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color]\n");
                 }
         }
 
@@ -196,7 +228,7 @@ int main(int argc, char *argv[]) {
 
         /* init */
         wa.override_redirect = 1;
-        wa.background_pixel = WhitePixel(dpy, screen);
+        wa.background_pixel = get_colorpixel(color);
         w = XCreateWindow(dpy, root, 0, 0, DisplayWidth(dpy, screen), DisplayHeight(dpy, screen),
                         0, DefaultDepth(dpy, screen), CopyFromParent,
                         DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
