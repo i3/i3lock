@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <X11/keysym.h>
@@ -35,6 +36,31 @@
 #include <security/pam_appl.h>
 
 static char passwd[256];
+
+/*
+ * displays an xpm image tiled over the whole screen
+ * (the image will be visible on all screens
+ * when using a multi monitor setup)
+ *
+ */
+void tiling_image(XpmImage *image,
+        int disp_height, int disp_width,
+        Display *dpy,
+        Pixmap pix,
+        Window w,
+        GC gc) {
+    int rows = (int)ceil(disp_height / (float)image->height),
+        cols = (int)ceil(disp_width / (float)image->width);
+
+    int x = 0,
+        y = 0;
+
+    for(y = 0; y < rows; y++) {
+        for(x = 0; x < cols; x++) {
+            XCopyArea(dpy, pix, w, gc, 0, 0, image->width, image->height, image->width * x, image->height * y);
+        }
+    }
+}
 
 static void die(const char *errstr, ...) {
         va_list ap;
@@ -151,6 +177,7 @@ int main(int argc, char *argv[]) {
         bool beep = false;
         bool dpms = false;
         bool xpm_image = false;
+        bool tiling = false;
         char xpm_image_path[256];
         char color[7] = "ffffff"; // white
         Cursor invisible;
@@ -174,10 +201,11 @@ int main(int argc, char *argv[]) {
                 {"dpms", no_argument, NULL, 'd'},
                 {"image", required_argument, NULL, 'i'},
                 {"color", required_argument, NULL, 'c'},
+                {"tiling", no_argument, NULL, 't'},
                 {NULL, no_argument, NULL, 0}
         };
 
-        while ((opt = getopt_long(argc, argv, "vnbdi:c:", long_options, &optind)) != -1) {
+        while ((opt = getopt_long(argc, argv, "vnbdi:c:t", long_options, &optind)) != -1) {
                 switch (opt) {
                         case 'v':
                                 die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
@@ -207,8 +235,11 @@ int main(int argc, char *argv[]) {
 
                                 break;
                         }
+                        case 't':
+                                tiling = true;
+                                break;
                         default:
-                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color]\n");
+                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color] [-t]\n");
                 }
         }
 
@@ -241,19 +272,31 @@ int main(int argc, char *argv[]) {
         XDefineCursor(dpy, w, invisible);
         XMapRaised(dpy, w);
 
-        if(xpm_image && file_exists(xpm_image_path))
-        {
+        if (xpm_image && file_exists(xpm_image_path)) {
                 GC gc = XDefaultGC(dpy, 0);
                 int depth = DefaultDepth(dpy, screen);
                 int disp_width = DisplayWidth(dpy, screen);
                 int disp_height = DisplayHeight(dpy, screen);
                 Pixmap pix = XCreatePixmap(dpy, w, disp_width, disp_height, depth);
-                int err = XpmReadFileToPixmap(dpy, w, xpm_image_path, &pix, 0, 0);
+                XpmImage xpm_image;
+                XpmInfo xpm_info;
+
+                int err = XpmReadFileToXpmImage(xpm_image_path, &xpm_image, &xpm_info);
                 if (err != 0) {
                         print_xpm_error(err);
                         return 1;
                 }
-                XCopyArea(dpy, pix, w, gc, 0, 0, disp_width, disp_height, 0, 0);
+
+                err = XpmCreatePixmapFromXpmImage(dpy, w, &xpm_image, &pix, 0, 0);
+                if (err != 0) {
+                        print_xpm_error(err);
+                        return 1;
+                }
+
+                if (tiling)
+                    tiling_image(&xpm_image, disp_height, disp_width, dpy, pix, w, gc);
+                else
+                    XCopyArea(dpy, pix, w, gc, 0, 0, disp_width, disp_height, 0, 0);
         }
 
         for(len = 1000; len; len--) {

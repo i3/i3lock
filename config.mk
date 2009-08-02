@@ -13,7 +13,7 @@ MANDIR = $(DESTDIR)$(PREFIX)/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include -I${X11INC}
-LIBS = -L${X11LIB} -lX11 -lpam -lXext -lXpm
+LIBS = -L${X11LIB} -lX11 -lpam -lXext -lXpm -lm
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
