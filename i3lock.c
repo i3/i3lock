@@ -45,7 +45,6 @@ static void die(const char *errstr, ...) {
         exit(EXIT_FAILURE);
 }
 
-
 /*
  * Returns the colorpixel to use for the given hex color (think of HTML).
  *
@@ -197,13 +196,17 @@ int main(int argc, char *argv[]) {
                                 xpm_image = true;
                                 break;
                         case 'c':
-                                strncpy(color, optarg, 6);
-                                color[6] = 0;
+                        {
+                                char *arg = optarg;
+                                /* Skip # if present */
+                                if (arg[0] == '#')
+                                        arg++;
 
-                                char parsed_color[7];
-                                if (strlen(color) != 6 || sscanf(color, "%06[0-9a-fA-F]", parsed_color) != 1)
-                                    die("color is invalid, color must be given in 6-byte format: rrggbb\n");
+                                if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
+                                        die("color is invalid, color must be given in 6-byte format: rrggbb\n");
+
                                 break;
+                        }
                         default:
                                 die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color]\n");
                 }
