@@ -8,7 +8,7 @@
 .fi
 ..
 
-.TH i3lock 1 "JUNE 2009" Linux "User Manuals"
+.TH i3lock 1 "AUGUST 2009" Linux "User Manuals"
 
 .SH NAME
 i3lock \- slightly improved version of slock
@@ -38,9 +38,11 @@ improves slock by making it fork() and therefore combinable with
 commands to suspend your computer. Additionally, instead of turning off
 your screen via DPMS and/or displaying a black screen,
 .B i3lock
-displays a white screen so you can see if your computer failed to resume
-from suspend or if your screen is just locked. Also, when entering a wrong
-password,
+displays a white (or colored in your favorite color) screen so you can see
+if your computer failed to resume from suspend or if your screen is just
+locked. Since version 1.1,
+.B i3lock
+can display images in XPM file format. Also, when entering a wrong password,
 .B i3lock
 does not call XBell(). This is important because
 .B i3lock/slock
@@ -76,14 +78,17 @@ XPM by using convert(1) from ImageMagick or GIMP for example.
 
 .TP
 .B \-c, \-\-color
-Turns the screen into the given color instead of white. Color must be given in 6-byte format: rrggbb (i.e. ff0000 is red)
+Turns the screen into the given color instead of white. Color must be given in 6-byte
+format: rrggbb (i.e. ff0000 is red)
 
 .TP
-.B \-t, \-\-tiling
-If an image is specified (via -i) it will display the image tiled all over the screen (if it is a multi-monitor setup, the image is visible on all screens)
->>>>>>> adding option to enable tiling of images:i3lock.1
+.B \-t, \-\-tile
+If an image is specified (via -i) it will display the image tiled all over the screen
+(if it is a multi-monitor setup, the image is visible on all screens).
 
 .SH AUTHOR
 Michael Stapelberg <michael+i3lock at stapelberg dot de>
+
+Jan-Erik Rediger <badboy at archlinux.us>
 
 forked from slock-0.9 by Anselm R Garbe <garbeam at gmail dot com>

@@ -4,6 +4,7 @@
  * i3lock - an improved version of slock
  *
  * i3lock © 2009 Michael Stapelberg and contributors
+ * i3lock © 2009 Jan-Erik Rediger
  * slock  © 2006-2008 Anselm R Garbe
  *
  * See file LICENSE for license information.
@@ -32,6 +33,7 @@
 #include <X11/extensions/dpms.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include <err.h>
 
 #include <security/pam_appl.h>
 
@@ -43,32 +45,19 @@ static char passwd[256];
  * when using a multi monitor setup)
  *
  */
-void tiling_image(XpmImage *image,
-        int disp_height, int disp_width,
-        Display *dpy,
-        Pixmap pix,
-        Window w,
-        GC gc) {
-    int rows = (int)ceil(disp_height / (float)image->height),
-        cols = (int)ceil(disp_width / (float)image->width);
+static void tile_image(XpmImage *image, int disp_height, int disp_width,
+                       Display *dpy, Pixmap pix, Window w, GC gc)
+{
+        int rows = (int)ceil(disp_height / (float)image->height),
+            cols = (int)ceil(disp_width / (float)image->width);
 
-    int x = 0,
-        y = 0;
-
-    for(y = 0; y < rows; y++) {
-        for(x = 0; x < cols; x++) {
-            XCopyArea(dpy, pix, w, gc, 0, 0, image->width, image->height, image->width * x, image->height * y);
+        for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < cols; x++) {
+                        XCopyArea(dpy, pix, w, gc, 0, 0,
+                                  image->width, image->height,
+                                  image->width * x, image->height * y);
+                }
         }
-    }
-}
-
-static void die(const char *errstr, ...) {
-        va_list ap;
-
-        va_start(ap, errstr);
-        vfprintf(stderr, errstr, ap);
-        va_end(ap);
-        exit(EXIT_FAILURE);
 }
 
 /*
@@ -80,7 +69,7 @@ static void die(const char *errstr, ...) {
  * This has to be done by the caller.
  *
  */
-uint32_t get_colorpixel(char *hex) {
+static uint32_t get_colorpixel(char *hex) {
         char strgroups[3][3] = {{hex[0], hex[1], '\0'},
                                 {hex[2], hex[3], '\0'},
                                 {hex[4], hex[5], '\0'}};
@@ -95,7 +84,7 @@ uint32_t get_colorpixel(char *hex) {
  * Check if given file can be opened => exists
  *
  */
-bool file_exists(const char *filename)
+static bool file_exists(const char *filename)
 {
         FILE * file = fopen(filename, "r");
         if(file)
@@ -110,7 +99,7 @@ bool file_exists(const char *filename)
  * Puts the given XPM error code to stderr
  *
  */
-void print_xpm_error(int err)
+static void print_xpm_error(int err)
 {
         switch (err) {
                 case XpmColorError:
@@ -137,7 +126,8 @@ void print_xpm_error(int err)
  *
  */
 static int conv_callback(int num_msg, const struct pam_message **msg,
-                         struct pam_response **resp, void *appdata_ptr) {
+                         struct pam_response **resp, void *appdata_ptr)
+{
         if (num_msg == 0)
                 return 1;
 
@@ -163,7 +153,8 @@ static int conv_callback(int num_msg, const struct pam_message **msg,
         return 0;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
         char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
         char buf[32];
         char *username;
@@ -208,7 +199,7 @@ int main(int argc, char *argv[]) {
         while ((opt = getopt_long(argc, argv, "vnbdi:c:t", long_options, &optind)) != -1) {
                 switch (opt) {
                         case 'v':
-                                die("i3lock-"VERSION", © 2009 Michael Stapelberg\n"
+                                errx(0, "i3lock-"VERSION", © 2009 Michael Stapelberg\n"
                                     "based on slock, which is © 2006-2008 Anselm R Garbe\n");
                         case 'n':
                                 dont_fork = true;
@@ -231,7 +222,7 @@ int main(int argc, char *argv[]) {
                                         arg++;
 
                                 if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
-                                        die("color is invalid, color must be given in 6-byte format: rrggbb\n");
+                                        errx(1, "color is invalid, color must be given in 6-byte format: rrggbb\n");
 
                                 break;
                         }
@@ -239,19 +230,19 @@ int main(int argc, char *argv[]) {
                                 tiling = true;
                                 break;
                         default:
-                                die("i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color] [-t]\n");
+                                errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color] [-t]\n");
                 }
         }
 
         if ((username = getenv("USER")) == NULL)
-                die("USER environment variable not set, please set it.\n");
+                errx(1, "USER environment variable not set, please set it.\n");
 
         int ret = pam_start("i3lock", username, &conv, &handle);
         if (ret != PAM_SUCCESS)
-                die("PAM: %s\n", pam_strerror(handle, ret));
+                errx(1, "PAM: %s\n", pam_strerror(handle, ret));
 
         if(!(dpy = XOpenDisplay(0)))
-                die("i3lock: cannot open display\n");
+                errx(1, "i3lock: cannot open display\n");
         screen = DefaultScreen(dpy);
         root = RootWindow(dpy, screen);
 
@@ -294,9 +285,9 @@ int main(int argc, char *argv[]) {
                 }
 
                 if (tiling)
-                    tiling_image(&xpm_image, disp_height, disp_width, dpy, pix, w, gc);
+                        tile_image(&xpm_image, disp_height, disp_width, dpy, pix, w, gc);
                 else
-                    XCopyArea(dpy, pix, w, gc, 0, 0, disp_width, disp_height, 0, 0);
+                        XCopyArea(dpy, pix, w, gc, 0, 0, disp_width, disp_height, 0, 0);
         }
 
         for(len = 1000; len; len--) {
