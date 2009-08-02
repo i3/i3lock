@@ -1,3 +1,9 @@
+i3lock (1.1-1) unstable; urgency=low
+
+  * Implement background pictures (-i) and colors (-c)
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Sun, 02 Aug 2009 19:58:23 +0200
+
 i3lock (1.0-1) unstable; urgency=low
 
   * Implement PAM support
