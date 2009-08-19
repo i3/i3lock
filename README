@@ -12,7 +12,8 @@ i3lock was forked from slock-0.9
 
 Requirements
 ------------
-In order to build i3lock you need the Xlib header files.
+In order to build i3lock you need the Xlib header files and the PAM development
+headers (libpam-dev or similar).
 
 
 Installation
