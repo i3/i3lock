@@ -18,7 +18,7 @@ LIBS = -L${X11LIB} -lX11 -lpam -lXext -lXpm -lm
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
 CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
-LDFLAGS = -s ${LIBS}
+LDFLAGS = ${LIBS}
 
 # compiler and linker
 CC = cc
