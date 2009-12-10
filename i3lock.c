@@ -335,6 +335,9 @@ int main(int argc, char *argv[])
                 switch(ksym) {
                 case XK_Return:
                         passwd[len] = 0;
+                        /* Skip empty passwords */
+                        if (len == 0)
+                                continue;
                         if ((ret = pam_authenticate(handle, 0)) == PAM_SUCCESS)
                                 running = false;
                         else {
