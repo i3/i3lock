@@ -37,6 +37,8 @@
 
 #include <security/pam_appl.h>
 
+#include "cursors.h"
+
 static char passwd[256];
 
 /*
@@ -155,7 +157,6 @@ static int conv_callback(int num_msg, const struct pam_message **msg,
 
 int main(int argc, char *argv[])
 {
-        char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
         char buf[32];
         char *username;
         int num, screen;
@@ -171,12 +172,18 @@ int main(int argc, char *argv[])
         bool tiling = false;
         char xpm_image_path[256];
         char color[7] = "ffffff"; // white
-        Cursor invisible;
+
+        unsigned char *curs = NULL;
+        unsigned char *mask = NULL;
+        unsigned int curs_w, curs_h;
+
+        Cursor cursor;
         Display *dpy;
         KeySym ksym;
-        Pixmap pmap;
+        Pixmap px_curs;
+        Pixmap px_mask;
         Window root, w;
-        XColor black, dummy;
+        XColor black, white, dummy;
         XEvent ev;
         XSetWindowAttributes wa;
 
@@ -193,10 +200,15 @@ int main(int argc, char *argv[])
                 {"image", required_argument, NULL, 'i'},
                 {"color", required_argument, NULL, 'c'},
                 {"tiling", no_argument, NULL, 't'},
+                {"pointer", required_argument, NULL , 'p'},
                 {NULL, no_argument, NULL, 0}
         };
+        curs = curs_invisible_bits;
+        mask = curs_invisible_bits;
+        curs_w = curs_invisible_width;
+        curs_h = curs_invisible_height;
 
-        while ((opt = getopt_long(argc, argv, "vnbdi:c:t", long_options, &optind)) != -1) {
+        while ((opt = getopt_long(argc, argv, "vnbdi:c:tp:", long_options, &optind)) != -1) {
                 switch (opt) {
                         case 'v':
                                 errx(0, "i3lock-"VERSION", © 2009 Michael Stapelberg\n"
@@ -229,8 +241,21 @@ int main(int argc, char *argv[])
                         case 't':
                                 tiling = true;
                                 break;
+                        case 'p':
+                                if (!strcmp(optarg, "default")) {
+                                        curs = NULL;
+                                        break;
+                                }
+                                if (!strcmp(optarg, "win")) {
+                                        curs = curs_windows_bits;
+                                        mask = mask_windows_bits;
+                                        curs_w = curs_windows_width;
+                                        curs_h = curs_windows_height;
+                                        break;
+                                }
+                                break;
                         default:
-                                errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color] [-t]\n");
+                                errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.xpm] [-c color] [-t] [-p win|default]\n");
                 }
         }
 
@@ -258,9 +283,17 @@ int main(int argc, char *argv[])
                         0, DefaultDepth(dpy, screen), CopyFromParent,
                         DefaultVisual(dpy, screen), CWOverrideRedirect | CWBackPixel, &wa);
         XAllocNamedColor(dpy, DefaultColormap(dpy, screen), "black", &black, &dummy);
-        pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
-        invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
-        XDefineCursor(dpy, w, invisible);
+        XAllocNamedColor(dpy, DefaultColormap(dpy, screen), "white", &white, &dummy);
+        if (curs != NULL) {
+                px_curs = XCreateBitmapFromData(dpy, w, (char*) curs, curs_w, curs_h);
+                px_mask = XCreateBitmapFromData(dpy, w, (char*) mask, curs_w, curs_h);
+                cursor = XCreatePixmapCursor(dpy, px_curs, px_mask, &white, &black, 0, 0);
+                XDefineCursor(dpy, w, cursor);
+        } else {
+                px_curs = 0;
+                px_mask = 0;
+                cursor = 0;
+        }
         XMapRaised(dpy, w);
 
         if (xpm_image && file_exists(xpm_image_path)) {
@@ -292,7 +325,7 @@ int main(int argc, char *argv[])
 
         for(len = 1000; len; len--) {
                 if(XGrabPointer(dpy, root, False, ButtonPressMask | ButtonReleaseMask,
-                        GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
+                        GrabModeAsync, GrabModeAsync, None, cursor, CurrentTime) == GrabSuccess)
                         break;
                 usleep(1000);
         }
@@ -362,8 +395,12 @@ int main(int argc, char *argv[])
                         break;
                 }
         }
+
         XUngrabPointer(dpy, CurrentTime);
-        XFreePixmap(dpy, pmap);
+        if (px_curs != 0) {
+                XFreePixmap(dpy, px_curs);
+                XFreePixmap(dpy, px_mask);
+        }
         XDestroyWindow(dpy, w);
         XCloseDisplay(dpy);
         return 0;
