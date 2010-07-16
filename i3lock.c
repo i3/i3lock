@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/dpms.h>
-#include <xcb/xcb_image.h>
 #include <xcb/xcb_keysyms.h>
 #include <err.h>
 #include <cairo.h>
