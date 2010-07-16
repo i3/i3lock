@@ -1,3 +1,9 @@
+i3lock (2.0-0) unstable; urgency=low
+
+  * Complete rewrite of i3lock. Now using xcb instead of Xlib.
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Fri, 16 Jul 2010 18:08:09 +0200
+
 i3lock (1.1-1) unstable; urgency=low
 
   * Implement background pictures (-i) and colors (-c)

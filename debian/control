@@ -3,7 +3,7 @@ Section: utils
 Priority: extra
 Maintainer: Michael Stapelberg <michael@stapelberg.de>
 DM-Upload-Allowed: yes
-Build-Depends: debhelper (>= 5), libx11-dev, libpam0g-dev, libxext-dev, libxpm-dev
+Build-Depends: debhelper (>= 5), libx11-dev, libpam0g-dev, libcairo2-dev, libxcb1-dev, libxcb-dpms0-dev, libxcb-keysyms1-dev
 Standards-Version: 3.8.2
 Homepage: http://i3.zekjur.net/i3lock/
 
@@ -12,11 +12,16 @@ Architecture: any
 Priority: extra
 Section: x11
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: a slightly improved version of slock
- i3lock improves slock by making it fork() and therefore combinable with
- commands to suspend your computer. Additionally, instead of turning off
- your screen via DPMS and/or displaying a black screen, i3lock displays a
- white screen so you can see if your computer failed to resume from suspend
- or if your screen is just locked. Also, when entering a wrong password,
- i3lock does not call XBell(). This is important because i3lock/slock think
- you've entered a password when resuming from suspend, at least sometimes.
+Description: improved screen locker
+ i3lock is a simple screen locker like slock. After starting it, you will
+ see a white screen (you can configure the color/an image). You can return
+ to your screen by entering your passwords.
+ .
+ i3lock forks so you can combine it with an alias to suspend to RAM.
+ .
+ You can specify either a background color or a PNG image which will be
+ displayed while your screen is locked.
+ .
+ You can specify whether i3lock should bell upon a wrong password.
+ .
+ i3lock uses PAM and therefore is compatible with LDAP etc.

@@ -10,8 +10,8 @@ Many little improvements have been made to i3lock over time:
   (run "i3lock && echo mem > /sys/power/state" to get a locked screen
    after waking up your computer from suspend to RAM)
 
-- You can either a background color or a PNG image which will be displayed
-  while your screen is locked.
+- You can specify either a background color or a PNG image which will be
+  displayed while your screen is locked.
 
 - You can specify whether i3lock should bell upon a wrong password.
 
