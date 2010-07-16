@@ -8,10 +8,10 @@
 .fi
 ..
 
-.TH i3lock 1 "AUGUST 2009" Linux "User Manuals"
+.TH i3lock 1 "JULY 2010" Linux "User Manuals"
 
 .SH NAME
-i3lock \- slightly improved version of slock
+i3lock \- improved screen locker
 
 .SH SYNOPSIS
 .B i3lock
@@ -20,7 +20,7 @@ i3lock \- slightly improved version of slock
 .RB [\|\-b\|]
 .RB [\|\-d\|]
 .RB [\|\-i
-.IR image.xpm \|]
+.IR image.png \|]
 .RB [\|\-c
 .IR color \|]
 .RB [\|\-t\|]
@@ -29,28 +29,24 @@ i3lock \- slightly improved version of slock
 
 .SH DESCRIPTION
 .B i3lock
-locks your screen by making it white (default). To quit
-.B i3lock
-just enter your password.
+is a simple screen locker like slock. After starting it, you will see a white
+screen (you can configure the color/an image). You can return to your screen by
+entering your passwords.
 
-.SH DIFFERENCES TO SLOCK
+.SH IMPROVEMENTS
 
-.B i3lock
-improves slock by making it fork() and therefore combinable with
-commands to suspend your computer. Additionally, instead of turning off
-your screen via DPMS and/or displaying a black screen,
-.B i3lock
-displays a white (or colored in your favorite color) screen so you can see
-if your computer failed to resume from suspend or if your screen is just
-locked. Since version 1.1,
-.B i3lock
-can display images in XPM file format. Also, when entering a wrong password,
-.B i3lock
-does not call XBell(). This is important because
-.B i3lock/slock
-think you've entered a password when resuming from suspend, at least sometimes.
+.TP
+* i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen after waking up your computer from suspend to RAM)
 
-Since version 1.0, i3lock supports PAM.
+.TP
+* You can either a background color or a PNG image which will be displayed while your screen is locked.
+
+.TP
+* You can specify whether i3lock should bell upon a wrong password.
+
+.TP
+* i3lock uses PAM and therefore is compatible with LDAP etc.
+
 
 .SH OPTIONS
 .TP
@@ -101,5 +97,3 @@ friends by using a Screenshot of a Windows-Desktop as a locking-screen).
 Michael Stapelberg <michael+i3lock at stapelberg dot de>
 
 Jan-Erik Rediger <badboy at archlinux.us>
-
-forked from slock-0.9 by Anselm R Garbe <garbeam at gmail dot com>
