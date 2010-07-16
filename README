@@ -1,31 +1,28 @@
-i3lock - slightly improved screen locker based on slock
-============================
-i3lock improves slock by making it fork() and therefore combinable with
-commands to suspend your computer. Additionally, instead of turning off
-your screen via DPMS and/or displaying a black screen, i3lock displays a
-white screen so you can see if your computer failed to resume from suspend
-or if your screen is just locked. Also, when entering a wrong password,
-i3lock does not call XBell(). This is important because i3lock/slock think
-you’ve entered a password when resuming from suspend, at least sometimes.
+i3lock - improved screen locker
+===============================
+i3lock is a simple screen locker like slock. After starting it, you will
+see a white screen (you can configure the color/an image). You can return
+to your screen by entering your passwords.
 
-i3lock was forked from slock-0.9
+Many little improvements have been made to i3lock over time:
+
+- i3lock forks, so you can combine it with an alias to suspend to RAM
+  (run "i3lock && echo mem > /sys/power/state" to get a locked screen
+   after waking up your computer from suspend to RAM)
+
+- You can either a background color or a PNG image which will be displayed
+  while your screen is locked.
+
+- You can specify whether i3lock should bell upon a wrong password.
+
+- i3lock uses PAM and therefore is compatible with LDAP etc.
 
 Requirements
 ------------
-In order to build i3lock you need the Xlib header files and the PAM development
-headers (libpam-dev or similar).
-
-
-Installation
-------------
-Edit config.mk to match your local setup (slock is installed into
-the /usr/local namespace by default).
-
-Afterwards enter the following command to build and install slock
-(if necessary as root):
-
-    make clean install
-
+- libxcb
+- libxcb-util
+- libpam-dev
+- libcairo-dev
 
 Running i3lock
 -------------
