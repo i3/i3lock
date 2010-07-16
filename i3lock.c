@@ -174,7 +174,7 @@ static int conv_callback(int num_msg, const struct pam_message **msg,
     if (num_msg == 0)
         return 1;
 
-    /* PAM expects an arry of responses, one for each message */
+    /* PAM expects an array of responses, one for each message */
     if ((*resp = calloc(num_msg, sizeof(struct pam_message))) == NULL) {
         perror("calloc");
         return 1;
