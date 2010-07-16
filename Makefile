@@ -1,51 +1,37 @@
-# slock - simple screen locker
-# © 2006-2007 Anselm R. Garbe, Sander van Dijk
-# © 2009 Michael Stapelberg
+INSTALL=install
+PREFIX=/usr
 
-include config.mk
+# Check if pkg-config is installed, we need it for building CFLAGS/LDFLAGS
+ifeq ($(shell which pkg-config 2>/dev/null 1>/dev/null || echo 1),1)
+$(error "pkg-config was not found")
+endif
 
-SRC = i3lock.c
-OBJ = ${SRC:.c=.o}
+CFLAGS += -std=c99
+CFLAGS += -pipe
+CFLAGS += -Wall
+CFLAGS += -D_GNU_SOURCE
+CFLAGS += $(shell pkg-config --cflags cairo xcb-keysyms xcb-dpms)
+LDFLAGS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms)
+LDFLAGS += -lpam
 
-all: options i3lock
+FILES:=$(wildcard *.c)
+FILES:=$(FILES:.c=.o)
 
-options:
-	@echo i3lock build options:
-	@echo "CFLAGS   = ${CFLAGS}"
-	@echo "LDFLAGS  = ${LDFLAGS}"
-	@echo "CC       = ${CC}"
+VERSION:=$(shell git describe --tags --abbrev=0)
 
-.c.o:
-	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
+.PHONY: install clean uninstall
 
-${OBJ}: config.mk
+all: i3lock
 
-i3lock: ${OBJ}
-	@echo CC -o $@
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+i3lock: ${FILES}
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 clean:
-	@echo cleaning
-	@rm -f i3lock ${OBJ} i3lock-${VERSION}.tar.gz
-
-dist: clean
-	@echo creating dist tarball
-	@mkdir -p i3lock-${VERSION}
-	@cp -R LICENSE Makefile README config.mk i3lock.1 ${SRC} i3lock-${VERSION}
-	@tar -cf i3lock-${VERSION}.tar i3lock-${VERSION}
-	@gzip i3lock-${VERSION}.tar
-	@rm -rf i3lock-${VERSION}
+	rm -f i3lock ${FILES} i3lock-${VERSION}.tar.gz
 
 install: all
-	@echo installing executable file to $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
-	$(INSTALL) -d $(MANDIR)/man1
 	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
-	$(INSTALL) -m 644 i3lock.1 $(MANDIR)/man1/i3lock.1
 
 uninstall:
-	@echo removing executable file from $(DESTDIR)$(PREFIX)/bin
-	@rm -f $(DESTDIR)$(PREFIX)/bin/i3lock
-
-.PHONY: all options clean dist install uninstall
+	rm -f $(DESTDIR)$(PREFIX)/bin/i3lock
