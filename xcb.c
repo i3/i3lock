@@ -9,6 +9,7 @@
  */
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/xcb_image.h>
 #include <xcb/dpms.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +17,8 @@
 #include <unistd.h>
 #include <assert.h>
 #include <err.h>
+
+#include "cursors.h"
 
 static uint32_t get_colorpixel(char *hex) {
     char strgroups[3][3] = {{hex[0], hex[1], '\0'},
@@ -132,7 +135,7 @@ void dpms_turn_off_screen(xcb_connection_t *conn) {
  * Repeatedly tries to grab pointer and keyboard (up to 1000 times).
  *
  */
-void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
+void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb_cursor_t cursor) {
     xcb_grab_pointer_cookie_t pcookie;
     xcb_grab_pointer_reply_t *preply;
 
@@ -150,7 +153,7 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
             XCB_GRAB_MODE_ASYNC, /* pointer events should continue as normal */
             XCB_GRAB_MODE_ASYNC, /* keyboard mode */
             XCB_NONE,            /* confine_to = in which window should the cursor stay */
-            XCB_NONE,            /* don’t display a special cursor */
+            cursor,              /* we change the cursor to whatever the user wanted */
             XCB_CURRENT_TIME
         );
 
@@ -163,6 +166,9 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
         /* Make this quite a bit slower */
         usleep(50);
     }
+
+    if (cursor != XCB_NONE)
+        xcb_free_cursor(conn, cursor);
 
     while (tries-- > 0) {
         kcookie = xcb_grab_keyboard(
@@ -186,4 +192,67 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
 
     if (tries <= 0)
         errx(EXIT_FAILURE, "Cannot grab pointer/keyboard");
+}
+
+xcb_cursor_t create_cursor(xcb_connection_t *conn, xcb_screen_t *screen, xcb_window_t win, int choice) {
+    xcb_pixmap_t bitmap;
+    xcb_pixmap_t mask;
+    xcb_cursor_t cursor;
+
+    unsigned char* curs_bits;
+    unsigned char* mask_bits;
+    int curs_w, curs_h;
+
+    switch (choice) {
+        case CURS_NONE:
+            curs_bits = curs_invisible_bits;
+            mask_bits = curs_invisible_bits;
+            curs_w = curs_invisible_width;
+            curs_h = curs_invisible_height;
+            break;
+        case CURS_WIN:
+            curs_bits = curs_windows_bits;
+            mask_bits = mask_windows_bits;
+            curs_w = curs_windows_width;
+            curs_h = curs_windows_height;
+            break;
+        case CURS_DEFAULT:
+        default:
+            return XCB_NONE; /* XCB_NONE is xcb's way of saying "don't change the cursor" */
+    }
+
+    bitmap = xcb_create_pixmap_from_bitmap_data(conn,
+                                                win,
+                                                curs_bits,
+                                                curs_w,
+                                                curs_h,
+                                                1,
+                                                screen->white_pixel,
+                                                screen->black_pixel,
+                                                NULL);
+
+    mask = xcb_create_pixmap_from_bitmap_data(conn,
+                                              win,
+                                              mask_bits,
+                                              curs_w,
+                                              curs_h,
+                                              1,
+                                              screen->white_pixel,
+                                              screen->black_pixel,
+                                              NULL);
+
+    cursor = xcb_generate_id(conn);
+
+    xcb_create_cursor(conn,
+                      cursor,
+                      bitmap,
+                      mask,
+                      65535,65535,65535,
+                      0,0,0,
+                      0,0);
+
+    xcb_free_pixmap(conn, bitmap);
+    xcb_free_pixmap(conn, mask);
+
+    return cursor;
 }

@@ -11,7 +11,7 @@ CFLAGS += -pipe
 CFLAGS += -Wall
 CFLAGS += -D_GNU_SOURCE
 CFLAGS += $(shell pkg-config --cflags cairo xcb-keysyms xcb-dpms)
-LDFLAGS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms)
+LDFLAGS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms xcb-image)
 LDFLAGS += -lpam
 
 FILES:=$(wildcard *.c)

@@ -27,6 +27,7 @@
 #include "keysym2ucs.h"
 #include "ucs2_to_utf8.h"
 #include "xcb.h"
+#include "cursors.h"
 
 static xcb_connection_t *conn;
 static xcb_key_symbols_t *symbols;
@@ -230,6 +231,8 @@ int main(int argc, char *argv[]) {
     xcb_generic_event_t *event;
     xcb_screen_t *scr;
     xcb_window_t win;
+    xcb_cursor_t cursor;
+    int curs_choice = CURS_NONE;
     char o;
     int optind = 0;
     struct option longopts[] = {
@@ -279,7 +282,12 @@ int main(int argc, char *argv[]) {
             /* TODO: tile image */
             break;
         case 'p':
-            /* TODO: cursor */
+            if (!strcmp(optarg, "win")) {
+                curs_choice = CURS_WIN;
+            }
+            if (!strcmp(optarg, "default")) {
+                curs_choice = CURS_DEFAULT;
+            }
             break;
         default:
             errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.png] [-c color] [-t] [-p win|default]\n");
@@ -319,7 +327,9 @@ int main(int argc, char *argv[]) {
      * ready to handle the expose event immediately afterwards) */
     win = open_fullscreen_window(conn, scr, color);
 
-    grab_pointer_and_keyboard(conn, scr);
+    cursor = create_cursor(conn, scr, win, curs_choice);
+
+    grab_pointer_and_keyboard(conn, scr, cursor);
 
     if (image_path)
         img = cairo_image_surface_create_from_png(image_path);
