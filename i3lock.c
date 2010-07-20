@@ -164,6 +164,25 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 }
 
 /*
+ * A visibility notify event will be received when the visibility (= can the
+ * user view the complete window) changes, so for example when a popup overlays
+ * some area of the i3lock window.
+ *
+ * In this case, we raise our window on top so that the popup (or whatever is
+ * hiding us) gets hidden.
+ *
+ */
+void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
+    printf("visibility notify (window 0x%08x, state %d)\n", event->window, event->state);
+    if (event->state != XCB_VISIBILITY_UNOBSCURED) {
+        printf("window is obscured (not fully visible), raising\n");
+        uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+        xcb_configure_window(conn, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
+        xcb_flush(conn);
+    }
+}
+
+/*
  * Callback function for PAM. We only react on password request callbacks.
  *
  */
@@ -348,6 +367,11 @@ int main(int argc, char *argv[]) {
             if (dpms && input_position == 0)
                 dpms_turn_off_screen(conn);
 
+            continue;
+        }
+
+        if (type == XCB_VISIBILITY_NOTIFY) {
+            handle_visibility_notify((xcb_visibility_notify_event_t*)event);
             continue;
         }
 

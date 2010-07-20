@@ -62,7 +62,10 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
     values[1] = 1;
 
     mask |= XCB_CW_EVENT_MASK;
-    values[2] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
+    values[2] = XCB_EVENT_MASK_EXPOSURE |
+                XCB_EVENT_MASK_KEY_PRESS |
+                XCB_EVENT_MASK_KEY_RELEASE |
+                XCB_EVENT_MASK_VISIBILITY_CHANGE;
 
     xcb_create_window(conn,
                       24,
