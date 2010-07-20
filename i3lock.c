@@ -17,6 +17,7 @@
 #include <xcb/xcb_keysyms.h>
 #include <err.h>
 #include <cairo.h>
+#include <cairo/cairo-xcb.h>
 #include <assert.h>
 #include <security/pam_appl.h>
 /* FIXME: can we get rid of this header? */
