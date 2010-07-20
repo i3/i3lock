@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <assert.h>
 #include <err.h>
 
@@ -138,7 +139,7 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
     xcb_grab_keyboard_cookie_t kcookie;
     xcb_grab_keyboard_reply_t *kreply;
 
-    int tries = 1000;
+    int tries = 10000;
 
     while (tries-- > 0) {
         pcookie = xcb_grab_pointer(
@@ -158,6 +159,9 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
             free(preply);
             break;
         }
+
+        /* Make this quite a bit slower */
+        usleep(50);
     }
 
     while (tries-- > 0) {
@@ -175,6 +179,9 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
             free(kreply);
             break;
         }
+
+        /* Make this quite a bit slower */
+        usleep(50);
     }
 
     if (tries <= 0)
