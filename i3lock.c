@@ -75,14 +75,14 @@ static void handle_expose_event() {
  *
  */
 static void handle_key_release(xcb_key_release_event_t *event) {
-    printf("releasing %d, state raw = %d\n", event->detail, event->state);
+    //printf("releasing %d, state raw = %d\n", event->detail, event->state);
 
     /* fix state */
     event->state &= ~numlockmask;
 
     xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, event->state);
     if (sym == XK_Mode_switch) {
-        printf("Mode switch disabled\n");
+        //printf("Mode switch disabled\n");
         modeswitch_active = false;
     }
 }
@@ -94,7 +94,7 @@ static void handle_key_release(xcb_key_release_event_t *event) {
  *
  */
 static void handle_key_press(xcb_key_press_event_t *event) {
-    printf("keypress %d, state raw = %d\n", event->detail, event->state);
+    //printf("keypress %d, state raw = %d\n", event->detail, event->state);
 
     /* fix state */
     if (modeswitch_active)
@@ -111,7 +111,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, event->state);
     switch (sym) {
     case XK_Mode_switch:
-        printf("Mode switch enabled\n");
+        //printf("Mode switch enabled\n");
         modeswitch_active = true;
         return;
 
@@ -133,6 +133,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         return;
     }
 
+#if 0
     /* FIXME: handle all of these? */
     printf("is_keypad_key = %d\n", xcb_is_keypad_key(sym));
     printf("is_private_keypad_key = %d\n", xcb_is_private_keypad_key(sym));
@@ -141,11 +142,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     printf("xcb_is_function_key = %d\n", xcb_is_function_key(sym));
     printf("xcb_is_misc_function_key = %d\n", xcb_is_misc_function_key(sym));
     printf("xcb_is_modifier_key = %d\n", xcb_is_modifier_key(sym));
+#endif
 
     if (xcb_is_modifier_key(sym) || xcb_is_cursor_key(sym))
             return;
 
-    printf("sym = %c (%d)\n", sym, sym);
+    //printf("sym = %c (%d)\n", sym, sym);
 
     /* convert the keysym to UCS */
     uint16_t ucs = keysym2ucs(sym);
@@ -160,7 +162,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     /* store it in the password array as UTF-8 */
     input_position += convert_ucs_to_utf8((char*)inp, password + input_position);
     password[input_position] = '\0';
-    printf("current password = %s\n", password);
+    //printf("current password = %s\n", password);
 }
 
 /*
