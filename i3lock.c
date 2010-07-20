@@ -324,7 +324,11 @@ int main(int argc, char *argv[]) {
         dpms_turn_off_screen(conn);
 
     while ((event = xcb_wait_for_event(conn))) {
-        int type = x_event_type(event);
+        if (event->response_type == 0)
+            errx(1, "XCB: Invalid event received");
+
+        /* Strip off the highest bit (set if the event is generated) */
+        int type = (event->response_type & 0x7F);
 
         if (type == XCB_EXPOSE) {
             handle_expose_event();

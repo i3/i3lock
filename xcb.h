@@ -3,7 +3,6 @@
 
 #include <xcb/xcb.h>
 
-int x_event_type(xcb_generic_event_t *event);
 xcb_visualtype_t *get_root_visual_type(xcb_screen_t *s);
 xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color);
 void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen);

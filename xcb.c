@@ -27,23 +27,6 @@ static uint32_t get_colorpixel(char *hex) {
     return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
 }       
 
-int x_event_type(xcb_generic_event_t *event) {
-    /* TODO: comment */
-    assert(event->response_type != 1);
-
-    if (event->response_type == 0) {
-        fprintf(stderr, "error\n");
-        exit(1);
-    }
-    int type = event->response_type;
-    assert(type < 256);
-    /* strip the highest bit (TODO: why?) */
-    type &= 0x7F;
-    assert(type >= 2);
-
-    return type;
-}
-
 xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     xcb_visualtype_t *visual_type = NULL;
     xcb_depth_iterator_t depth_iter;
