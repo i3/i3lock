@@ -32,7 +32,9 @@
 
 static xcb_connection_t *conn;
 static xcb_key_symbols_t *symbols;
+static cairo_surface_t *img = NULL;
 static cairo_t *ctx = NULL;
+static xcb_screen_t *scr;
 static pam_handle_t *pam_handle;
 static int input_position = 0;
 /* holds the password you enter (in UTF-8) */
@@ -41,6 +43,7 @@ static bool modeswitch_active = false;
 static int modeswitchmask;
 static int numlockmask;
 static bool beep = false;
+static bool tile = false;
 
 static void input_done() {
     if (input_position == 0)
@@ -67,7 +70,19 @@ static void handle_expose_event() {
     if (!ctx)
         return;
 
-    cairo_paint(ctx);
+    if (tile) {
+        /* create a pattern and fill a rectangle as big as the screen */
+        cairo_pattern_t *pattern;
+        pattern = cairo_pattern_create_for_surface(img);
+        cairo_set_source(ctx, pattern);
+        cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+        cairo_rectangle(ctx, 0, 0, scr->width_in_pixels, scr->height_in_pixels);
+        cairo_fill(ctx);
+    } else {
+        /* otherwise, just paint the image */
+        cairo_paint(ctx);
+    }
+
     xcb_flush(conn);
 }
 
@@ -227,10 +242,8 @@ int main(int argc, char *argv[]) {
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int screen;
-    cairo_surface_t *img = NULL;
     xcb_visualtype_t *vistype;
     xcb_generic_event_t *event;
-    xcb_screen_t *scr;
     xcb_window_t win;
     xcb_cursor_t cursor;
     int curs_choice = CURS_NONE;
@@ -280,7 +293,7 @@ int main(int argc, char *argv[]) {
             break;
         }
         case 't':
-            /* TODO: tile image */
+            tile = true;
             break;
         case 'p':
             if (!strcmp(optarg, "win")) {
@@ -345,9 +358,9 @@ int main(int argc, char *argv[]) {
         cairo_surface_t *output;
         output = cairo_xcb_surface_create(conn, win, vistype,
                  scr->width_in_pixels, scr->height_in_pixels);
-        /* TODO: tiling of the image */
         ctx = cairo_create(output);
-        cairo_set_source_surface(ctx, img, 0, 0);
+        if (!tile)
+            cairo_set_source_surface(ctx, img, 0, 0);
 
         handle_expose_event();
     }
