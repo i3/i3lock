@@ -177,6 +177,6 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen) {
         }
     }
 
-    if (tries == 0)
+    if (tries <= 0)
         errx(EXIT_FAILURE, "Cannot grab pointer/keyboard");
 }
