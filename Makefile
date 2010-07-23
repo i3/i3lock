@@ -18,6 +18,8 @@ FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
 
 VERSION:=$(shell git describe --tags --abbrev=0)
+GIT_VERSION:="$(shell git describe --tags --always) ($(shell git log --pretty=format:%cd --date=short -n1))"
+CFLAGS += -DVERSION=\"${GIT_VERSION}\"
 
 .PHONY: install clean uninstall
 

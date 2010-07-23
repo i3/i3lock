@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
     while ((o = getopt_long(argc, argv, "vnbdi:c:tp:", longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
-            errx(EXIT_SUCCESS, "i3lock © 2010 Michael Stapelberg\n");
+            errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg\n");
         case 'n':
             dont_fork = true;
             break;
