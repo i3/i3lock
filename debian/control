@@ -3,8 +3,8 @@ Section: utils
 Priority: extra
 Maintainer: Michael Stapelberg <michael@stapelberg.de>
 DM-Upload-Allowed: yes
-Build-Depends: debhelper (>= 5), libx11-dev, libpam0g-dev, libcairo2-dev, libxcb1-dev, libxcb-dpms0-dev, libxcb-keysyms1-dev, libxcb-image0-dev
-Standards-Version: 3.8.2
+Build-Depends: debhelper (>= 7), libx11-dev, libpam0g-dev, libcairo2-dev, libxcb1-dev, libxcb-dpms0-dev, libxcb-keysyms1-dev, libxcb-image0-dev
+Standards-Version: 3.9.1
 Homepage: http://i3.zekjur.net/i3lock/
 
 Package: i3lock

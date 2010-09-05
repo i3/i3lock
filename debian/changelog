@@ -1,8 +1,10 @@
-i3lock (2.0-0) unstable; urgency=low
+i3lock (2.0-1) unstable; urgency=low
 
   * Complete rewrite of i3lock. Now using xcb instead of Xlib.
+  * When a window obscures i3lock, it pushes itself back to the top again.
+  * Display version when starting with -v
 
- -- Michael Stapelberg <michael@stapelberg.de>  Fri, 16 Jul 2010 18:08:09 +0200
+ -- Michael Stapelberg <michael@stapelberg.de>  Sun, 05 Sep 2010 11:34:19 +0200
 
 i3lock (1.1-1) unstable; urgency=low
 

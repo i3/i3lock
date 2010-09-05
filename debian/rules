@@ -25,11 +25,10 @@ clean:
 	dh_testdir
 	dh_testroot
 	rm -f build
-
-	# Add here commands to clean up after the build process.
-	[ ! -f Makefile ] || $(MAKE) clean 
-
+	$(MAKE) clean
 	dh_prep
+	rm -f debian/files
+	rm -f debian/i3lock.debhelper.log
 
 install: build
 	dh_testdir
