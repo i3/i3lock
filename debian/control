@@ -1,6 +1,6 @@
 Source: i3lock
 Section: utils
-Priority: extra
+Priority: optional
 Maintainer: Michael Stapelberg <michael@stapelberg.de>
 DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 7), libx11-dev, libpam0g-dev, libcairo2-dev, libxcb1-dev, libxcb-dpms0-dev, libxcb-keysyms1-dev, libxcb-image0-dev
@@ -9,7 +9,7 @@ Homepage: http://i3.zekjur.net/i3lock/
 
 Package: i3lock
 Architecture: any
-Priority: extra
+Priority: optional
 Section: x11
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: improved screen locker
