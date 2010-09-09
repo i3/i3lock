@@ -146,7 +146,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         /* decrement input_position to point to the previous glyph */
         u8_dec(password, &input_position);
         password[input_position] = '\0';
-        printf("new input position = %d, new password = %s\n", input_position, password);
+        //printf("new input position = %d, new password = %s\n", input_position, password);
         return;
     }
 
