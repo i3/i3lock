@@ -16,14 +16,17 @@
 #include <xcb/dpms.h>
 #include <xcb/xcb_keysyms.h>
 #include <err.h>
-#include <cairo.h>
-#include <cairo/cairo-xcb.h>
 #include <assert.h>
 #include <security/pam_appl.h>
 /* FIXME: can we get rid of this header? */
 #include <X11/keysym.h>
 #include <getopt.h>
 #include <string.h>
+
+#ifndef NOLIBCAIRO
+#include <cairo.h>
+#include <cairo/cairo-xcb.h>
+#endif
 
 #include "keysym2ucs.h"
 #include "ucs2_to_utf8.h"
@@ -32,8 +35,6 @@
 
 static xcb_connection_t *conn;
 static xcb_key_symbols_t *symbols;
-static cairo_surface_t *img = NULL;
-static cairo_t *ctx = NULL;
 static xcb_screen_t *scr;
 static pam_handle_t *pam_handle;
 static int input_position = 0;
@@ -43,7 +44,12 @@ static bool modeswitch_active = false;
 static int modeswitchmask;
 static int numlockmask;
 static bool beep = false;
+
+#ifndef NOLIBCAIRO
+static cairo_surface_t *img = NULL;
+static cairo_t *ctx = NULL;
 static bool tile = false;
+#endif
 
 static void input_done() {
     if (input_position == 0)
@@ -67,6 +73,7 @@ static void input_done() {
  *
  */
 static void handle_expose_event() {
+#ifndef NOLIBCAIRO
     if (!ctx)
         return;
 
@@ -82,7 +89,7 @@ static void handle_expose_event() {
         /* otherwise, just paint the image */
         cairo_paint(ctx);
     }
-
+#endif
     xcb_flush(conn);
 }
 
@@ -238,7 +245,9 @@ int main(int argc, char *argv[]) {
     bool dpms = false;
     char color[7] = "ffffff";
     char *username;
+#ifndef NOLIBCAIRO
     char *image_path = NULL;
+#endif
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int screen;
@@ -254,17 +263,23 @@ int main(int argc, char *argv[]) {
         {"nofork", no_argument, NULL, 'n'},
         {"beep", no_argument, NULL, 'b'},
         {"dpms", no_argument, NULL, 'd'},
-        {"image", required_argument, NULL, 'i'},
         {"color", required_argument, NULL, 'c'},
-        {"tiling", no_argument, NULL, 't'},
         {"pointer", required_argument, NULL , 'p'},
+#ifndef NOLIBCAIRO
+        {"image", required_argument, NULL, 'i'},
+        {"tiling", no_argument, NULL, 't'},
+#endif
         {NULL, no_argument, NULL, 0}
     };
 
     if ((username = getenv("USER")) == NULL)
         errx(1, "USER environment variable not set, please set it.\n");
 
-    while ((o = getopt_long(argc, argv, "vnbdi:c:tp:", longopts, &optind)) != -1) {
+    while ((o = getopt_long(argc, argv, "vnbdc:p:"
+#ifndef NOLIBCAIRO
+        "i:t"
+#endif
+        , longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
             errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg\n");
@@ -276,9 +291,6 @@ int main(int argc, char *argv[]) {
             break;
         case 'd':
             dpms = true;
-            break;
-        case 'i':
-            image_path = strdup(optarg);
             break;
         case 'c': {
             char *arg = optarg;
@@ -292,9 +304,14 @@ int main(int argc, char *argv[]) {
 
             break;
         }
+#ifndef NOLIBCAIRO
+        case 'i':
+            image_path = strdup(optarg);
+            break;
         case 't':
             tile = true;
             break;
+#endif
         case 'p':
             if (!strcmp(optarg, "win")) {
                 curs_choice = CURS_WIN;
@@ -304,7 +321,11 @@ int main(int argc, char *argv[]) {
             }
             break;
         default:
-            errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-i image.png] [-c color] [-t] [-p win|default]\n");
+            errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-p win|default]"
+#ifndef NOLIBCAIRO
+            " [-i image.png] [-t]"
+#endif
+            "\n");
         }
     }
 
@@ -345,13 +366,13 @@ int main(int argc, char *argv[]) {
 
     grab_pointer_and_keyboard(conn, scr, cursor);
 
-    if (image_path)
-        img = cairo_image_surface_create_from_png(image_path);
-
     symbols = xcb_key_symbols_alloc(conn);
     modeswitchmask = get_mod_mask(conn, symbols, XK_Mode_switch);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
 
+#ifndef NOLIBCAIRO
+    if (image_path)
+        img = cairo_image_surface_create_from_png(image_path);
 
     if (img) {
         /* Initialize cairo */
@@ -364,6 +385,7 @@ int main(int argc, char *argv[]) {
 
         handle_expose_event();
     }
+#endif
 
     if (dpms)
         dpms_turn_off_screen(conn);
