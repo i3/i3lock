@@ -324,6 +324,8 @@ int main(int argc, char *argv[]) {
             errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-p win|default]"
 #ifndef NOLIBCAIRO
             " [-i image.png] [-t]"
+#else
+            " (compiled with NOLIBCAIRO)"
 #endif
             "\n");
         }
