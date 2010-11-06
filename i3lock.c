@@ -129,9 +129,6 @@ static void handle_key_press(xcb_key_press_event_t *event) {
      * keysyms, we remove the numlock flag from the event state */
     event->state &= ~numlockmask;
 
-    if ((input_position + 8) >= sizeof(password))
-        return;
-
     xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, event->state);
     switch (sym) {
     case XK_Mode_switch:
@@ -156,6 +153,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         //printf("new input position = %d, new password = %s\n", input_position, password);
         return;
     }
+
+    if ((input_position + 8) >= sizeof(password))
+        return;
 
 #if 0
     /* FIXME: handle all of these? */
