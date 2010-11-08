@@ -825,6 +825,10 @@ long keysym2ucs(xcb_keysym_t keysym)
         (keysym >= 0x00a0 && keysym <= 0x00ff))
         return keysym;
 
+    /* check for numpad keys (direct mapping) */
+    if ((keysym >= 0xff80 && keysym <= 0xffb9))
+        return keysym & 0x7F;
+
     /* also check for directly encoded 24-bit UCS characters */
     if ((keysym & 0xff000000) == 0x01000000)
 	return keysym & 0x00ffffff;

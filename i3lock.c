@@ -120,17 +120,15 @@ static void handle_key_release(xcb_key_release_event_t *event) {
 static void handle_key_press(xcb_key_press_event_t *event) {
     //printf("keypress %d, state raw = %d\n", event->detail, event->state);
 
-    /* fix state */
-    if (modeswitch_active)
-            event->state |= modeswitchmask;
-
-    /* Apparantly, after activating numlock once, the numlock modifier
-     * stays turned on (use xev(1) to verify). So, to resolve useful
-     * keysyms, we remove the numlock flag from the event state */
-    event->state &= ~numlockmask;
-
-    xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, event->state);
-    switch (sym) {
+    xcb_keysym_t sym0, sym1, sym;
+    if (modeswitch_active) {
+        sym0 = xcb_key_press_lookup_keysym(symbols, event, 4);
+        sym1 = xcb_key_press_lookup_keysym(symbols, event, 5);
+    } else {
+        sym0 = xcb_key_press_lookup_keysym(symbols, event, 0);
+        sym1 = xcb_key_press_lookup_keysym(symbols, event, 1);
+    }
+    switch (sym0) {
     case XK_Mode_switch:
         //printf("Mode switch enabled\n");
         modeswitch_active = true;
@@ -156,6 +154,17 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 
     if ((input_position + 8) >= sizeof(password))
         return;
+
+    if ((event->state & numlockmask) && xcb_is_keypad_key(sym1)) {
+        /* this key was a keypad key */
+        if ((event->state & XCB_MOD_MASK_SHIFT))
+            sym = sym0;
+        else sym = sym1;
+    } else {
+        if ((event->state & XCB_MOD_MASK_SHIFT))
+            sym = sym1;
+        else sym = sym0;
+    }
 
 #if 0
     /* FIXME: handle all of these? */
