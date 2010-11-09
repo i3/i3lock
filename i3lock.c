@@ -135,6 +135,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         return;
 
     case XK_Return:
+    case XK_KP_Enter:
         input_done();
     case XK_Escape:
         input_position = 0;
