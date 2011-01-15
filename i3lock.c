@@ -347,8 +347,9 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "PAM: %s\n", pam_strerror(pam_handle, ret));
 
     /* Initialize connection to X11 */
-    if ((conn = xcb_connect(NULL, &screen)) == NULL)
-        err(EXIT_FAILURE, "xcb_connect()");
+    if ((conn = xcb_connect(NULL, &screen)) == NULL ||
+        xcb_connection_has_error(conn))
+        errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
 
     if (!dont_fork) {
         /* In the parent process, we exit */
