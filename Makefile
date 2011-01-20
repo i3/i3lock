@@ -1,5 +1,6 @@
 INSTALL=install
 PREFIX=/usr
+SYSCONFDIR=/etc
 
 # Check if pkg-config is installed, we need it for building CFLAGS/LDFLAGS
 ifeq ($(shell which pkg-config 2>/dev/null 1>/dev/null || echo 1),1)
@@ -39,7 +40,9 @@ clean:
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/pam.d
 	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
+	$(INSTALL) -m 644 i3lock.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/i3lock
