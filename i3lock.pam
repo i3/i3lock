@@ -3,4 +3,4 @@
 # the 'login' configuration file (see /etc/pam.d/login)
 #
 
-@include login
+auth include login
