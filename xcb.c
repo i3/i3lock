@@ -191,9 +191,6 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
         usleep(50);
     }
 
-    if (cursor != XCB_NONE)
-        xcb_free_cursor(conn, cursor);
-
     while (tries-- > 0) {
         kcookie = xcb_grab_keyboard(
             conn,

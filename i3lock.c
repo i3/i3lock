@@ -34,6 +34,7 @@
 #include "cursors.h"
 
 static xcb_connection_t *conn;
+static xcb_cursor_t cursor;
 static xcb_key_symbols_t *symbols;
 static xcb_screen_t *scr;
 static pam_handle_t *pam_handle;
@@ -60,6 +61,8 @@ static void input_done() {
         printf("successfully authenticated\n");
         exit(0);
     }
+
+    fprintf(stderr, "Authentication failure\n");
 
     /* beep on authentication failure, if enabled */
     if (beep) {
@@ -219,6 +222,25 @@ void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
 }
 
 /*
+ * Called when the keyboard mapping changes. We update our symbols and re-grab
+ * pointer/keyboard.
+ *
+ */
+void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
+    printf("mapping notify\n");
+    xcb_refresh_keyboard_mapping(symbols, event);
+
+    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+    xcb_ungrab_keyboard(conn, XCB_CURRENT_TIME);
+    grab_pointer_and_keyboard(conn, scr, cursor);
+
+    modeswitchmask = get_mod_mask(conn, symbols, XK_Mode_switch);
+    numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
+
+    xcb_flush(conn);
+}
+
+/*
  * Callback function for PAM. We only react on password request callbacks.
  *
  */
@@ -264,7 +286,6 @@ int main(int argc, char *argv[]) {
     xcb_visualtype_t *vistype;
     xcb_generic_event_t *event;
     xcb_window_t win;
-    xcb_cursor_t cursor;
     int curs_choice = CURS_NONE;
     char o;
     int optind = 0;
@@ -433,6 +454,11 @@ int main(int argc, char *argv[]) {
 
         if (type == XCB_VISIBILITY_NOTIFY) {
             handle_visibility_notify((xcb_visibility_notify_event_t*)event);
+            continue;
+        }
+
+        if (type == XCB_MAPPING_NOTIFY) {
+            handle_mapping_notify((xcb_mapping_notify_event_t*)event);
             continue;
         }
 
