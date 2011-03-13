@@ -182,15 +182,15 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 #endif
 
     if (xcb_is_modifier_key(sym) || xcb_is_cursor_key(sym))
-            return;
+        return;
 
     //printf("sym = %c (%d)\n", sym, sym);
 
     /* convert the keysym to UCS */
     uint16_t ucs = keysym2ucs(sym);
     if ((int16_t)ucs == -1) {
-            fprintf(stderr, "Keysym could not be converted to UCS, skipping\n");
-            return;
+        fprintf(stderr, "Keysym could not be converted to UCS, skipping\n");
+        return;
     }
 
     /* store the UCS in a string to convert it */
