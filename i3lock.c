@@ -48,7 +48,6 @@ static bool beep = false;
 
 #ifndef NOLIBCAIRO
 static cairo_surface_t *img = NULL;
-static cairo_t *ctx = NULL;
 static bool tile = false;
 #endif
 
@@ -69,31 +68,6 @@ static void input_done() {
         xcb_bell(conn, 100);
         xcb_flush(conn);
     }
-}
-
-/*
- * Called when we should draw the image (if any).
- *
- */
-static void handle_expose_event() {
-#ifndef NOLIBCAIRO
-    if (!ctx)
-        return;
-
-    if (tile) {
-        /* create a pattern and fill a rectangle as big as the screen */
-        cairo_pattern_t *pattern;
-        pattern = cairo_pattern_create_for_surface(img);
-        cairo_set_source(ctx, pattern);
-        cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-        cairo_rectangle(ctx, 0, 0, scr->width_in_pixels, scr->height_in_pixels);
-        cairo_fill(ctx);
-    } else {
-        /* otherwise, just paint the image */
-        cairo_paint(ctx);
-    }
-#endif
-    xcb_flush(conn);
 }
 
 /*
@@ -388,10 +362,39 @@ int main(int argc, char *argv[]) {
     scr = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
     vistype = get_root_visual_type(scr);
 
-    /* open the fullscreen window and flush immediately afterwards so that X11
-     * can generate an expose event while we load the PNG file (so that we are
-     * ready to handle the expose event immediately afterwards) */
-    win = open_fullscreen_window(conn, scr, color);
+    /* Pixmap on which the image is rendered to (if any) */
+    xcb_pixmap_t bg_pixmap = XCB_NONE;
+
+#ifndef NOLIBCAIRO
+    if (image_path) {
+        bg_pixmap = create_bg_pixmap(conn, scr, color);
+        /* Create a pixmap to render on, fill it with the background color */
+        img = cairo_image_surface_create_from_png(image_path);
+    }
+
+    if (img) {
+        /* Initialize cairo */
+        cairo_surface_t *output;
+        output = cairo_xcb_surface_create(conn, bg_pixmap, vistype,
+                 scr->width_in_pixels, scr->height_in_pixels);
+        cairo_t *ctx = cairo_create(output);
+        if (!tile) {
+            cairo_set_source_surface(ctx, img, 0, 0);
+            cairo_paint(ctx);
+        } else {
+            /* create a pattern and fill a rectangle as big as the screen */
+            cairo_pattern_t *pattern;
+            pattern = cairo_pattern_create_for_surface(img);
+            cairo_set_source(ctx, pattern);
+            cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+            cairo_rectangle(ctx, 0, 0, scr->width_in_pixels, scr->height_in_pixels);
+            cairo_fill(ctx);
+        }
+    }
+#endif
+
+    /* open the fullscreen window, already with the correct pixmap in place */
+    win = open_fullscreen_window(conn, scr, color, bg_pixmap);
 
     cursor = create_cursor(conn, scr, win, curs_choice);
 
@@ -400,23 +403,6 @@ int main(int argc, char *argv[]) {
     symbols = xcb_key_symbols_alloc(conn);
     modeswitchmask = get_mod_mask(conn, symbols, XK_Mode_switch);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
-
-#ifndef NOLIBCAIRO
-    if (image_path)
-        img = cairo_image_surface_create_from_png(image_path);
-
-    if (img) {
-        /* Initialize cairo */
-        cairo_surface_t *output;
-        output = cairo_xcb_surface_create(conn, win, vistype,
-                 scr->width_in_pixels, scr->height_in_pixels);
-        ctx = cairo_create(output);
-        if (!tile)
-            cairo_set_source_surface(ctx, img, 0, 0);
-
-        handle_expose_event();
-    }
-#endif
 
     if (dpms)
         dpms_turn_off_screen(conn);
@@ -427,11 +413,6 @@ int main(int argc, char *argv[]) {
 
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
-
-        if (type == XCB_EXPOSE) {
-            handle_expose_event();
-            continue;
-        }
 
         if (type == XCB_KEY_PRESS) {
             handle_key_press((xcb_key_press_event_t*)event);

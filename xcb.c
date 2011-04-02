@@ -78,13 +78,34 @@ xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     return NULL;
 }
 
-xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color) {
+xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, char *color) {
+    xcb_pixmap_t bg_pixmap = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, scr->root_depth, bg_pixmap, scr->root,
+                      scr->width_in_pixels, scr->height_in_pixels);
+
+    /* Generate a Graphics Context and fill the pixmap with background color
+     * (for images that are smaller than your screen) */
+    xcb_gcontext_t gc = xcb_generate_id(conn);
+    uint32_t values[] = { get_colorpixel(color) };
+    xcb_create_gc(conn, gc, bg_pixmap, XCB_GC_FOREGROUND, values);
+    xcb_rectangle_t rect = { 0, 0, scr->width_in_pixels, scr->height_in_pixels };
+    xcb_poly_fill_rectangle(conn, bg_pixmap, gc, 1, &rect);
+
+    return bg_pixmap;
+}
+
+xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color, xcb_pixmap_t pixmap) {
     uint32_t mask = 0;
     uint32_t values[3];
     xcb_window_t win = xcb_generate_id(conn);
 
-    mask |= XCB_CW_BACK_PIXEL;
-    values[0] = get_colorpixel(color);
+    if (pixmap == XCB_NONE) {
+        mask |= XCB_CW_BACK_PIXEL;
+        values[0] = get_colorpixel(color);
+    } else {
+        mask |= XCB_CW_BACK_PIXMAP;
+        values[0] = pixmap;
+    }
 
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;
