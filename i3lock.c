@@ -211,10 +211,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
  * hiding us) gets hidden.
  *
  */
-void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
-    printf("visibility notify (window 0x%08x, state %d)\n", event->window, event->state);
+static void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
     if (event->state != XCB_VISIBILITY_UNOBSCURED) {
-        printf("window is obscured (not fully visible), raising\n");
         uint32_t values[] = { XCB_STACK_MODE_ABOVE };
         xcb_configure_window(conn, event->window, XCB_CONFIG_WINDOW_STACK_MODE, values);
         xcb_flush(conn);
@@ -226,8 +224,7 @@ void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
  * pointer/keyboard.
  *
  */
-void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
-    printf("mapping notify\n");
+static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
     xcb_refresh_keyboard_mapping(symbols, event);
 
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
