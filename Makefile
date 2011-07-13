@@ -2,7 +2,7 @@ INSTALL=install
 PREFIX=/usr
 SYSCONFDIR=/etc
 
-# Check if pkg-config is installed, we need it for building CFLAGS/LDFLAGS
+# Check if pkg-config is installed, we need it for building CFLAGS/LIBS
 ifeq ($(shell which pkg-config 2>/dev/null 1>/dev/null || echo 1),1)
 $(error "pkg-config was not found")
 endif
@@ -10,30 +10,30 @@ endif
 CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
-CFLAGS += -D_GNU_SOURCE
+CPPFLAGS += -D_GNU_SOURCE
 ifndef NOLIBCAIRO
 CFLAGS += $(shell pkg-config --cflags cairo xcb-keysyms xcb-dpms)
-LDFLAGS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms xcb-image)
+LIBS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms xcb-image)
 else
-CFLAGS += -DNOLIBCAIRO
+CPPFLAGS += -DNOLIBCAIRO
 CFLAGS += $(shell pkg-config --cflags xcb-keysyms xcb-dpms)
-LDFLAGS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image)
+LIBS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image)
 endif
-LDFLAGS += -lpam
+LIBS += -lpam
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
 
 VERSION:=$(shell git describe --tags --abbrev=0)
 GIT_VERSION:="$(shell git describe --tags --always) ($(shell git log --pretty=format:%cd --date=short -n1))"
-CFLAGS += -DVERSION=\"${GIT_VERSION}\"
+CPPFLAGS += -DVERSION=\"${GIT_VERSION}\"
 
 .PHONY: install clean uninstall
 
 all: i3lock
 
 i3lock: ${FILES}
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
 	rm -f i3lock ${FILES} i3lock-${VERSION}.tar.gz
