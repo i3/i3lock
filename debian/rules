@@ -13,18 +13,19 @@ config.status: configure
 	dh_testdir
 	touch $@
 
-build:
+build: build-arch build-indep
+build-arch: build-stamp
+build-indep: build-stamp
+
+build-stamp:
 	dh_testdir
-
-	# Add here commands to compile the package.
 	$(MAKE)
-
 	touch $@
 
 clean: 
 	dh_testdir
 	dh_testroot
-	rm -f build
+	rm -f build-stamp
 	$(MAKE) clean
 	dh_prep
 	rm -f debian/files

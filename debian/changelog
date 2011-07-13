@@ -1,3 +1,10 @@
+i3lock (2.2-1) unstable; urgency=low
+
+  * Render to a pixmap which is used as background for the window instead of
+    copying contents on every expose event
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Wed, 13 Jul 2011 16:59:32 +0200
+
 i3lock (2.1-1) unstable; urgency=low
 
   * Accept return/backspace when the buffer of 512 bytes is full
