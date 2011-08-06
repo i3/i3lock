@@ -51,6 +51,43 @@ static cairo_surface_t *img = NULL;
 static bool tile = false;
 #endif
 
+/*
+ * Draws global image with fill color onto a pixmap with the given
+ * resolution and returns it.
+ *
+ */
+xcb_pixmap_t draw_image(xcb_visualtype_t *vistype, u_int32_t* resolution, char* color) {
+    xcb_pixmap_t bg_pixmap = XCB_NONE;
+
+#ifndef NOLIBCAIRO
+    if (!img)
+        return bg_pixmap;
+
+    bg_pixmap = create_bg_pixmap(conn, scr, resolution, color);
+    /* Initialize cairo */
+    cairo_surface_t *output;
+    output = cairo_xcb_surface_create(conn, bg_pixmap, vistype,
+             resolution[0], resolution[1]);
+    cairo_t *ctx = cairo_create(output);
+    if (!tile) {
+        cairo_set_source_surface(ctx, img, 0, 0);
+        cairo_paint(ctx);
+    } else {
+        /* create a pattern and fill a rectangle as big as the screen */
+        cairo_pattern_t *pattern;
+        pattern = cairo_pattern_create_for_surface(img);
+        cairo_set_source(ctx, pattern);
+        cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+        cairo_rectangle(ctx, 0, 0, resolution[0], resolution[1]);
+        cairo_fill(ctx);
+        cairo_pattern_destroy(pattern);
+    }
+    cairo_surface_destroy(output);
+    cairo_destroy(ctx);
+#endif
+    return bg_pixmap;
+}
+
 static void input_done() {
     if (input_position == 0)
         return;
@@ -212,6 +249,36 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
 }
 
 /*
+ * Called when the properties on the root window change, e.g. when the screen
+ * resolution changes. If so we update the window to cover the whole screen
+ * and also redraw the image, if any.
+ *
+ */
+void handle_screen_resize(xcb_visualtype_t *vistype, xcb_window_t win, uint32_t* last_resolution, char* color) {
+    xcb_get_geometry_cookie_t geomc;
+    xcb_get_geometry_reply_t *geom;
+    geomc = xcb_get_geometry(conn, scr->root);
+    if ((geom = xcb_get_geometry_reply(conn, geomc, 0)) == NULL) {
+      return;
+    }
+
+    if (last_resolution[0] == geom->width && last_resolution[1] == geom->height)
+      return;
+
+    last_resolution[0] = geom->width;
+    last_resolution[1] = geom->height;
+
+    if (img) {
+        xcb_pixmap_t bg_pixmap = draw_image(vistype, last_resolution, color);
+        xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){ bg_pixmap });
+    }
+
+    uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    xcb_configure_window(conn, win, mask, last_resolution);
+    xcb_flush(conn);
+}
+
+/*
  * Callback function for PAM. We only react on password request callbacks.
  *
  */
@@ -362,36 +429,19 @@ int main(int argc, char *argv[]) {
     scr = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
     vistype = get_root_visual_type(scr);
 
-    /* Pixmap on which the image is rendered to (if any) */
-    xcb_pixmap_t bg_pixmap = XCB_NONE;
+    uint32_t last_resolution[2] = {scr->width_in_pixels, scr->height_in_pixels};
+
+
 
 #ifndef NOLIBCAIRO
     if (image_path) {
-        bg_pixmap = create_bg_pixmap(conn, scr, color);
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
     }
-
-    if (img) {
-        /* Initialize cairo */
-        cairo_surface_t *output;
-        output = cairo_xcb_surface_create(conn, bg_pixmap, vistype,
-                 scr->width_in_pixels, scr->height_in_pixels);
-        cairo_t *ctx = cairo_create(output);
-        if (!tile) {
-            cairo_set_source_surface(ctx, img, 0, 0);
-            cairo_paint(ctx);
-        } else {
-            /* create a pattern and fill a rectangle as big as the screen */
-            cairo_pattern_t *pattern;
-            pattern = cairo_pattern_create_for_surface(img);
-            cairo_set_source(ctx, pattern);
-            cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-            cairo_rectangle(ctx, 0, 0, scr->width_in_pixels, scr->height_in_pixels);
-            cairo_fill(ctx);
-        }
-    }
 #endif
+
+    /* Pixmap on which the image is rendered to (if any) */
+    xcb_pixmap_t bg_pixmap = draw_image(vistype, last_resolution, color);
 
     /* open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, scr, color, bg_pixmap);
@@ -437,6 +487,11 @@ int main(int argc, char *argv[]) {
 
         if (type == XCB_MAPPING_NOTIFY) {
             handle_mapping_notify((xcb_mapping_notify_event_t*)event);
+            continue;
+        }
+
+        if (type == XCB_CONFIGURE_NOTIFY) {
+            handle_screen_resize(vistype, win, last_resolution, color);
             continue;
         }
 

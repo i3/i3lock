@@ -53,7 +53,7 @@ static uint32_t get_colorpixel(char *hex) {
                          (strtol(strgroups[2], NULL, 16))};
 
     return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
-}       
+}
 
 xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     xcb_visualtype_t *visual_type = NULL;
@@ -78,17 +78,17 @@ xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     return NULL;
 }
 
-xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, char *color) {
+xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32_t* resolution, char *color) {
     xcb_pixmap_t bg_pixmap = xcb_generate_id(conn);
     xcb_create_pixmap(conn, scr->root_depth, bg_pixmap, scr->root,
-                      scr->width_in_pixels, scr->height_in_pixels);
+                      resolution[0], resolution[1]);
 
     /* Generate a Graphics Context and fill the pixmap with background color
      * (for images that are smaller than your screen) */
     xcb_gcontext_t gc = xcb_generate_id(conn);
     uint32_t values[] = { get_colorpixel(color) };
     xcb_create_gc(conn, gc, bg_pixmap, XCB_GC_FOREGROUND, values);
-    xcb_rectangle_t rect = { 0, 0, scr->width_in_pixels, scr->height_in_pixels };
+    xcb_rectangle_t rect = { 0, 0, resolution[0], resolution[1] };
     xcb_poly_fill_rectangle(conn, bg_pixmap, gc, 1, &rect);
 
     return bg_pixmap;
@@ -114,7 +114,8 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
     values[2] = XCB_EVENT_MASK_EXPOSURE |
                 XCB_EVENT_MASK_KEY_PRESS |
                 XCB_EVENT_MASK_KEY_RELEASE |
-                XCB_EVENT_MASK_VISIBILITY_CHANGE;
+                XCB_EVENT_MASK_VISIBILITY_CHANGE |
+                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
     xcb_create_window(conn,
                       24,
