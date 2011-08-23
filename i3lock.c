@@ -268,10 +268,12 @@ void handle_screen_resize(xcb_visualtype_t *vistype, xcb_window_t win, uint32_t*
     last_resolution[0] = geom->width;
     last_resolution[1] = geom->height;
 
+#ifndef NOLIBCAIRO
     if (img) {
         xcb_pixmap_t bg_pixmap = draw_image(vistype, last_resolution, color);
         xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){ bg_pixmap });
     }
+#endif
 
     uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     xcb_configure_window(conn, win, mask, last_resolution);
