@@ -70,11 +70,11 @@ option, DPMS will turn off your screen after 15 minutes of inactivity anyways (i
 you did not disable this in your X server).
 
 .TP
-.B \-i, \-\-image
+.BI \-i\  path \fR,\ \fB\-\-image= path
 Display the given PNG image instead of a blank screen.
 
 .TP
-.B \-c, \-\-color
+.BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
 Turns the screen into the given color instead of white. Color must be given in 6-byte
 format: rrggbb (i.e. ff0000 is red)
 
@@ -84,7 +84,7 @@ If an image is specified (via -i) it will display the image tiled all over the s
 (if it is a multi-monitor setup, the image is visible on all screens).
 
 .TP
-.B \-p, \-\-pointer
+.BI \-p\  win|default \fR,\ \fB\-\-pointer= win|default
 If you specify "default",
 .B i3lock
 does not hide your Mousepointer. If you specify "win",
