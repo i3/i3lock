@@ -386,9 +386,10 @@ int main(int argc, char *argv[]) {
         case 'p':
             if (!strcmp(optarg, "win")) {
                 curs_choice = CURS_WIN;
-            }
-            if (!strcmp(optarg, "default")) {
+            } else if (!strcmp(optarg, "default")) {
                 curs_choice = CURS_DEFAULT;
+            } else {
+                errx(1, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".\n");
             }
             break;
         default:
