@@ -231,21 +231,14 @@ static void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
 }
 
 /*
- * Called when the keyboard mapping changes. We update our symbols and re-grab
- * pointer/keyboard.
+ * Called when the keyboard mapping changes. We update our symbols.
  *
  */
 static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
     xcb_refresh_keyboard_mapping(symbols, event);
 
-    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-    xcb_ungrab_keyboard(conn, XCB_CURRENT_TIME);
-    grab_pointer_and_keyboard(conn, scr, cursor);
-
     modeswitchmask = get_mod_mask(conn, symbols, XK_Mode_switch);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
-
-    xcb_flush(conn);
 }
 
 /*
