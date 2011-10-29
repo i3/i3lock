@@ -46,6 +46,12 @@ static bool iso_level3_shift_active = false;
 static int modeswitchmask;
 static int numlockmask;
 static bool beep = false;
+static bool debug_mode = false;
+
+#define DEBUG(fmt, ...) do { \
+    if (debug_mode) \
+        printf("[i3lock-debug] " fmt, ##__VA_ARGS__); \
+} while (0)
 
 #ifndef NOLIBCAIRO
 static cairo_surface_t *img = NULL;
@@ -114,7 +120,8 @@ static void input_done() {
  *
  */
 static void handle_key_release(xcb_key_release_event_t *event) {
-    //printf("releasing %d, state raw = %d\n", event->detail, event->state);
+    DEBUG("releasing key %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d\n",
+          event->detail, event->state, modeswitch_active, iso_level3_shift_active);
 
     /* fix state */
     event->state &= ~numlockmask;
@@ -126,6 +133,8 @@ static void handle_key_release(xcb_key_release_event_t *event) {
     } else if (sym == XK_ISO_Level3_Shift) {
         iso_level3_shift_active = false;
     }
+    DEBUG("release done. modeswitch_active = %d, iso_level3_shift_active = %d\n",
+          modeswitch_active, iso_level3_shift_active);
 }
 
 /*
@@ -135,7 +144,8 @@ static void handle_key_release(xcb_key_release_event_t *event) {
  *
  */
 static void handle_key_press(xcb_key_press_event_t *event) {
-    //printf("keypress %d, state raw = %d\n", event->detail, event->state);
+    DEBUG("keypress %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d\n",
+          event->detail, event->state, modeswitch_active, iso_level3_shift_active);
 
     xcb_keysym_t sym0, sym1, sym;
     /* For each keycode, there is a list of symbols. The list could look like this:
@@ -178,7 +188,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     sym1 = xcb_key_press_lookup_keysym(symbols, event, base_column + 1);
     switch (sym0) {
     case XK_Mode_switch:
-        //printf("Mode switch enabled\n");
+        DEBUG("Mode switch enabled\n");
         modeswitch_active = true;
         return;
     case XK_ISO_Level3_Shift:
@@ -232,7 +242,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     if (xcb_is_modifier_key(sym) || xcb_is_cursor_key(sym))
         return;
 
-    //printf("sym = %c (%d)\n", sym, sym);
+    DEBUG("resolved to keysym = %c (%d)\n", sym, sym);
 
     /* convert the keysym to UCS */
     uint16_t ucs = keysym2ucs(sym);
@@ -243,11 +253,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 
     /* store the UCS in a string to convert it */
     uint8_t inp[3] = {(ucs & 0xFF00) >> 8, (ucs & 0xFF), 0};
+    DEBUG("input part = %s\n", inp);
 
     /* store it in the password array as UTF-8 */
     input_position += convert_ucs_to_utf8((char*)inp, password + input_position);
     password[input_position] = '\0';
-    //printf("current password = %s\n", password);
+    DEBUG("current password = %s\n", password);
 }
 
 /*
@@ -366,6 +377,7 @@ int main(int argc, char *argv[]) {
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL , 'p'},
+        {"debug", no_argument, NULL, 0},
 #ifndef NOLIBCAIRO
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
@@ -421,6 +433,10 @@ int main(int argc, char *argv[]) {
             } else {
                 errx(1, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".\n");
             }
+            break;
+        case 0:
+            if (strcmp(longopts[optind].name, "debug") == 0)
+                debug_mode = true;
             break;
         default:
             errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-p win|default]"
