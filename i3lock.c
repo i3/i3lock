@@ -42,6 +42,7 @@ static int input_position = 0;
 /* holds the password you enter (in UTF-8) */
 static char password[512];
 static bool modeswitch_active = false;
+static bool iso_level3_shift_active = false;
 static int modeswitchmask;
 static int numlockmask;
 static bool beep = false;
@@ -122,6 +123,8 @@ static void handle_key_release(xcb_key_release_event_t *event) {
     if (sym == XK_Mode_switch) {
         //printf("Mode switch disabled\n");
         modeswitch_active = false;
+    } else if (sym == XK_ISO_Level3_Shift) {
+        iso_level3_shift_active = false;
     }
 }
 
@@ -135,19 +138,53 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     //printf("keypress %d, state raw = %d\n", event->detail, event->state);
 
     xcb_keysym_t sym0, sym1, sym;
-    if (modeswitch_active) {
-        sym0 = xcb_key_press_lookup_keysym(symbols, event, 4);
-        sym1 = xcb_key_press_lookup_keysym(symbols, event, 5);
-    } else {
-        sym0 = xcb_key_press_lookup_keysym(symbols, event, 0);
-        sym1 = xcb_key_press_lookup_keysym(symbols, event, 1);
-    }
+    /* For each keycode, there is a list of symbols. The list could look like this:
+     * $ xmodmap -pke | grep 'keycode  38'
+     * keycode  38 = a A adiaeresis Adiaeresis o O
+     * In non-X11 terminology, the symbols for the keycode 38 (the key labeled
+     * with "a" on my keyboard) are "a A ä Ä o O".
+     * Another form to display the same information is using xkbcomp:
+     * $ xkbcomp $DISPLAY /tmp/xkb.dump
+     * Then open /tmp/xkb.dump and search for '\<a\>' (in VIM regexp-language):
+     *
+     * symbols[Group1]= [               a,               A,               o,               O ],
+     * symbols[Group2]= [      adiaeresis,      Adiaeresis ]
+     *
+     * So there are two *groups*, one containing 'a A' and one containing 'ä
+     * Ä'. You can use Mode_switch to switch between these groups. You can use
+     * ISO_Level3_Shift to reach the 'o O' part of the first group (it’s the
+     * same group, just an even higher shift level).
+     *
+     * So, using the "logical" XKB information, the following lookup will be
+     * performed:
+     *
+     * Neither Mode_switch nor ISO_Level3_Shift active: group 1, column 0 and 1
+     * Mode_switch active: group 2, column 0 and 1
+     * ISO_Level3_Shift active: group 1, column 2 and 3
+     *
+     * Using the column index which xcb_key_press_lookup_keysym uses (and
+     * xmodmap prints out), the following lookup will be performed:
+     *
+     * Neither Mode_switch nor ISO_Level3_Shift active: column 0 and 1
+     * Mode_switch active: column 2 and 3
+     * ISO_Level3_Shift active: column 4 and 5
+     */
+    int base_column = 0;
+    if (modeswitch_active)
+        base_column = 2;
+    if (iso_level3_shift_active)
+        base_column = 4;
+    sym0 = xcb_key_press_lookup_keysym(symbols, event, base_column);
+    sym1 = xcb_key_press_lookup_keysym(symbols, event, base_column + 1);
     switch (sym0) {
     case XK_Mode_switch:
         //printf("Mode switch enabled\n");
         modeswitch_active = true;
         return;
-
+    case XK_ISO_Level3_Shift:
+        DEBUG("ISO_Level3_Shift enabled\n");
+        iso_level3_shift_active = true;
+        return;
     case XK_Return:
     case XK_KP_Enter:
         input_done();
