@@ -123,10 +123,11 @@ static void handle_key_release(xcb_key_release_event_t *event) {
     DEBUG("releasing key %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d\n",
           event->detail, event->state, modeswitch_active, iso_level3_shift_active);
 
-    /* fix state */
-    event->state &= ~numlockmask;
-
-    xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, event->state);
+    /* We don’t care about the column here and just use the first symbol. Since
+     * we only check for Mode_switch and ISO_Level3_Shift, this *should* work.
+     * Also, if we would use the current column, we would look in the wrong
+     * place. */
+    xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, 0);
     if (sym == XK_Mode_switch) {
         //printf("Mode switch disabled\n");
         modeswitch_active = false;
