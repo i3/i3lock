@@ -3,7 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: Michael Stapelberg <michael@stapelberg.de>
 DM-Upload-Allowed: yes
-Build-Depends: debhelper (>= 7), libx11-dev, libpam0g-dev, libcairo2-dev, libxcb1-dev, libxcb-dpms0-dev, libxcb-keysyms1-dev, libxcb-image0-dev, pkg-config
+Build-Depends: debhelper (>= 7.0.50~), libx11-dev, libpam0g-dev, libcairo2-dev, libxcb1-dev, libxcb-dpms0-dev, libxcb-keysyms1-dev, libxcb-image0-dev, pkg-config
 Standards-Version: 3.9.2
 Homepage: http://i3wm.org/i3lock/
 
