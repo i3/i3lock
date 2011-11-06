@@ -379,6 +379,7 @@ int main(int argc, char *argv[]) {
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL , 'p'},
         {"debug", no_argument, NULL, 0},
+        {"help", no_argument, NULL, 'h'},
 #ifndef NOLIBCAIRO
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
@@ -389,7 +390,7 @@ int main(int argc, char *argv[]) {
     if ((username = getenv("USER")) == NULL)
         errx(1, "USER environment variable not set, please set it.\n");
 
-    while ((o = getopt_long(argc, argv, "vnbdc:p:"
+    while ((o = getopt_long(argc, argv, "hvnbdc:p:"
 #ifndef NOLIBCAIRO
         "i:t"
 #endif
@@ -440,13 +441,13 @@ int main(int argc, char *argv[]) {
                 debug_mode = true;
             break;
         default:
-            errx(1, "i3lock: Unknown option. Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-p win|default]"
+            errx(1, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-p win|default]"
 #ifndef NOLIBCAIRO
             " [-i image.png] [-t]"
 #else
             " (compiled with NOLIBCAIRO)"
 #endif
-            "\n");
+            );
         }
     }
 
