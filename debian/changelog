@@ -1,9 +1,14 @@
 i3lock (2.2-1) unstable; urgency=low
 
+  * Don’t re-grab pointer/keyboard on MappingNotify. In some rare situations,
+    this lead to some keypresses "slipping through" to the last focused window.
+  * Correctly handle Mode_switch/ISO_Level3_Shift
   * Render to a pixmap which is used as background for the window instead of
     copying contents on every expose event
+  * Handle screen resolution changes while screen is locked
+  * Manpage: document arguments for every option
 
- -- Michael Stapelberg <michael@stapelberg.de>  Wed, 13 Jul 2011 16:59:32 +0200
+ -- Michael Stapelberg <michael@stapelberg.de>  Sun, 06 Nov 2011 14:02:35 +0000
 
 i3lock (2.1-1) unstable; urgency=low
 
