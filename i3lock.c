@@ -396,7 +396,7 @@ int main(int argc, char *argv[]) {
         , longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
-            errx(EXIT_SUCCESS, "version " VERSION " © 2010-2011 Michael Stapelberg\n");
+            errx(EXIT_SUCCESS, "version " VERSION " © 2010-2011 Michael Stapelberg");
         case 'n':
             dont_fork = true;
             break;
