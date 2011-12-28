@@ -20,6 +20,7 @@ CFLAGS += $(shell pkg-config --cflags xcb-keysyms xcb-dpms)
 LIBS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image)
 endif
 LIBS += -lpam
+LIBS += -lev
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
