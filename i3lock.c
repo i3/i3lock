@@ -269,6 +269,7 @@ static void redraw_screen() {
     /* XXX: Possible optimization: Only update the area in the middle of the
      * screen instead of the whole screen. */
     xcb_clear_area(conn, 0, win, 0, 0, scr->width_in_pixels, scr->height_in_pixels);
+    xcb_free_pixmap(conn, bg_pixmap);
     xcb_flush(conn);
 }
 
@@ -571,6 +572,7 @@ void handle_screen_resize(xcb_visualtype_t *vistype, xcb_window_t win, uint32_t*
     if (img) {
         xcb_pixmap_t bg_pixmap = draw_image(vistype, last_resolution);
         xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){ bg_pixmap });
+        xcb_free_pixmap(conn, bg_pixmap);
     }
 #endif
 
@@ -830,6 +832,7 @@ int main(int argc, char *argv[]) {
 
     /* open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, scr, color, bg_pixmap);
+    xcb_free_pixmap(conn, bg_pixmap);
 
     cursor = create_cursor(conn, scr, win, curs_choice);
 

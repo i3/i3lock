@@ -90,6 +90,7 @@ xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32
     xcb_create_gc(conn, gc, bg_pixmap, XCB_GC_FOREGROUND, values);
     xcb_rectangle_t rect = { 0, 0, resolution[0], resolution[1] };
     xcb_poly_fill_rectangle(conn, bg_pixmap, gc, 1, &rect);
+    xcb_free_gc(conn, gc);
 
     return bg_pixmap;
 }
