@@ -279,6 +279,7 @@ static void redraw_screen() {
  *
  */
 static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
+    DEBUG("clearing pam wrong\n");
     pam_state = STATE_PAM_IDLE;
     unlock_state = STATE_STARTED;
     redraw_screen();
@@ -290,8 +291,10 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
  *
  */
 static void clear_indicator(EV_P_ ev_timer *w, int revents) {
-    DEBUG("Clear indicator\n");
-    unlock_state = STATE_STARTED;
+    if (input_position == 0) {
+        DEBUG("Clear indicator\n");
+        unlock_state = STATE_STARTED;
+    } else unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
 }
 
@@ -340,6 +343,13 @@ static void input_done() {
     clear_pam_wrong_timeout = calloc(sizeof(struct ev_timer), 1);
     ev_timer_init(clear_pam_wrong_timeout, clear_pam_wrong, 2.0, 0.);
     ev_timer_start(main_loop, clear_pam_wrong_timeout);
+
+    /* Cancel the clear_indicator_timeout, it would hide the unlock indicator
+     * too early. */
+    if (clear_indicator_timeout) {
+        ev_timer_stop(main_loop, clear_indicator_timeout);
+        clear_indicator_timeout = NULL;
+    }
 
     /* beep on authentication failure, if enabled */
     if (beep) {
