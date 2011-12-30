@@ -55,6 +55,7 @@ static int input_position = 0;
 static char password[512];
 static bool modeswitch_active = false;
 static bool iso_level3_shift_active = false;
+static bool iso_level5_shift_active = false;
 static int modeswitchmask;
 static int numlockmask;
 static bool beep = false;
@@ -364,8 +365,8 @@ static void input_done() {
  *
  */
 static void handle_key_release(xcb_key_release_event_t *event) {
-    DEBUG("releasing key %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d\n",
-          event->detail, event->state, modeswitch_active, iso_level3_shift_active);
+    DEBUG("releasing key %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d, iso_level5_shift_active = %d\n",
+          event->detail, event->state, modeswitch_active, iso_level3_shift_active, iso_level5_shift_active);
 
     /* We don’t care about the column here and just use the first symbol. Since
      * we only check for Mode_switch and ISO_Level3_Shift, this *should* work.
@@ -377,9 +378,11 @@ static void handle_key_release(xcb_key_release_event_t *event) {
         modeswitch_active = false;
     } else if (sym == XK_ISO_Level3_Shift) {
         iso_level3_shift_active = false;
+    } else if (sym == XK_ISO_Level5_Shift) {
+        iso_level5_shift_active = false;
     }
-    DEBUG("release done. modeswitch_active = %d, iso_level3_shift_active = %d\n",
-          modeswitch_active, iso_level3_shift_active);
+    DEBUG("release done. modeswitch_active = %d, iso_level3_shift_active = %d, iso_level5_shift_active = %d\n",
+          modeswitch_active, iso_level3_shift_active, iso_level5_shift_active);
 }
 
 static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
@@ -433,6 +436,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         base_column = 2;
     if (iso_level3_shift_active)
         base_column = 4;
+    if (iso_level5_shift_active)
+        base_column = 6;
     sym0 = xcb_key_press_lookup_keysym(symbols, event, base_column);
     sym1 = xcb_key_press_lookup_keysym(symbols, event, base_column + 1);
     switch (sym0) {
@@ -443,6 +448,10 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     case XK_ISO_Level3_Shift:
         DEBUG("ISO_Level3_Shift enabled\n");
         iso_level3_shift_active = true;
+        return;
+    case XK_ISO_Level5_Shift:
+        DEBUG("ISO_Level5_Shift enabled\n");
+        iso_level5_shift_active = true;
         return;
     case XK_Return:
     case XK_KP_Enter:
