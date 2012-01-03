@@ -391,19 +391,23 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
  * and also redraw the image, if any.
  *
  */
-void handle_screen_resize(xcb_window_t win, uint32_t* last_resolution) {
+void handle_screen_resize() {
     xcb_get_geometry_cookie_t geomc;
     xcb_get_geometry_reply_t *geom;
     geomc = xcb_get_geometry(conn, screen->root);
-    if ((geom = xcb_get_geometry_reply(conn, geomc, 0)) == NULL) {
-      return;
-    }
+    if ((geom = xcb_get_geometry_reply(conn, geomc, 0)) == NULL)
+        return;
 
-    if (last_resolution[0] == geom->width && last_resolution[1] == geom->height)
-      return;
+    if (last_resolution[0] == geom->width &&
+        last_resolution[1] == geom->height) {
+        free(geom);
+        return;
+    }
 
     last_resolution[0] = geom->width;
     last_resolution[1] = geom->height;
+
+    free(geom);
 
 #ifndef NOLIBCAIRO
     redraw_screen();
@@ -523,7 +527,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
         }
 
         if (type == XCB_CONFIGURE_NOTIFY) {
-            handle_screen_resize(win, last_resolution);
+            handle_screen_resize();
             continue;
         }
 
