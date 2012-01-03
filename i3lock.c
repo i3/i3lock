@@ -24,6 +24,7 @@
 #include <string.h>
 #include <math.h>
 #include <ev.h>
+#include <sys/mman.h>
 
 
 #ifndef NOLIBCAIRO
@@ -51,7 +52,7 @@ static xcb_key_symbols_t *symbols;
 static xcb_screen_t *scr;
 static pam_handle_t *pam_handle;
 static int input_position = 0;
-/* holds the password you enter (in UTF-8) */
+/* Holds the password you enter (in UTF-8). */
 static char password[512];
 static bool modeswitch_active = false;
 static bool iso_level3_shift_active = false;
@@ -90,6 +91,23 @@ static enum {
 static cairo_surface_t *img = NULL;
 static bool tile = false;
 #endif
+
+/*
+ * Clears the memory which stored the password to be a bit safer against
+ * cold-boot attacks.
+ *
+ */
+static void clear_password_memory() {
+    /* A volatile pointer to the password buffer to prevent the compiler from
+     * optimizing this out. */
+    volatile char *vpassword = password;
+    for (int c = 0; c < sizeof(password); c++)
+        /* We store a non-random pattern which consists of the (irrelevant)
+         * index plus (!) the value of the beep variable. This prevents the
+         * compiler from optimizing the calls away, since the value of 'beep'
+         * is not known at compile-time. */
+        vpassword[c] = c + (int)beep;
+}
 
 /*
  * Draws global image with fill color onto a pixmap with the given
@@ -330,6 +348,7 @@ static void input_done() {
 
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         printf("successfully authenticated\n");
+        clear_password_memory();
         exit(0);
     }
 
@@ -458,6 +477,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         input_done();
     case XK_Escape:
         input_position = 0;
+        clear_password_memory();
         password[input_position] = '\0';
         return;
 
@@ -809,7 +829,13 @@ int main(int argc, char *argv[]) {
     /* Initialize PAM */
     ret = pam_start("i3lock", username, &conv, &pam_handle);
     if (ret != PAM_SUCCESS)
-        errx(EXIT_FAILURE, "PAM: %s\n", pam_strerror(pam_handle, ret));
+        errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
+
+    /* Lock the area where we store the password in memory, we don’t want it to
+     * be swapped to disk. Since Linux 2.6.9, this does not require any
+     * privileges, just enough bytes in the RLIMIT_MEMLOCK limit. */
+    if (mlock(password, sizeof(password)) != 0)
+        err(EXIT_FAILURE, "Could not lock page in memory, check RLIMIT_MEMLOCK");
 
     /* Initialize connection to X11 */
     if ((conn = xcb_connect(NULL, &screen)) == NULL ||
