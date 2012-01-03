@@ -20,6 +20,9 @@
 
 #include "cursors.h"
 
+xcb_connection_t *conn;
+xcb_screen_t *screen;
+
 #define curs_invisible_width 8
 #define curs_invisible_height 8
 
