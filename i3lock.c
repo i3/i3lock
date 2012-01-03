@@ -63,6 +63,7 @@ static bool beep = false;
 static bool debug_mode = false;
 static bool dpms = false;
 static bool unlock_indicator = true;
+static bool dont_fork = false;
 static struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
@@ -710,6 +711,19 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
             continue;
         }
 
+        if (type == XCB_MAP_NOTIFY) {
+            if (!dont_fork) {
+                /* After the first MapNotify, we never fork again. We don’t
+                 * expect to get another MapNotify, but better be sure… */
+                dont_fork = true;
+
+                /* In the parent process, we exit */
+                if (fork() != 0)
+                    exit(0);
+            }
+            continue;
+        }
+
         if (type == XCB_MAPPING_NOTIFY) {
             handle_mapping_notify((xcb_mapping_notify_event_t*)event);
             continue;
@@ -727,7 +741,6 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
 }
 
 int main(int argc, char *argv[]) {
-    bool dont_fork = false;
     char *username;
 #ifndef NOLIBCAIRO
     char *image_path = NULL;
@@ -841,12 +854,6 @@ int main(int argc, char *argv[]) {
     if ((conn = xcb_connect(NULL, &screen)) == NULL ||
         xcb_connection_has_error(conn))
         errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
-
-    if (!dont_fork) {
-        /* In the parent process, we exit */
-        if (fork() != 0)
-            return 0;
-    }
 
     /* if DPMS is enabled, check if the X server really supports it */
     if (dpms) {
