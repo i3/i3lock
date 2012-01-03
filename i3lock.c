@@ -49,7 +49,6 @@ static char password[512];
 static bool modeswitch_active = false;
 static bool iso_level3_shift_active = false;
 static bool iso_level5_shift_active = false;
-static int modeswitchmask;
 static int numlockmask;
 static bool beep = false;
 static bool debug_mode = false;
@@ -381,7 +380,6 @@ static void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
 static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
     xcb_refresh_keyboard_mapping(symbols, event);
 
-    modeswitchmask = get_mod_mask(conn, symbols, XK_Mode_switch);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
 }
 
@@ -687,7 +685,6 @@ int main(int argc, char *argv[]) {
     grab_pointer_and_keyboard(conn, screen, cursor);
 
     symbols = xcb_key_symbols_alloc(conn);
-    modeswitchmask = get_mod_mask(conn, symbols, XK_Mode_switch);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
 
     if (dpms)
