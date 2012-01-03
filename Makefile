@@ -12,12 +12,12 @@ CFLAGS += -pipe
 CFLAGS += -Wall
 CPPFLAGS += -D_GNU_SOURCE
 ifndef NOLIBCAIRO
-CFLAGS += $(shell pkg-config --cflags cairo xcb-keysyms xcb-dpms)
-LIBS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms xcb-image)
+CFLAGS += $(shell pkg-config --cflags cairo xcb-keysyms xcb-dpms xcb-xinerama)
+LIBS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms xcb-xinerama xcb-image)
 else
 CPPFLAGS += -DNOLIBCAIRO
-CFLAGS += $(shell pkg-config --cflags xcb-keysyms xcb-dpms)
-LIBS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image)
+CFLAGS += $(shell pkg-config --cflags xcb-keysyms xcb-dpms xcb-xinerama)
+LIBS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image xcb-xinerama)
 endif
 LIBS += -lpam
 LIBS += -lev

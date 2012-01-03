@@ -2,6 +2,7 @@
 #define _XCB_H
 
 #include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
 
 extern xcb_connection_t *conn;
 extern xcb_screen_t *screen;

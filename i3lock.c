@@ -36,6 +36,7 @@
 #include "xcb.h"
 #include "cursors.h"
 #include "unlock_indicator.h"
+#include "xinerama.h"
 
 char color[7] = "ffffff";
 uint32_t last_resolution[2];
@@ -617,6 +618,9 @@ int main(int argc, char *argv[]) {
     if ((conn = xcb_connect(NULL, &nscreen)) == NULL ||
         xcb_connection_has_error(conn))
         errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
+
+    xinerama_init();
+    xinerama_query_screens();
 
     /* if DPMS is enabled, check if the X server really supports it */
     if (dpms) {
