@@ -172,6 +172,8 @@ uint32_t get_mod_mask(xcb_connection_t *conn, xcb_key_symbols_t *symbols, uint32
             }
         }
 
+    free(modeswitchcodes);
+    free(modmap_r);
     return 0;
 }
 
