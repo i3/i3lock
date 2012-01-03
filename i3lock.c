@@ -43,7 +43,7 @@ xcb_window_t win;
 static xcb_cursor_t cursor;
 static xcb_key_symbols_t *symbols;
 static pam_handle_t *pam_handle;
-static int input_position = 0;
+int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
 static char password[512];
 static bool modeswitch_active = false;
@@ -55,9 +55,8 @@ static bool debug_mode = false;
 static bool dpms = false;
 bool unlock_indicator = true;
 static bool dont_fork = false;
-static struct ev_loop *main_loop;
+struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
-static struct ev_timer *clear_indicator_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 
@@ -99,36 +98,11 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     pam_state = STATE_PAM_IDLE;
     unlock_state = STATE_STARTED;
     redraw_screen();
-}
 
-/*
- * Hides the unlock indicator completely when there is no content in the
- * password buffer.
- *
- */
-static void clear_indicator(EV_P_ ev_timer *w, int revents) {
-    if (input_position == 0) {
-        DEBUG("Clear indicator\n");
-        unlock_state = STATE_STARTED;
-    } else unlock_state = STATE_KEY_PRESSED;
-    redraw_screen();
-}
-
-/*
- * (Re-)starts the clear_indicator timeout. Called after pressing backspace or
- * after an unsuccessful authentication attempt.
- *
- */
-static void start_clear_indicator_timeout() {
-    if (clear_indicator_timeout) {
-        ev_timer_stop(main_loop, clear_indicator_timeout);
-        ev_timer_set(clear_indicator_timeout, 1.0, 0.);
-        ev_timer_start(main_loop, clear_indicator_timeout);
-    } else {
-        clear_indicator_timeout = calloc(sizeof(struct ev_timer), 1);
-        ev_timer_init(clear_indicator_timeout, clear_indicator, 1.0, 0.);
-        ev_timer_start(main_loop, clear_indicator_timeout);
-    }
+    /* Now free this timeout. */
+    ev_timer_stop(main_loop, clear_pam_wrong_timeout);
+    free(clear_pam_wrong_timeout);
+    clear_pam_wrong_timeout = NULL;
 }
 
 static void input_done() {
@@ -137,6 +111,7 @@ static void input_done() {
 
     if (clear_pam_wrong_timeout) {
         ev_timer_stop(main_loop, clear_pam_wrong_timeout);
+        free(clear_pam_wrong_timeout);
         clear_pam_wrong_timeout = NULL;
     }
 
@@ -157,16 +132,14 @@ static void input_done() {
     /* Clear this state after 2 seconds (unless the user enters another
      * password during that time). */
     ev_now_update(main_loop);
-    clear_pam_wrong_timeout = calloc(sizeof(struct ev_timer), 1);
-    ev_timer_init(clear_pam_wrong_timeout, clear_pam_wrong, 2.0, 0.);
-    ev_timer_start(main_loop, clear_pam_wrong_timeout);
+    if ((clear_pam_wrong_timeout = calloc(sizeof(struct ev_timer), 1))) {
+        ev_timer_init(clear_pam_wrong_timeout, clear_pam_wrong, 2.0, 0.);
+        ev_timer_start(main_loop, clear_pam_wrong_timeout);
+    }
 
     /* Cancel the clear_indicator_timeout, it would hide the unlock indicator
      * too early. */
-    if (clear_indicator_timeout) {
-        ev_timer_stop(main_loop, clear_indicator_timeout);
-        clear_indicator_timeout = NULL;
-    }
+    stop_clear_indicator_timeout();
 
     /* beep on authentication failure, if enabled */
     if (beep) {
@@ -203,6 +176,9 @@ static void handle_key_release(xcb_key_release_event_t *event) {
 
 static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
     redraw_screen();
+
+    ev_timer_stop(main_loop, w);
+    free(w);
 }
 
 /*
@@ -347,13 +323,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     unlock_state = STATE_KEY_PRESSED;
 
     struct ev_timer *timeout = calloc(sizeof(struct ev_timer), 1);
-    ev_timer_init(timeout, redraw_timeout, 0.25, 0.);
-    ev_timer_start(main_loop, timeout);
-
-    if (clear_indicator_timeout) {
-        ev_timer_stop(main_loop, clear_indicator_timeout);
-        clear_indicator_timeout = NULL;
+    if (timeout) {
+        ev_timer_init(timeout, redraw_timeout, 0.25, 0.);
+        ev_timer_start(main_loop, timeout);
     }
+
+    stop_clear_indicator_timeout();
 }
 
 /*
@@ -484,52 +459,45 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
 
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
+        switch (type) {
+            case XCB_KEY_PRESS:
+                handle_key_press((xcb_key_press_event_t*)event);
+                break;
 
-        if (type == XCB_KEY_PRESS) {
-            handle_key_press((xcb_key_press_event_t*)event);
-            continue;
+            case XCB_KEY_RELEASE:
+                handle_key_release((xcb_key_release_event_t*)event);
+
+                /* If this was the backspace or escape key we are back at an
+                 * empty input, so turn off the screen if DPMS is enabled */
+                if (dpms && input_position == 0)
+                    dpms_turn_off_screen(conn);
+
+                break;
+
+            case XCB_VISIBILITY_NOTIFY:
+                handle_visibility_notify((xcb_visibility_notify_event_t*)event);
+                break;
+
+            case XCB_MAP_NOTIFY:
+                if (!dont_fork) {
+                    /* After the first MapNotify, we never fork again. We don’t
+                     * expect to get another MapNotify, but better be sure… */
+                    dont_fork = true;
+
+                    /* In the parent process, we exit */
+                    if (fork() != 0)
+                        exit(0);
+                }
+                break;
+
+            case XCB_MAPPING_NOTIFY:
+                handle_mapping_notify((xcb_mapping_notify_event_t*)event);
+                break;
+
+            case XCB_CONFIGURE_NOTIFY:
+                handle_screen_resize();
+                break;
         }
-
-        if (type == XCB_KEY_RELEASE) {
-            handle_key_release((xcb_key_release_event_t*)event);
-
-            /* If this was the backspace or escape key we are back at an
-             * empty input, so turn off the screen if DPMS is enabled */
-            if (dpms && input_position == 0)
-                dpms_turn_off_screen(conn);
-
-            continue;
-        }
-
-        if (type == XCB_VISIBILITY_NOTIFY) {
-            handle_visibility_notify((xcb_visibility_notify_event_t*)event);
-            continue;
-        }
-
-        if (type == XCB_MAP_NOTIFY) {
-            if (!dont_fork) {
-                /* After the first MapNotify, we never fork again. We don’t
-                 * expect to get another MapNotify, but better be sure… */
-                dont_fork = true;
-
-                /* In the parent process, we exit */
-                if (fork() != 0)
-                    exit(0);
-            }
-            continue;
-        }
-
-        if (type == XCB_MAPPING_NOTIFY) {
-            handle_mapping_notify((xcb_mapping_notify_event_t*)event);
-            continue;
-        }
-
-        if (type == XCB_CONFIGURE_NOTIFY) {
-            handle_screen_resize();
-            continue;
-        }
-
-        printf("WARNING: unhandled event of type %d\n", type);
 
         free(event);
     }
@@ -654,9 +622,12 @@ int main(int argc, char *argv[]) {
     if (dpms) {
         xcb_dpms_capable_cookie_t dpmsc = xcb_dpms_capable(conn);
         xcb_dpms_capable_reply_t *dpmsr;
-        if ((dpmsr = xcb_dpms_capable_reply(conn, dpmsc, NULL)) && !dpmsr->capable) {
-            fprintf(stderr, "Disabling DPMS, X server not DPMS capable\n");
-            dpms = false;
+        if ((dpmsr = xcb_dpms_capable_reply(conn, dpmsc, NULL))) {
+            if (!dpmsr->capable) {
+                fprintf(stderr, "Disabling DPMS, X server not DPMS capable\n");
+                dpms = false;
+            }
+            free(dpmsr);
         }
     }
 

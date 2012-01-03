@@ -11,6 +11,7 @@
 #include <math.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <ev.h>
 
 #ifndef NOLIBCAIRO
 #include <cairo.h>
@@ -28,6 +29,13 @@
 /*******************************************************************************
  * Variables defined in i3lock.c.
  ******************************************************************************/
+
+/* The current position in the input buffer. Useful to determine if any
+ * characters of the password have already been entered or not. */
+int input_position;
+
+/* The ev main loop. */
+struct ev_loop *main_loop;
 
 /* The lock window. */
 extern xcb_window_t win;
@@ -48,6 +56,8 @@ extern char color[7];
 /*******************************************************************************
  * Local variables.
  ******************************************************************************/
+
+static struct ev_timer *clear_indicator_timeout;
 
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
@@ -239,4 +249,52 @@ void redraw_screen() {
     xcb_clear_area(conn, 0, win, 0, 0, screen->width_in_pixels, screen->height_in_pixels);
     xcb_free_pixmap(conn, bg_pixmap);
     xcb_flush(conn);
+}
+
+/*
+ * Hides the unlock indicator completely when there is no content in the
+ * password buffer.
+ *
+ */
+static void clear_indicator(EV_P_ ev_timer *w, int revents) {
+    if (input_position == 0) {
+        unlock_state = STATE_STARTED;
+    } else unlock_state = STATE_KEY_PRESSED;
+    redraw_screen();
+
+    ev_timer_stop(main_loop, clear_indicator_timeout);
+    free(clear_indicator_timeout);
+    clear_indicator_timeout = NULL;
+}
+
+/*
+ * (Re-)starts the clear_indicator timeout. Called after pressing backspace or
+ * after an unsuccessful authentication attempt.
+ *
+ */
+void start_clear_indicator_timeout() {
+    if (clear_indicator_timeout) {
+        ev_timer_stop(main_loop, clear_indicator_timeout);
+        ev_timer_set(clear_indicator_timeout, 1.0, 0.);
+        ev_timer_start(main_loop, clear_indicator_timeout);
+    } else {
+        /* When there is no memory, we just don’t have a timeout. We cannot
+         * exit() here, since that would effectively unlock the screen. */
+        if (!(clear_indicator_timeout = calloc(sizeof(struct ev_timer), 1)))
+            return;
+        ev_timer_init(clear_indicator_timeout, clear_indicator, 1.0, 0.);
+        ev_timer_start(main_loop, clear_indicator_timeout);
+    }
+}
+
+/*
+ * Stops the clear_indicator timeout.
+ *
+ */
+void stop_clear_indicator_timeout() {
+    if (clear_indicator_timeout) {
+        ev_timer_stop(main_loop, clear_indicator_timeout);
+        free(clear_indicator_timeout);
+        clear_indicator_timeout = NULL;
+    }
 }
