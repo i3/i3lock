@@ -8,6 +8,9 @@ typedef struct Rect {
     uint16_t height;
 } Rect;
 
+extern int xr_screens;
+extern Rect *xr_resolutions;
+
 void xinerama_init();
 void xinerama_query_screens();
 
