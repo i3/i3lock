@@ -689,6 +689,9 @@ int main(int argc, char *argv[]) {
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
     ev_prepare_start(main_loop, xcb_prepare);
 
-    xcb_flush(conn);
+    /* Invoke the event callback once to catch all the events which were
+     * received up until now. ev will only pick up new events (when the X11
+     * file descriptor becomes readable). */
+    ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
 }
