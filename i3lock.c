@@ -253,6 +253,13 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         input_position = 0;
         clear_password_memory();
         password[input_position] = '\0';
+
+        /* Hide the unlock indicator after a bit if the password buffer is
+         * empty. */
+        start_clear_indicator_timeout();
+        unlock_state = STATE_BACKSPACE_ACTIVE;
+        redraw_screen();
+        unlock_state = STATE_KEY_PRESSED;
         return;
 
     case XK_BackSpace:
@@ -263,13 +270,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         u8_dec(password, &input_position);
         password[input_position] = '\0';
 
-        /* Clear this state after 2 seconds (unless the user enters another
-         * password during that time). */
+        /* Hide the unlock indicator after a bit if the password buffer is
+         * empty. */
         start_clear_indicator_timeout();
         unlock_state = STATE_BACKSPACE_ACTIVE;
         redraw_screen();
         unlock_state = STATE_KEY_PRESSED;
-        //printf("new input position = %d, new password = %s\n", input_position, password);
         return;
     }
 
