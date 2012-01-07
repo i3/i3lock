@@ -47,8 +47,11 @@ extern uint32_t last_resolution[2];
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
 
+#ifndef NOLIBCAIRO
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
+#endif
+
 /* Whether the image should be tiled. */
 extern bool tile;
 /* The background color to use (in hex). */
