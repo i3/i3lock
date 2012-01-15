@@ -122,7 +122,7 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
     xcb_create_window(conn,
-                      24,
+                      XCB_COPY_FROM_PARENT,
                       win, /* the window id */
                       scr->root, /* parent == root */
                       0, 0,
