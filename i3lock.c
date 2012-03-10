@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <security/pam_appl.h>
 /* FIXME: can we get rid of this header? */
+#include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <getopt.h>
 #include <string.h>
@@ -51,6 +52,8 @@ static bool modeswitch_active = false;
 static bool iso_level3_shift_active = false;
 static bool iso_level5_shift_active = false;
 static int numlockmask;
+static int shiftlockmask;
+static int capslockmask;
 static bool beep = false;
 static bool debug_mode = false;
 static bool dpms = false;
@@ -282,13 +285,47 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     if ((input_position + 8) >= sizeof(password))
         return;
 
+    /* Whether the user currently holds down the shift key. */
+    bool shift = (event->state & XCB_MOD_MASK_SHIFT);
+
+    /* Whether Caps Lock (all lowercase alphabetic keys will be replaced by
+     * their uppercase variant) is active at the moment. */
+    bool capslock = (event->state & capslockmask);
+
+    /* Whether Shift Lock (shift state is reversed) is active at the moment. */
+    bool shiftlock = (event->state & shiftlockmask);
+
+    /* Whether Caps Lock or Shift Lock is active at the moment. */
+    bool lock = (capslock || shiftlock);
+
+    DEBUG("shift = %d, lock = %d, capslock = %d, shiftlock = %d\n",
+          shift, lock, capslock, shiftlock);
+
     if ((event->state & numlockmask) && xcb_is_keypad_key(sym1)) {
         /* this key was a keypad key */
-        if ((event->state & XCB_MOD_MASK_SHIFT))
+        if (shift || shiftlock)
             sym = sym0;
         else sym = sym1;
     } else {
-        if ((event->state & XCB_MOD_MASK_SHIFT))
+        xcb_keysym_t upper, lower;
+        XConvertCase(sym0, (KeySym*)&lower, (KeySym*)&upper);
+        DEBUG("sym0 = %c (%d), sym1 = %c (%d), lower = %c (%d), upper = %c (%d)\n",
+              sym0, sym0, sym1, sym1, lower, lower, upper, upper);
+        /* If there is no difference between the uppercase and lowercase
+         * variant of this key, we consider Caps Lock off — it is only relevant
+         * for alphabetic keys, unlike Shift Lock. */
+        if (lower == upper) {
+            capslock = false;
+            lock = (capslock || shiftlock);
+            DEBUG("lower == upper, now shift = %d, lock = %d, capslock = %d, shiftlock = %d\n",
+                  shift, lock, capslock, shiftlock);
+        }
+
+        /* In two different cases we need to use the uppercase keysym:
+         * 1) The user holds shift, no lock is active.
+         * 2) Any of the two locks is active.
+         */
+        if ((shift && !lock) || (!shift && lock))
             sym = sym1;
         else sym = sym0;
     }
@@ -667,6 +704,11 @@ int main(int argc, char *argv[]) {
 
     symbols = xcb_key_symbols_alloc(conn);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
+    shiftlockmask = get_mod_mask(conn, symbols, XK_Shift_Lock);
+    capslockmask = get_mod_mask(conn, symbols, XK_Caps_Lock);
+
+    DEBUG("shift lock mask = %d\n", shiftlockmask);
+    DEBUG("caps lock mask = %d\n", capslockmask);
 
     if (dpms)
         dpms_turn_off_screen(conn);
