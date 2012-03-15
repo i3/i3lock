@@ -21,6 +21,7 @@ LIBS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image xcb-xinerama)
 endif
 LIBS += -lpam
 LIBS += -lev
+LIBS += -lX11
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)

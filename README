@@ -26,6 +26,7 @@ Requirements
 - libcairo-dev
 - libxcb-xinerama
 - libev
+- libx11-dev
 
 Running i3lock
 -------------
