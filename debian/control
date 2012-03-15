@@ -9,7 +9,6 @@ Homepage: http://i3wm.org/i3lock/
 
 Package: i3lock
 Architecture: any
-Priority: optional
 Section: x11
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: improved screen locker
