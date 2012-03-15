@@ -24,6 +24,7 @@ Requirements
 - libxcb-util
 - libpam-dev
 - libcairo-dev
+- libxcb-xinerama
 
 Running i3lock
 -------------
