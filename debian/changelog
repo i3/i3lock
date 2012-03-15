@@ -1,3 +1,14 @@
+i3lock (2.3-1) unstable; urgency=low
+
+  * Implement a visual unlock indicator
+  * Support ISO_Level5_Shift and Caps Lock
+  * Lock the password buffer in memory, clear it in RAM after verifying
+  * Fork after the window is visible, not before
+  * Bugfix: Copy the color depth from parent (root) window instead of
+    hardcoding a depth of 24
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Thu, 15 Mar 2012 13:25:23 +0100
+
 i3lock (2.2-1) unstable; urgency=low
 
   * Don’t re-grab pointer/keyboard on MappingNotify. In some rare situations,
