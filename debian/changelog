@@ -1,3 +1,9 @@
+i3lock (2.3.1-1) unstable; urgency=low
+
+  * Fix compilation on some systems
+
+ -- Michael Stapelberg <michael@stapelberg.de>  Thu, 15 Mar 2012 17:01:54 +0100
+
 i3lock (2.3-1) unstable; urgency=low
 
   * Implement a visual unlock indicator
