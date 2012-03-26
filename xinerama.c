@@ -13,6 +13,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xinerama.h>
 
+#include "i3lock.h"
 #include "xcb.h"
 #include "xinerama.h"
 
@@ -23,10 +24,11 @@ int xr_screens = 0;
 Rect *xr_resolutions;
 
 static bool xinerama_active;
+extern bool debug_mode;
 
 void xinerama_init() {
     if (!xcb_get_extension_data(conn, &xcb_xinerama_id)->present) {
-        printf("Xinerama extension not found, disabling.\n");
+        DEBUG("Xinerama extension not found, disabling.\n");
         return;
     }
 
@@ -57,7 +59,8 @@ void xinerama_query_screens() {
     cookie = xcb_xinerama_query_screens_unchecked(conn);
     reply = xcb_xinerama_query_screens_reply(conn, cookie, NULL);
     if (!reply) {
-        fprintf(stderr, "Couldn't get Xinerama screens\n");
+        if (debug_mode)
+            fprintf(stderr, "Couldn't get Xinerama screens\n");
         return;
     }
     screen_info = xcb_xinerama_query_screens_screen_info(reply);
@@ -77,7 +80,7 @@ void xinerama_query_screens() {
         xr_resolutions[screen].y = screen_info[screen].y_org;
         xr_resolutions[screen].width = screen_info[screen].width;
         xr_resolutions[screen].height = screen_info[screen].height;
-        printf("found Xinerama screen: %d x %d at %d x %d\n",
+        DEBUG("found Xinerama screen: %d x %d at %d x %d\n",
                         screen_info[screen].width, screen_info[screen].height,
                         screen_info[screen].x_org, screen_info[screen].y_org);
     }

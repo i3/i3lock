@@ -32,6 +32,7 @@
 #include <cairo/cairo-xcb.h>
 #endif
 
+#include "i3lock.h"
 #include "keysym2ucs.h"
 #include "ucs2_to_utf8.h"
 #include "xcb.h"
@@ -55,7 +56,7 @@ static int numlockmask;
 static int shiftlockmask;
 static int capslockmask;
 static bool beep = false;
-static bool debug_mode = false;
+bool debug_mode = false;
 static bool dpms = false;
 bool unlock_indicator = true;
 static bool dont_fork = false;
@@ -63,11 +64,6 @@ struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
-
-#define DEBUG(fmt, ...) do { \
-    if (debug_mode) \
-        printf("[i3lock-debug] " fmt, ##__VA_ARGS__); \
-} while (0)
 
 #ifndef NOLIBCAIRO
 cairo_surface_t *img = NULL;
@@ -123,12 +119,13 @@ static void input_done() {
     redraw_screen();
 
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
-        printf("successfully authenticated\n");
+        DEBUG("successfully authenticated\n");
         clear_password_memory();
         exit(0);
     }
 
-    fprintf(stderr, "Authentication failure\n");
+    if (debug_mode)
+        fprintf(stderr, "Authentication failure\n");
 
     pam_state = STATE_PAM_WRONG;
     redraw_screen();
@@ -349,7 +346,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     /* convert the keysym to UCS */
     uint16_t ucs = keysym2ucs(sym);
     if ((int16_t)ucs == -1) {
-        fprintf(stderr, "Keysym could not be converted to UCS, skipping\n");
+        if (debug_mode)
+            fprintf(stderr, "Keysym could not be converted to UCS, skipping\n");
         return;
     }
 
@@ -495,8 +493,9 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
     while ((event = xcb_poll_for_event(conn)) != NULL) {
         if (event->response_type == 0) {
             xcb_generic_error_t *error = (xcb_generic_error_t*)event;
-            fprintf(stderr, "X11 Error received! sequence 0x%x, error_code = %d\n",
-                    error->sequence, error->error_code);
+            if (debug_mode)
+                fprintf(stderr, "X11 Error received! sequence 0x%x, error_code = %d\n",
+                        error->sequence, error->error_code);
             free(event);
             continue;
         }
@@ -671,7 +670,8 @@ int main(int argc, char *argv[]) {
         xcb_dpms_capable_reply_t *dpmsr;
         if ((dpmsr = xcb_dpms_capable_reply(conn, dpmsc, NULL))) {
             if (!dpmsr->capable) {
-                fprintf(stderr, "Disabling DPMS, X server not DPMS capable\n");
+                if (debug_mode)
+                    fprintf(stderr, "Disabling DPMS, X server not DPMS capable\n");
                 dpms = false;
             }
             free(dpmsr);
