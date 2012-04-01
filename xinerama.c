@@ -26,7 +26,7 @@ Rect *xr_resolutions;
 static bool xinerama_active;
 extern bool debug_mode;
 
-void xinerama_init() {
+void xinerama_init(void) {
     if (!xcb_get_extension_data(conn, &xcb_xinerama_id)->present) {
         DEBUG("Xinerama extension not found, disabling.\n");
         return;
@@ -48,7 +48,7 @@ void xinerama_init() {
     xinerama_active = true;
 }
 
-void xinerama_query_screens() {
+void xinerama_query_screens(void) {
     if (!xinerama_active)
         return;
 

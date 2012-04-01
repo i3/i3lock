@@ -17,8 +17,8 @@ typedef enum {
 } pam_state_t;
 
 xcb_pixmap_t draw_image(uint32_t* resolution);
-void redraw_screen();
-void start_clear_indicator_timeout();
-void stop_clear_indicator_timeout();
+void redraw_screen(void);
+void start_clear_indicator_timeout(void);
+void stop_clear_indicator_timeout(void);
 
 #endif

@@ -272,7 +272,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  * Calls draw_image on a new pixmap and swaps that with the current pixmap
  *
  */
-void redraw_screen() {
+void redraw_screen(void) {
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){ bg_pixmap });
     /* XXX: Possible optimization: Only update the area in the middle of the
@@ -303,7 +303,7 @@ static void clear_indicator(EV_P_ ev_timer *w, int revents) {
  * after an unsuccessful authentication attempt.
  *
  */
-void start_clear_indicator_timeout() {
+void start_clear_indicator_timeout(void) {
     if (clear_indicator_timeout) {
         ev_timer_stop(main_loop, clear_indicator_timeout);
         ev_timer_set(clear_indicator_timeout, 1.0, 0.);
@@ -322,7 +322,7 @@ void start_clear_indicator_timeout() {
  * Stops the clear_indicator timeout.
  *
  */
-void stop_clear_indicator_timeout() {
+void stop_clear_indicator_timeout(void) {
     if (clear_indicator_timeout) {
         ev_timer_stop(main_loop, clear_indicator_timeout);
         free(clear_indicator_timeout);

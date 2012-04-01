@@ -75,7 +75,7 @@ bool tile = false;
  * cold-boot attacks.
  *
  */
-static void clear_password_memory() {
+static void clear_password_memory(void) {
     /* A volatile pointer to the password buffer to prevent the compiler from
      * optimizing this out. */
     volatile char *vpassword = password;
@@ -105,7 +105,7 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     clear_pam_wrong_timeout = NULL;
 }
 
-static void input_done() {
+static void input_done(void) {
     if (input_position == 0)
         return;
 
@@ -406,7 +406,7 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
  * and also redraw the image, if any.
  *
  */
-void handle_screen_resize() {
+void handle_screen_resize(void) {
     xcb_get_geometry_cookie_t geomc;
     xcb_get_geometry_reply_t *geom;
     geomc = xcb_get_geometry(conn, screen->root);

@@ -11,7 +11,7 @@ typedef struct Rect {
 extern int xr_screens;
 extern Rect *xr_resolutions;
 
-void xinerama_init();
-void xinerama_query_screens();
+void xinerama_init(void);
+void xinerama_query_screens(void);
 
 #endif
