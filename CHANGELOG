@@ -1,0 +1,58 @@
+2012-04-01 i3lock 2.4
+
+ • Bugfix: Fix background color when using cairo (Thanks Pascal)
+ • Only output text when in debug mode (fixes problems with xautolock)
+ • fallback when the image cannot be loaded
+ • Use (void) instead of () for functions without args (Thanks fernandotcl)
+
+2012-03-15 i3lock 2.3.1
+
+ • Fix compilation on some systems
+
+2012-03-15 i3lock 2.3
+
+  • Implement a visual unlock indicator
+  • Support ISO_Level5_Shift and Caps Lock
+  • Lock the password buffer in memory, clear it in RAM after verifying
+  • Fork after the window is visible, not before
+  • Bugfix: Copy the color depth from parent (root) window instead of
+    hardcoding a depth of 24
+
+2011-11-06 i3lock 2.2
+
+  • Don’t re-grab pointer/keyboard on MappingNotify. In some rare situations,
+    this lead to some keypresses "slipping through" to the last focused window.
+  • Correctly handle Mode_switch/ISO_Level3_Shift
+  • Render to a pixmap which is used as background for the window instead of
+    copying contents on every expose event
+  • Handle screen resolution changes while screen is locked
+  • Manpage: document arguments for every option
+
+2011-05-13 i3lock 2.1
+
+  • Accept return/backspace when the buffer of 512 bytes is full
+  • Handle numpad keys correctly
+  • Handle MappingNotify events
+  • Correctly check for errors when connecting to X11
+  • Add i3lock.pam to not rely on debian’s /etc/pam.d/other anymore
+  • don’t display debug output
+  • add NOLIBCAIRO flag to permit compilation without cairo
+
+2010-09-05 i3lock 2.0
+
+  • Complete rewrite of i3lock. Now using xcb instead of Xlib.
+  • When a window obscures i3lock, it pushes itself back to the top again.
+  • Display version when starting with -v
+
+2009-08-02 i3lock 1.1
+
+  • Implement background pictures (-i) and colors (-c)
+
+2009-05-10 i3lock 1.0
+
+  • Implement PAM support
+  • Implement options for forking, beeping, DPMS
+
+2009-05-01 i3lock 0.9
+
+  • First release, forked from slock 0.9
