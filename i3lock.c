@@ -431,6 +431,9 @@ void handle_screen_resize(void) {
     uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     xcb_configure_window(conn, win, mask, last_resolution);
     xcb_flush(conn);
+
+    xinerama_query_screens();
+    redraw_screen();
 }
 
 /*
@@ -683,6 +686,8 @@ int main(int argc, char *argv[]) {
     last_resolution[0] = screen->width_in_pixels;
     last_resolution[1] = screen->height_in_pixels;
 
+    xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
+            (uint32_t[]){ XCB_EVENT_MASK_STRUCTURE_NOTIFY });
 
 #ifndef NOLIBCAIRO
     if (image_path) {
