@@ -53,7 +53,6 @@ static bool modeswitch_active = false;
 static bool iso_level3_shift_active = false;
 static bool iso_level5_shift_active = false;
 static int numlockmask;
-static int shiftlockmask;
 static int capslockmask;
 static bool beep = false;
 bool debug_mode = false;
@@ -289,18 +288,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
      * their uppercase variant) is active at the moment. */
     bool capslock = (event->state & capslockmask);
 
-    /* Whether Shift Lock (shift state is reversed) is active at the moment. */
-    bool shiftlock = (event->state & shiftlockmask);
-
-    /* Whether Caps Lock or Shift Lock is active at the moment. */
-    bool lock = (capslock || shiftlock);
-
-    DEBUG("shift = %d, lock = %d, capslock = %d, shiftlock = %d\n",
-          shift, lock, capslock, shiftlock);
+    DEBUG("shift = %d, capslock = %d\n",
+          shift, capslock);
 
     if ((event->state & numlockmask) && xcb_is_keypad_key(sym1)) {
         /* this key was a keypad key */
-        if (shift || shiftlock)
+        if (shift)
             sym = sym0;
         else sym = sym1;
     } else {
@@ -313,16 +306,15 @@ static void handle_key_press(xcb_key_press_event_t *event) {
          * for alphabetic keys, unlike Shift Lock. */
         if (lower == upper) {
             capslock = false;
-            lock = (capslock || shiftlock);
-            DEBUG("lower == upper, now shift = %d, lock = %d, capslock = %d, shiftlock = %d\n",
-                  shift, lock, capslock, shiftlock);
+            DEBUG("lower == upper, now shift = %d, capslock = %d\n",
+                  shift, capslock);
         }
 
         /* In two different cases we need to use the uppercase keysym:
          * 1) The user holds shift, no lock is active.
          * 2) Any of the two locks is active.
          */
-        if ((shift && !lock) || (!shift && lock))
+        if ((shift && !capslock) || (!shift && capslock))
             sym = sym1;
         else sym = sym0;
     }
@@ -716,10 +708,9 @@ int main(int argc, char *argv[]) {
 
     symbols = xcb_key_symbols_alloc(conn);
     numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
-    shiftlockmask = get_mod_mask(conn, symbols, XK_Shift_Lock);
     capslockmask = get_mod_mask(conn, symbols, XK_Caps_Lock);
 
-    DEBUG("shift lock mask = %d\n", shiftlockmask);
+    DEBUG("numlock mask = %d\n", numlockmask);
     DEBUG("caps lock mask = %d\n", capslockmask);
 
     if (dpms)
