@@ -159,7 +159,20 @@ uint32_t get_mod_mask(xcb_connection_t *conn, xcb_key_symbols_t *symbols, uint32
     modmap_r = xcb_get_modifier_mapping_reply(conn, xcb_get_modifier_mapping(conn), NULL);
     modmap = xcb_get_modifier_mapping_keycodes(modmap_r);
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++) {
+        /* We skip i == 0 (Shift) because Shift is always Shift. Handling it
+         * would make i3lock believe that Shift is the modifier for CapsLock in
+         * case CapsLock is activated using the shift keysym:
+         *
+         * $ xmodmap
+         * shift       Shift_L (0x32),  Shift_R (0x3e)
+         * lock        Shift_L (0x32)
+         *
+         * The X11 documentation states that CapsLock and ShiftLock can only be
+         * on the lock modifier.
+         */
+        if (i == 0)
+            continue;
         for (int j = 0; j < modmap_r->keycodes_per_modifier; j++) {
             kc = modmap[i * modmap_r->keycodes_per_modifier + j];
             for (xcb_keycode_t *ktest = modeswitchcodes; *ktest; ktest++) {
@@ -171,6 +184,7 @@ uint32_t get_mod_mask(xcb_connection_t *conn, xcb_key_symbols_t *symbols, uint32
                 return (1 << i);
             }
         }
+    }
 
     free(modeswitchcodes);
     free(modmap_r);
