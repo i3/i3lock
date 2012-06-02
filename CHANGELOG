@@ -1,3 +1,10 @@
+2012-06-02 i3lock 2.4.1
+
+ • Bugfix: Correctly center unlock indicator after reconfiguring screens
+   (Thanks xeen)
+ • Bugfix: Revert shift lock handling (broke uppercase letters)
+ • Bugfix: Skip shift when getting the modifier mask (Thanks SardemFF7)
+
 2012-04-01 i3lock 2.4
 
  • Bugfix: Fix background color when using cairo (Thanks Pascal)
