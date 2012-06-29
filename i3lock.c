@@ -550,7 +550,7 @@ int main(int argc, char *argv[]) {
     struct pam_conv conv = {conv_callback, NULL};
     int nscreen;
     int curs_choice = CURS_NONE;
-    char o;
+    int o;
     int optind = 0;
     struct option longopts[] = {
         {"version", no_argument, NULL, 'v'},
