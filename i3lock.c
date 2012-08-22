@@ -645,11 +645,16 @@ int main(int argc, char *argv[]) {
     if (ret != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
 
+/* Using mlock() as non-super-user seems only possible in Linux. Users of other
+ * operating systems should use encrypted swap/no swap (or remove the ifdef and
+ * run i3lock as super-user). */
+#if defined(__linux__)
     /* Lock the area where we store the password in memory, we don’t want it to
      * be swapped to disk. Since Linux 2.6.9, this does not require any
      * privileges, just enough bytes in the RLIMIT_MEMLOCK limit. */
     if (mlock(password, sizeof(password)) != 0)
         err(EXIT_FAILURE, "Could not lock page in memory, check RLIMIT_MEMLOCK");
+#endif
 
     /* Initialize connection to X11 */
     if ((conn = xcb_connect(NULL, &nscreen)) == NULL ||
