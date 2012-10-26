@@ -14,17 +14,17 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/dpms.h>
-#include <xcb/xcb_keysyms.h>
 #include <err.h>
 #include <assert.h>
 #include <security/pam_appl.h>
-/* FIXME: can we get rid of this header? */
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
+#include <X11/Xlib-xcb.h>
 #include <getopt.h>
 #include <string.h>
 #include <ev.h>
 #include <sys/mman.h>
+#include <X11/XKBlib.h>
+#include <X11/extensions/XKBfile.h>
+#include <xkbcommon/xkbcommon.h>
 
 
 #ifndef NOLIBCAIRO
@@ -33,27 +33,21 @@
 #endif
 
 #include "i3lock.h"
-#include "keysym2ucs.h"
-#include "ucs2_to_utf8.h"
 #include "xcb.h"
 #include "cursors.h"
 #include "unlock_indicator.h"
 #include "xinerama.h"
 
+/* We need this for libxkbfile */
+static Display *display;
 char color[7] = "ffffff";
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
-static xcb_key_symbols_t *symbols;
 static pam_handle_t *pam_handle;
 int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
 static char password[512];
-static bool modeswitch_active = false;
-static bool iso_level3_shift_active = false;
-static bool iso_level5_shift_active = false;
-static int numlockmask;
-static int capslockmask;
 static bool beep = false;
 bool debug_mode = false;
 static bool dpms = false;
@@ -64,10 +58,90 @@ static struct ev_timer *clear_pam_wrong_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 
+static struct xkb_state *xkb_state;
+static struct xkb_context *xkb_context;
+static struct xkb_keymap *xkb_keymap;
+
 #ifndef NOLIBCAIRO
 cairo_surface_t *img = NULL;
 bool tile = false;
 #endif
+
+/* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
+#define isutf(c) (((c) & 0xC0) != 0x80)
+
+/*
+ * Decrements i to point to the previous unicode glyph
+ *
+ */
+void u8_dec(char *s, int *i) {
+    (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
+}
+
+/*
+ * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
+ * Necessary so that we can properly let xkbcommon track the keyboard state and
+ * translate keypresses to utf-8.
+ *
+ * Ideally, xkbcommon would ship something like this itself, but as of now
+ * (version 0.2.0), it doesn’t.
+ *
+ */
+static bool load_keymap(void) {
+    bool ret = false;
+    XkbFileInfo result;
+    memset(&result, '\0', sizeof(result));
+    result.xkb = XkbGetKeyboard(display, XkbAllMapComponentsMask, XkbUseCoreKbd);
+    if (result.xkb == NULL) {
+        fprintf(stderr, "[i3lock] XKB: XkbGetKeyboard failed\n");
+        return false;
+    }
+
+    FILE *temp = tmpfile();
+    if (temp == NULL) {
+        fprintf(stderr, "[i3lock] could not create tempfile\n");
+        return false;
+    }
+
+    bool ok = XkbWriteXKBKeymap(temp, &result, false, false, NULL, NULL);
+    if (!ok) {
+        fprintf(stderr, "[i3lock] XkbWriteXKBKeymap failed\n");
+        goto out;
+    }
+
+    rewind(temp);
+
+    if (xkb_context == NULL) {
+        if ((xkb_context = xkb_context_new(0)) == NULL) {
+            fprintf(stderr, "[i3lock] could not create xkbcommon context\n");
+            goto out;
+        }
+    }
+
+    if (xkb_keymap != NULL)
+        xkb_keymap_unref(xkb_keymap);
+
+    if ((xkb_keymap = xkb_keymap_new_from_file(xkb_context, temp, XKB_KEYMAP_FORMAT_TEXT_V1, 0)) == NULL) {
+        fprintf(stderr, "[i3lock] xkb_keymap_new_from_file failed\n");
+        goto out;
+    }
+
+    struct xkb_state *new_state = xkb_state_new(xkb_keymap);
+    if (new_state == NULL) {
+        fprintf(stderr, "[i3lock] xkb_state_new failed\n");
+        goto out;
+    }
+
+    if (xkb_state != NULL)
+        xkb_state_unref(xkb_state);
+    xkb_state = new_state;
+
+    ret = true;
+out:
+    XkbFreeKeyboard(result.xkb, XkbAllComponentsMask, true);
+    fclose(temp);
+    return ret;
+}
 
 /*
  * Clears the memory which stored the password to be a bit safer against
@@ -154,24 +228,7 @@ static void input_done(void) {
  *
  */
 static void handle_key_release(xcb_key_release_event_t *event) {
-    DEBUG("releasing key %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d, iso_level5_shift_active = %d\n",
-          event->detail, event->state, modeswitch_active, iso_level3_shift_active, iso_level5_shift_active);
-
-    /* We don’t care about the column here and just use the first symbol. Since
-     * we only check for Mode_switch and ISO_Level3_Shift, this *should* work.
-     * Also, if we would use the current column, we would look in the wrong
-     * place. */
-    xcb_keysym_t sym = xcb_key_press_lookup_keysym(symbols, event, 0);
-    if (sym == XK_Mode_switch) {
-        //printf("Mode switch disabled\n");
-        modeswitch_active = false;
-    } else if (sym == XK_ISO_Level3_Shift) {
-        iso_level3_shift_active = false;
-    } else if (sym == XK_ISO_Level5_Shift) {
-        iso_level5_shift_active = false;
-    }
-    DEBUG("release done. modeswitch_active = %d, iso_level3_shift_active = %d, iso_level5_shift_active = %d\n",
-          modeswitch_active, iso_level3_shift_active, iso_level5_shift_active);
+    xkb_state_update_key(xkb_state, event->detail, XKB_KEY_UP);
 }
 
 static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
@@ -188,67 +245,23 @@ static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
  *
  */
 static void handle_key_press(xcb_key_press_event_t *event) {
-    DEBUG("keypress %d, state raw = %d, modeswitch_active = %d, iso_level3_shift_active = %d\n",
-          event->detail, event->state, modeswitch_active, iso_level3_shift_active);
+    xkb_keysym_t ksym;
+    char buffer[128];
+    int n;
 
-    xcb_keysym_t sym0, sym1, sym;
-    /* For each keycode, there is a list of symbols. The list could look like this:
-     * $ xmodmap -pke | grep 'keycode  38'
-     * keycode  38 = a A adiaeresis Adiaeresis o O
-     * In non-X11 terminology, the symbols for the keycode 38 (the key labeled
-     * with "a" on my keyboard) are "a A ä Ä o O".
-     * Another form to display the same information is using xkbcomp:
-     * $ xkbcomp $DISPLAY /tmp/xkb.dump
-     * Then open /tmp/xkb.dump and search for '\<a\>' (in VIM regexp-language):
-     *
-     * symbols[Group1]= [               a,               A,               o,               O ],
-     * symbols[Group2]= [      adiaeresis,      Adiaeresis ]
-     *
-     * So there are two *groups*, one containing 'a A' and one containing 'ä
-     * Ä'. You can use Mode_switch to switch between these groups. You can use
-     * ISO_Level3_Shift to reach the 'o O' part of the first group (it’s the
-     * same group, just an even higher shift level).
-     *
-     * So, using the "logical" XKB information, the following lookup will be
-     * performed:
-     *
-     * Neither Mode_switch nor ISO_Level3_Shift active: group 1, column 0 and 1
-     * Mode_switch active: group 2, column 0 and 1
-     * ISO_Level3_Shift active: group 1, column 2 and 3
-     *
-     * Using the column index which xcb_key_press_lookup_keysym uses (and
-     * xmodmap prints out), the following lookup will be performed:
-     *
-     * Neither Mode_switch nor ISO_Level3_Shift active: column 0 and 1
-     * Mode_switch active: column 2 and 3
-     * ISO_Level3_Shift active: column 4 and 5
-     */
-    int base_column = 0;
-    if (modeswitch_active)
-        base_column = 2;
-    if (iso_level3_shift_active)
-        base_column = 4;
-    if (iso_level5_shift_active)
-        base_column = 6;
-    sym0 = xcb_key_press_lookup_keysym(symbols, event, base_column);
-    sym1 = xcb_key_press_lookup_keysym(symbols, event, base_column + 1);
-    switch (sym0) {
-    case XK_Mode_switch:
-        DEBUG("Mode switch enabled\n");
-        modeswitch_active = true;
-        return;
-    case XK_ISO_Level3_Shift:
-        DEBUG("ISO_Level3_Shift enabled\n");
-        iso_level3_shift_active = true;
-        return;
-    case XK_ISO_Level5_Shift:
-        DEBUG("ISO_Level5_Shift enabled\n");
-        iso_level5_shift_active = true;
-        return;
-    case XK_Return:
-    case XK_KP_Enter:
+    ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
+    xkb_state_update_key(xkb_state, event->detail, XKB_KEY_DOWN);
+
+    /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
+    memset(buffer, '\0', sizeof(buffer));
+    n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
+
+    switch (ksym) {
+    case XKB_KEY_Return:
+    case XKB_KEY_KP_Enter:
+        password[input_position] = '\0';
         input_done();
-    case XK_Escape:
+    case XKB_KEY_Escape:
         input_position = 0;
         clear_password_memory();
         password[input_position] = '\0';
@@ -261,7 +274,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         unlock_state = STATE_KEY_PRESSED;
         return;
 
-    case XK_BackSpace:
+    case XKB_KEY_BackSpace:
         if (input_position == 0)
             return;
 
@@ -281,44 +294,6 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     if ((input_position + 8) >= sizeof(password))
         return;
 
-    /* Whether the user currently holds down the shift key. */
-    bool shift = (event->state & XCB_MOD_MASK_SHIFT);
-
-    /* Whether Caps Lock (all lowercase alphabetic keys will be replaced by
-     * their uppercase variant) is active at the moment. */
-    bool capslock = (event->state & capslockmask);
-
-    DEBUG("shift = %d, capslock = %d\n",
-          shift, capslock);
-
-    if ((event->state & numlockmask) && xcb_is_keypad_key(sym1)) {
-        /* this key was a keypad key */
-        if (shift)
-            sym = sym0;
-        else sym = sym1;
-    } else {
-        xcb_keysym_t upper, lower;
-        XConvertCase(sym0, (KeySym*)&lower, (KeySym*)&upper);
-        DEBUG("sym0 = %c (%d), sym1 = %c (%d), lower = %c (%d), upper = %c (%d)\n",
-              sym0, sym0, sym1, sym1, lower, lower, upper, upper);
-        /* If there is no difference between the uppercase and lowercase
-         * variant of this key, we consider Caps Lock off — it is only relevant
-         * for alphabetic keys, unlike Shift Lock. */
-        if (lower == upper) {
-            capslock = false;
-            DEBUG("lower == upper, now shift = %d, capslock = %d\n",
-                  shift, capslock);
-        }
-
-        /* In two different cases we need to use the uppercase keysym:
-         * 1) The user holds shift, no lock is active.
-         * 2) Any of the two locks is active.
-         */
-        if ((shift && !capslock) || (!shift && capslock))
-            sym = sym1;
-        else sym = sym0;
-    }
-
 #if 0
     /* FIXME: handle all of these? */
     printf("is_keypad_key = %d\n", xcb_is_keypad_key(sym));
@@ -330,26 +305,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     printf("xcb_is_modifier_key = %d\n", xcb_is_modifier_key(sym));
 #endif
 
-    if (xcb_is_modifier_key(sym) || xcb_is_cursor_key(sym))
+    if (n < 2)
         return;
-
-    DEBUG("resolved to keysym = %c (%d)\n", sym, sym);
-
-    /* convert the keysym to UCS */
-    uint16_t ucs = keysym2ucs(sym);
-    if ((int16_t)ucs == -1) {
-        if (debug_mode)
-            fprintf(stderr, "Keysym could not be converted to UCS, skipping\n");
-        return;
-    }
-
-    /* store the UCS in a string to convert it */
-    uint8_t inp[3] = {(ucs & 0xFF00) >> 8, (ucs & 0xFF), 0};
-    DEBUG("input part = %s\n", inp);
 
     /* store it in the password array as UTF-8 */
-    input_position += convert_ucs_to_utf8((char*)inp, password + input_position);
-    password[input_position] = '\0';
+    memcpy(password+input_position, buffer, n-1);
+    input_position += n-1;
     DEBUG("current password = %s\n", password);
 
     unlock_state = STATE_KEY_ACTIVE;
@@ -387,9 +348,9 @@ static void handle_visibility_notify(xcb_visibility_notify_event_t *event) {
  *
  */
 static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
-    xcb_refresh_keyboard_mapping(symbols, event);
-
-    numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
+    /* We ignore errors — if the new keymap cannot be loaded it’s better if the
+     * screen stays locked and the user intervenes by using killall i3lock. */
+    (void)load_keymap();
 }
 
 /*
@@ -548,7 +509,6 @@ int main(int argc, char *argv[]) {
 #endif
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
-    int nscreen;
     int curs_choice = CURS_NONE;
     int o;
     int optind = 0;
@@ -657,9 +617,18 @@ int main(int argc, char *argv[]) {
 #endif
 
     /* Initialize connection to X11 */
-    if ((conn = xcb_connect(NULL, &nscreen)) == NULL ||
-        xcb_connection_has_error(conn))
+    if ((display = XOpenDisplay(NULL)) == NULL)
         errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
+    XSetEventQueueOwner(display, XCBOwnsEventQueue);
+    conn = XGetXCBConnection(display);
+
+    /* Double checking that connection is good and operatable with xcb */
+    if (xcb_connection_has_error(conn))
+        errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
+
+    /* When we cannot initially load the keymap, we better exit */
+    if (!load_keymap())
+        errx(EXIT_FAILURE, "Could not load keymap");
 
     xinerama_init();
     xinerama_query_screens();
@@ -709,13 +678,6 @@ int main(int argc, char *argv[]) {
     cursor = create_cursor(conn, screen, win, curs_choice);
 
     grab_pointer_and_keyboard(conn, screen, cursor);
-
-    symbols = xcb_key_symbols_alloc(conn);
-    numlockmask = get_mod_mask(conn, symbols, XK_Num_Lock);
-    capslockmask = get_mod_mask(conn, symbols, XK_Caps_Lock);
-
-    DEBUG("numlock mask = %d\n", numlockmask);
-    DEBUG("caps lock mask = %d\n", capslockmask);
 
     if (dpms)
         dpms_turn_off_screen(conn);

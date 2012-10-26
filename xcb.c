@@ -8,7 +8,6 @@
  *
  */
 #include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 #include <xcb/xcb_image.h>
 #include <xcb/dpms.h>
 #include <stdio.h>
@@ -142,53 +141,6 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
     xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_STACK_MODE, values);
 
     return win;
-}
-
-/*
- * Returns the mask for Mode_switch (to be used for looking up keysymbols by
- * keycode).
- *
- */
-uint32_t get_mod_mask(xcb_connection_t *conn, xcb_key_symbols_t *symbols, uint32_t keycode) {
-    xcb_get_modifier_mapping_reply_t *modmap_r;
-    xcb_keycode_t *modmap, kc;
-    xcb_keycode_t *modeswitchcodes = xcb_key_symbols_get_keycode(symbols, keycode);
-    if (modeswitchcodes == NULL)
-        return 0;
-
-    modmap_r = xcb_get_modifier_mapping_reply(conn, xcb_get_modifier_mapping(conn), NULL);
-    modmap = xcb_get_modifier_mapping_keycodes(modmap_r);
-
-    for (int i = 0; i < 8; i++) {
-        /* We skip i == 0 (Shift) because Shift is always Shift. Handling it
-         * would make i3lock believe that Shift is the modifier for CapsLock in
-         * case CapsLock is activated using the shift keysym:
-         *
-         * $ xmodmap
-         * shift       Shift_L (0x32),  Shift_R (0x3e)
-         * lock        Shift_L (0x32)
-         *
-         * The X11 documentation states that CapsLock and ShiftLock can only be
-         * on the lock modifier.
-         */
-        if (i == 0)
-            continue;
-        for (int j = 0; j < modmap_r->keycodes_per_modifier; j++) {
-            kc = modmap[i * modmap_r->keycodes_per_modifier + j];
-            for (xcb_keycode_t *ktest = modeswitchcodes; *ktest; ktest++) {
-                if (*ktest != kc)
-                    continue;
-
-                free(modeswitchcodes);
-                free(modmap_r);
-                return (1 << i);
-            }
-        }
-    }
-
-    free(modeswitchcodes);
-    free(modmap_r);
-    return 0;
 }
 
 void dpms_turn_off_screen(xcb_connection_t *conn) {

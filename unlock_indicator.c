@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 #include <ev.h>
 
 #ifndef NOLIBCAIRO

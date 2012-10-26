@@ -27,6 +27,9 @@ Requirements
 - libxcb-xinerama
 - libev
 - libx11-dev
+- libx11-xcb-dev
+- libxkbfile-dev
+- libxkbcommon >= 0.2.0
 
 Running i3lock
 -------------

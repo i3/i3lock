@@ -11,17 +11,16 @@ CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
 CPPFLAGS += -D_GNU_SOURCE
+CFLAGS += $(shell pkg-config --cflags xcb-dpms xcb-xinerama xkbcommon xkbfile x11 x11-xcb)
+LIBS += $(shell pkg-config --libs xcb-dpms xcb-xinerama xcb-image xkbcommon xkbfile x11 x11-xcb)
 ifndef NOLIBCAIRO
-CFLAGS += $(shell pkg-config --cflags cairo xcb-keysyms xcb-dpms xcb-xinerama)
-LIBS += $(shell pkg-config --libs cairo xcb-keysyms xcb-dpms xcb-xinerama xcb-image)
+CFLAGS += $(shell pkg-config --cflags cairo)
+LIBS += $(shell pkg-config --libs cairo)
 else
 CPPFLAGS += -DNOLIBCAIRO
-CFLAGS += $(shell pkg-config --cflags xcb-keysyms xcb-dpms xcb-xinerama)
-LIBS += $(shell pkg-config --libs xcb-keysyms xcb-dpms xcb-image xcb-xinerama)
 endif
 LIBS += -lpam
 LIBS += -lev
-LIBS += -lX11
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
