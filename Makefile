@@ -11,14 +11,8 @@ CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
 CPPFLAGS += -D_GNU_SOURCE
-CFLAGS += $(shell pkg-config --cflags xcb-dpms xcb-xinerama xkbcommon xkbfile x11 x11-xcb)
-LIBS += $(shell pkg-config --libs xcb-dpms xcb-xinerama xcb-image xkbcommon xkbfile x11 x11-xcb)
-ifndef NOLIBCAIRO
-CFLAGS += $(shell pkg-config --cflags cairo)
-LIBS += $(shell pkg-config --libs cairo)
-else
-CPPFLAGS += -DNOLIBCAIRO
-endif
+CFLAGS += $(shell pkg-config --cflags cairo xcb-dpms xcb-xinerama xkbcommon xkbfile x11 x11-xcb)
+LIBS += $(shell pkg-config --libs cairo xcb-dpms xcb-xinerama xcb-image xkbcommon xkbfile x11 x11-xcb)
 LIBS += -lpam
 LIBS += -lev
 

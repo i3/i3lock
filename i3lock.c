@@ -25,12 +25,8 @@
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBfile.h>
 #include <xkbcommon/xkbcommon.h>
-
-
-#ifndef NOLIBCAIRO
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
-#endif
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -62,10 +58,8 @@ static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
 static struct xkb_keymap *xkb_keymap;
 
-#ifndef NOLIBCAIRO
 cairo_surface_t *img = NULL;
 bool tile = false;
-#endif
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c) & 0xC0) != 0x80)
@@ -377,9 +371,7 @@ void handle_screen_resize(void) {
 
     free(geom);
 
-#ifndef NOLIBCAIRO
     redraw_screen();
-#endif
 
     uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     xcb_configure_window(conn, win, mask, last_resolution);
@@ -504,9 +496,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
 
 int main(int argc, char *argv[]) {
     char *username;
-#ifndef NOLIBCAIRO
     char *image_path = NULL;
-#endif
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int curs_choice = CURS_NONE;
@@ -522,21 +512,15 @@ int main(int argc, char *argv[]) {
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
-#ifndef NOLIBCAIRO
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
-#endif
         {NULL, no_argument, NULL, 0}
     };
 
     if ((username = getenv("USER")) == NULL)
         errx(1, "USER environment variable not set, please set it.\n");
 
-    while ((o = getopt_long(argc, argv, "hvnbdc:p:u"
-#ifndef NOLIBCAIRO
-        "i:t"
-#endif
-        , longopts, &optind)) != -1) {
+    while ((o = getopt_long(argc, argv, "hvnbdc:p:ui:t", longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
             errx(EXIT_SUCCESS, "version " VERSION " © 2010-2012 Michael Stapelberg");
@@ -564,14 +548,12 @@ int main(int argc, char *argv[]) {
         case 'u':
             unlock_indicator = false;
             break;
-#ifndef NOLIBCAIRO
         case 'i':
             image_path = strdup(optarg);
             break;
         case 't':
             tile = true;
             break;
-#endif
         case 'p':
             if (!strcmp(optarg, "win")) {
                 curs_choice = CURS_WIN;
@@ -587,11 +569,7 @@ int main(int argc, char *argv[]) {
             break;
         default:
             errx(1, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-#ifndef NOLIBCAIRO
             " [-i image.png] [-t]"
-#else
-            " (compiled with NOLIBCAIRO)"
-#endif
             );
         }
     }
@@ -655,7 +633,6 @@ int main(int argc, char *argv[]) {
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
             (uint32_t[]){ XCB_EVENT_MASK_STRUCTURE_NOTIFY });
 
-#ifndef NOLIBCAIRO
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
@@ -666,7 +643,6 @@ int main(int argc, char *argv[]) {
             img = NULL;
         }
     }
-#endif
 
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);

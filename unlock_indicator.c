@@ -11,11 +11,8 @@
 #include <math.h>
 #include <xcb/xcb.h>
 #include <ev.h>
-
-#ifndef NOLIBCAIRO
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
-#endif
 
 #include "xcb.h"
 #include "unlock_indicator.h"
@@ -46,10 +43,8 @@ extern uint32_t last_resolution[2];
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
 
-#ifndef NOLIBCAIRO
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
-#endif
 
 /* Whether the image should be tiled. */
 extern bool tile;
@@ -78,7 +73,6 @@ pam_state_t pam_state;
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
 
-#ifndef NOLIBCAIRO
     if (!vistype)
         vistype = get_root_visual_type(screen);
     bg_pixmap = create_bg_pixmap(conn, screen, resolution, color);
@@ -263,7 +257,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
     cairo_destroy(xcb_ctx);
-#endif
     return bg_pixmap;
 }
 

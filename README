@@ -33,9 +33,5 @@ Requirements
 
 Running i3lock
 -------------
-Simply invoke the 'i3lock' command. To get out of it, enter your password.
-
-Building i3lock
--------------
-If you don't want to build against libcairo run "make NOLIBCAIRO=y", without
-libcairo displaying images is not possible.
+Simply invoke the 'i3lock' command. To get out of it, enter your password and
+press enter.
