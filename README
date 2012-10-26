@@ -19,7 +19,7 @@ Many little improvements have been made to i3lock over time:
 
 Requirements
 ------------
-- pkg-config (or you can rewrite the Makefile by hand if you want to avoid it)
+- pkg-config
 - libxcb
 - libxcb-util
 - libpam-dev
