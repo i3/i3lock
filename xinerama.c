@@ -46,6 +46,7 @@ void xinerama_init(void) {
     }
 
     xinerama_active = true;
+    free(reply);
 }
 
 void xinerama_query_screens(void) {
