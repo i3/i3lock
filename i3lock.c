@@ -253,6 +253,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     switch (ksym) {
     case XKB_KEY_Return:
     case XKB_KEY_KP_Enter:
+    case XKB_KEY_XF86ScreenSaver:
         password[input_position] = '\0';
         input_done();
     case XKB_KEY_Escape:
