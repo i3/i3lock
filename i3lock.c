@@ -173,9 +173,6 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
 }
 
 static void input_done(void) {
-    if (input_position == 0)
-        return;
-
     if (clear_pam_wrong_timeout) {
         ev_timer_stop(main_loop, clear_pam_wrong_timeout);
         free(clear_pam_wrong_timeout);
@@ -255,6 +252,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     case XKB_KEY_KP_Enter:
     case XKB_KEY_XF86ScreenSaver:
         password[input_position] = '\0';
+        unlock_state = STATE_KEY_PRESSED;
+        redraw_screen();
         input_done();
     case XKB_KEY_Escape:
         input_position = 0;
