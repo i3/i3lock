@@ -541,7 +541,7 @@ int main(int argc, char *argv[]) {
                 arg++;
 
             if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
-                errx(1, "color is invalid, color must be given in 6-byte format: rrggbb\n");
+                errx(1, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
 
             break;
         }
