@@ -305,7 +305,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     /* store it in the password array as UTF-8 */
     memcpy(password+input_position, buffer, n-1);
     input_position += n-1;
-    DEBUG("current password = %s\n", password);
+    DEBUG("current password = %.*s\n", input_position, password);
 
     unlock_state = STATE_KEY_ACTIVE;
     redraw_screen();
