@@ -35,3 +35,7 @@ Running i3lock
 -------------
 Simply invoke the 'i3lock' command. To get out of it, enter your password and
 press enter.
+
+Upstream
+--------
+Please submit patches to http://cr.i3wm.org/
