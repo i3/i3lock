@@ -478,6 +478,8 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                     /* In the parent process, we exit */
                     if (fork() != 0)
                         exit(0);
+
+                    ev_loop_fork(EV_DEFAULT);
                 }
                 break;
 
