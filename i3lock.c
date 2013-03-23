@@ -239,8 +239,10 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     xkb_keysym_t ksym;
     char buffer[128];
     int n;
+    bool ctrl;
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
+    ctrl = xkb_state_mod_name_is_active(xkb_state, "Control", XKB_STATE_MODS_DEPRESSED);
     xkb_state_update_key(xkb_state, event->detail, XKB_KEY_DOWN);
 
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
@@ -255,6 +257,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         unlock_state = STATE_KEY_PRESSED;
         redraw_screen();
         input_done();
+    case XKB_KEY_u:
+        if (!ctrl)
+            break;
     case XKB_KEY_Escape:
         input_position = 0;
         clear_password_memory();
