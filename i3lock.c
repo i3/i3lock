@@ -172,6 +172,19 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     clear_pam_wrong_timeout = NULL;
 }
 
+static void clear_input(void) {
+    input_position = 0;
+    clear_password_memory();
+    password[input_position] = '\0';
+
+    /* Hide the unlock indicator after a bit if the password buffer is
+     * empty. */
+    start_clear_indicator_timeout();
+    unlock_state = STATE_BACKSPACE_ACTIVE;
+    redraw_screen();
+    unlock_state = STATE_KEY_PRESSED;
+}
+
 static void input_done(void) {
     if (clear_pam_wrong_timeout) {
         ev_timer_stop(main_loop, clear_pam_wrong_timeout);
@@ -192,6 +205,7 @@ static void input_done(void) {
         fprintf(stderr, "Authentication failure\n");
 
     pam_state = STATE_PAM_WRONG;
+    clear_input();
     redraw_screen();
 
     /* Clear this state after 2 seconds (unless the user enters another
@@ -257,20 +271,15 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         unlock_state = STATE_KEY_PRESSED;
         redraw_screen();
         input_done();
-    case XKB_KEY_u:
-        if (!ctrl)
-            break;
-    case XKB_KEY_Escape:
-        input_position = 0;
-        clear_password_memory();
-        password[input_position] = '\0';
+        return;
 
-        /* Hide the unlock indicator after a bit if the password buffer is
-         * empty. */
-        start_clear_indicator_timeout();
-        unlock_state = STATE_BACKSPACE_ACTIVE;
-        redraw_screen();
-        unlock_state = STATE_KEY_PRESSED;
+    case XKB_KEY_u:
+        if (ctrl)
+            clear_input();
+        return;
+
+    case XKB_KEY_Escape:
+        clear_input();
         return;
 
     case XKB_KEY_BackSpace:
