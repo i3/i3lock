@@ -274,9 +274,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         return;
 
     case XKB_KEY_u:
-        if (ctrl)
+        if (ctrl) {
+            DEBUG("C-u pressed\n");
             clear_input();
-        return;
+            return;
+        }
+        break;
 
     case XKB_KEY_Escape:
         clear_input();
