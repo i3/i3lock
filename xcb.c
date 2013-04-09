@@ -9,10 +9,12 @@
  */
 #include <xcb/xcb.h>
 #include <xcb/xcb_image.h>
+#include <xcb/xcb_atom.h>
 #include <xcb/dpms.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 #include <assert.h>
 #include <err.h>
@@ -132,6 +134,16 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
                       XCB_WINDOW_CLASS_COPY_FROM_PARENT, /* copy visual from parent */
                       mask,
                       values);
+
+    char *name = "i3lock";
+    xcb_change_property(conn,
+                        XCB_PROP_MODE_REPLACE,
+                        win,
+                        XCB_ATOM_WM_NAME,
+                        XCB_ATOM_STRING,
+                        8,
+                        strlen(name),
+                        name);
 
     /* Map the window (= make it visible) */
     xcb_map_window(conn, win);
