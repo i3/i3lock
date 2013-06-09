@@ -1,3 +1,22 @@
+2013-06-09 i3lock 2.5
+
+ • NEW DEPENDENCY: Use libxkbcommon for input handling
+   This makes input handling much better for many edge cases.
+ • Bugfix: fix argument parsing on ARM (s/char/int/)
+ • Bugfix: free(reply) to avoid memory leak
+ • Bugfix: Use ev_loop_fork after fork, fixes forking on kqueue based OSes
+ • Bugfix: Fix centering the indicator in the no-xinerama case
+ • Only use mlock() on Linux, FreeBSD (for example) requires root
+ • promote the "could not load image" message from debug to normal
+ • s/pam_message/pam_response/ (Thanks Tucos)
+ • remove support for NOLIBCAIRO, cairo-xcb is widespread by now
+ • Allow XKB_KEY_XF86ScreenSaver as synonym for enter
+   This keysym is generated on convertible tablets by pressing a hardware
+   lock/unlock button.
+ • Allow passwordless PAM conversations (e.g. fingerprint)
+ • Add ctrl+u password reset
+ • Set window name to i3lock
+
 2012-06-02 i3lock 2.4.1
 
  • Bugfix: Correctly center unlock indicator after reconfiguring screens
