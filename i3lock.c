@@ -60,6 +60,7 @@ static struct xkb_keymap *xkb_keymap;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
+bool ignore_empty_password = false;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c) & 0xC0) != 0x80)
@@ -267,6 +268,10 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     case XKB_KEY_Return:
     case XKB_KEY_KP_Enter:
     case XKB_KEY_XF86ScreenSaver:
+        if (ignore_empty_password && input_position == 0) {
+            clear_input();
+            return;
+        }
         password[input_position] = '\0';
         unlock_state = STATE_KEY_PRESSED;
         redraw_screen();
@@ -533,13 +538,14 @@ int main(int argc, char *argv[]) {
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
+        {"ignore-empty-password", no_argument, NULL, 'e'},
         {NULL, no_argument, NULL, 0}
     };
 
     if ((username = getenv("USER")) == NULL)
         errx(1, "USER environment variable not set, please set it.\n");
 
-    while ((o = getopt_long(argc, argv, "hvnbdc:p:ui:t", longopts, &optind)) != -1) {
+    while ((o = getopt_long(argc, argv, "hvnbdc:p:ui:te", longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
             errx(EXIT_SUCCESS, "version " VERSION " © 2010-2012 Michael Stapelberg");
@@ -581,6 +587,9 @@ int main(int argc, char *argv[]) {
             } else {
                 errx(1, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".\n");
             }
+            break;
+        case 'e':
+            ignore_empty_password = true;
             break;
         case 0:
             if (strcmp(longopts[optind].name, "debug") == 0)

@@ -27,6 +27,7 @@ i3lock \- improved screen locker
 .RB [\|\-p
 .IR pointer\|]
 .RB [\|\-u\|]
+.RB [\|\-e\|]
 
 .SH DESCRIPTION
 .B i3lock
@@ -99,6 +100,15 @@ does not hide your Mousepointer. If you specify "win",
 .B i3lock
 displays a hardcoded Windows-Pointer (thus enabling you to fuck with your
 friends by using a Screenshot of a Windows-Desktop as a locking-screen).
+
+.TP
+.B \-e, \-\-ignore-empty-password
+When an empty password is provided by the user, do not validate
+it. Without this option, the empty password will be provided to PAM
+and, if invalid, the user will have to wait a few seconds before
+another try. This can be useful if the XF86ScreenSaver key is used to
+put a laptop to sleep and bounce on resume or if you happen to wake up
+your computer with the enter key.
 
 .SH SEE ALSO
 .IR xautolock(1)
