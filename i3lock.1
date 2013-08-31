@@ -37,17 +37,14 @@ entering your password.
 
 .SH IMPROVEMENTS
 
-.TP
-* i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen after waking up your computer from suspend to RAM)
-
-.TP
-* You can specify either a background color or a PNG image which will be displayed while your screen is locked.
-
-.TP
-* You can specify whether i3lock should bell upon a wrong password.
-
-.TP
-* i3lock uses PAM and therefore is compatible with LDAP etc.
+.IP \[bu] 2
+i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen after waking up your computer from suspend to RAM)
+.IP \[bu]
+You can specify either a background color or a PNG image which will be displayed while your screen is locked.
+.IP \[bu]
+You can specify whether i3lock should bell upon a wrong password.
+.IP \[bu]
+i3lock uses PAM and therefore is compatible with LDAP, etc.
 
 
 .SH OPTIONS
@@ -73,7 +70,7 @@ you did not disable this in your X server).
 
 .TP
 .B \-u, \-\-no-unlock-indicator
-Disables the unlock indicator. i3lock will by default show an unlock indicator
+Disable the unlock indicator. i3lock will by default show an unlock indicator
 after pressing keys. This will give feedback for every keypress and it will
 show you the current PAM state (whether your password is currently being
 verified or whether it is wrong).
@@ -84,8 +81,8 @@ Display the given PNG image instead of a blank screen.
 
 .TP
 .BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
-Turns the screen into the given color instead of white. Color must be given in 6-byte
-format: rrggbb (i.e. ff0000 is red)
+Turn the screen into the given color instead of white. Color must be given in 6-byte
+format: rrggbb (i.e. ff0000 is red).
 
 .TP
 .B \-t, \-\-tiling
@@ -96,10 +93,10 @@ If an image is specified (via \-i) it will display the image tiled all over the 
 .BI \-p\  win|default \fR,\ \fB\-\-pointer= win|default
 If you specify "default",
 .B i3lock
-does not hide your Mousepointer. If you specify "win",
+does not hide your mouse pointer. If you specify "win",
 .B i3lock
-displays a hardcoded Windows-Pointer (thus enabling you to fuck with your
-friends by using a Screenshot of a Windows-Desktop as a locking-screen).
+displays a hardcoded Windows-Pointer (thus enabling you to mess with your
+friends by using a screenshot of a Windows desktop as a locking-screen).
 
 .TP
 .B \-e, \-\-ignore-empty-password
