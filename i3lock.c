@@ -1,7 +1,7 @@
 /*
  * vim:ts=4:sw=4:expandtab
  *
- * © 2010-2012 Michael Stapelberg
+ * © 2010-2013 Michael Stapelberg
  *
  * See LICENSE for licensing information
  *
@@ -81,6 +81,9 @@ void u8_dec(char *s, int *i) {
  * Ideally, xkbcommon would ship something like this itself, but as of now
  * (version 0.2.0), it doesn’t.
  *
+ * TODO: Once xcb-xkb is enabled by default and released, we should port this
+ * code to xcb-xkb. See also https://github.com/xkbcommon/libxkbcommon/issues/1
+ *
  */
 static bool load_keymap(void) {
     bool ret = false;
@@ -126,6 +129,16 @@ static bool load_keymap(void) {
         fprintf(stderr, "[i3lock] xkb_state_new failed\n");
         goto out;
     }
+
+    /* Get the initial modifier state to be in sync with the X server.
+     * See https://github.com/xkbcommon/libxkbcommon/issues/1 for why we ignore
+     * the base and latched fields. */
+    XkbStateRec state_rec;
+    XkbGetState(display, XkbUseCoreKbd, &state_rec);
+
+    xkb_state_update_mask(new_state,
+        0, 0, state_rec.locked_mods,
+        0, 0, state_rec.locked_group);
 
     if (xkb_state != NULL)
         xkb_state_unref(xkb_state);
@@ -682,6 +695,11 @@ int main(int argc, char *argv[]) {
     cursor = create_cursor(conn, screen, win, curs_choice);
 
     grab_pointer_and_keyboard(conn, screen, cursor);
+    /* Load the keymap again to sync the current modifier state. Since we first
+     * loaded the keymap, there might have been changes, but starting from now,
+     * we should get all key presses/releases due to having grabbed the
+     * keyboard. */
+    (void)load_keymap();
 
     if (dpms)
         dpms_turn_off_screen(conn);
