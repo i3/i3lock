@@ -205,6 +205,7 @@ static void auth_failed(void) {
         fprintf(stderr, "Authentication failure\n");
 
     pam_state = STATE_PAM_WRONG;
+    clear_input();
     redraw_screen();
 
     /* Clear this state after 2 seconds (unless the user enters another
@@ -258,7 +259,6 @@ static void input_done(void) {
     if (cpid == 0) {
         exit(pam_authenticate(pam_handle, 0) == PAM_SUCCESS);
     } else if (cpid > 0) {
-        clear_input();
         struct ev_child *child_watcher = calloc(sizeof(struct ev_io), 1);
         ev_child_init(child_watcher, child_cb, cpid, 0);
         ev_child_set(child_watcher, cpid, 0);
