@@ -22,7 +22,6 @@
 #include <string.h>
 #include <ev.h>
 #include <sys/mman.h>
-#include <sys/wait.h>
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBfile.h>
 #include <xkbcommon/xkbcommon.h>
@@ -200,11 +199,27 @@ static void clear_input(void) {
     unlock_state = STATE_KEY_PRESSED;
 }
 
-static void auth_failed(void) {
+static void input_done(void) {
+    if (clear_pam_wrong_timeout) {
+        ev_timer_stop(main_loop, clear_pam_wrong_timeout);
+        free(clear_pam_wrong_timeout);
+        clear_pam_wrong_timeout = NULL;
+    }
+
+    pam_state = STATE_PAM_VERIFY;
+    redraw_screen();
+
+    if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
+        DEBUG("successfully authenticated\n");
+        clear_password_memory();
+        exit(0);
+    }
+
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
 
     pam_state = STATE_PAM_WRONG;
+    clear_input();
     redraw_screen();
 
     /* Clear this state after 2 seconds (unless the user enters another
@@ -223,54 +238,6 @@ static void auth_failed(void) {
     if (beep) {
         xcb_bell(conn, 100);
         xcb_flush(conn);
-    }
-}
-
-static void child_cb(EV_P_ ev_child *child_watcher, int revents) {
-    if (child_watcher->rstatus != 0) {
-        DEBUG("Authentication successfull\n");
-        clear_password_memory();
-
-        exit(0);
-    } else {
-        auth_failed();
-    }
-    ev_child_stop(main_loop, child_watcher);
-    free(child_watcher);
-}
-
-static void input_done(void) {
-    if (pam_state == STATE_PAM_VERIFY) {
-        return;
-    }
-
-    if (clear_pam_wrong_timeout) {
-        ev_timer_stop(main_loop, clear_pam_wrong_timeout);
-        free(clear_pam_wrong_timeout);
-        clear_pam_wrong_timeout = NULL;
-    }
-
-    pam_state = STATE_PAM_VERIFY;
-    redraw_screen();
-
-    /* fork to unblock pam_authenticate */
-    pid_t cpid = fork();
-    if (cpid == 0) {
-        exit(pam_authenticate(pam_handle, 0) == PAM_SUCCESS);
-    } else if (cpid > 0) {
-        clear_input();
-        struct ev_child *child_watcher = calloc(sizeof(struct ev_io), 1);
-        ev_child_init(child_watcher, child_cb, cpid, 0);
-        ev_child_set(child_watcher, cpid, 0);
-        ev_child_start(EV_DEFAULT_ child_watcher);
-    } else if (cpid < 0) {
-        DEBUG("Could not fork");
-        if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
-            DEBUG("successfully authenticated\n");
-            clear_password_memory();
-            exit(0);
-        }
-        auth_failed();
     }
 }
 
