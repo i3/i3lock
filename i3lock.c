@@ -212,6 +212,10 @@ static void input_done(void) {
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
+        /* Turn the screen on, as it may have been turned off
+         * on release of the 'enter' key. */
+        if (dpms)
+            dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
         exit(0);
     }
 
@@ -497,7 +501,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 /* If this was the backspace or escape key we are back at an
                  * empty input, so turn off the screen if DPMS is enabled */
                 if (dpms && input_position == 0)
-                    dpms_turn_off_screen(conn);
+                    dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
 
                 break;
 
@@ -771,7 +775,7 @@ int main(int argc, char *argv[]) {
     (void)load_keymap();
 
     if (dpms)
-        dpms_turn_off_screen(conn);
+        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
 
     /* Initialize the libev event loop. */
     main_loop = EV_DEFAULT;
