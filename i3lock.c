@@ -110,8 +110,7 @@ static bool load_keymap(void) {
         }
     }
 
-    if (xkb_keymap != NULL)
-        xkb_keymap_unref(xkb_keymap);
+    xkb_keymap_unref(xkb_keymap);
 
     int32_t device_id = xkb_x11_get_core_keyboard_device_id(conn);
     DEBUG("device = %d\n", device_id);
@@ -127,15 +126,7 @@ static bool load_keymap(void) {
         return false;
     }
 
-    /* Get the initial modifier state to be in sync with the X server.
-     * See https://github.com/xkbcommon/libxkbcommon/issues/1 for why we ignore
-     * the base and latched fields. */
-    //xkb_state_update_mask(new_state,
-    //    0, 0, new_state->components.locked_mods,
-    //    0, 0, new_state->components.locked_group);
-
-    if (xkb_state != NULL)
-        xkb_state_unref(xkb_state);
+    xkb_state_unref(xkb_state);
     xkb_state = new_state;
 
     return true;
