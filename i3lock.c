@@ -17,14 +17,12 @@
 #include <err.h>
 #include <assert.h>
 #include <security/pam_appl.h>
-#include <X11/Xlib-xcb.h>
 #include <getopt.h>
 #include <string.h>
 #include <ev.h>
 #include <sys/mman.h>
-#include <X11/XKBlib.h>
-#include <X11/extensions/XKBfile.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
 
@@ -44,7 +42,6 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
-static Display *display;
 char color[7] = "ffffff";
 int inactivity_timeout = 30;
 uint32_t last_resolution[2];
@@ -70,6 +67,8 @@ extern pam_state_t pam_state;
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
 static struct xkb_keymap *xkb_keymap;
+static uint8_t xkb_base_event;
+static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
@@ -102,77 +101,44 @@ static void turn_monitors_off(void) {
  * Necessary so that we can properly let xkbcommon track the keyboard state and
  * translate keypresses to utf-8.
  *
- * Ideally, xkbcommon would ship something like this itself, but as of now
- * (version 0.2.0), it doesn’t.
- *
- * TODO: Once xcb-xkb is enabled by default and released, we should port this
- * code to xcb-xkb. See also https://github.com/xkbcommon/libxkbcommon/issues/1
- *
  */
 static bool load_keymap(void) {
-    bool ret = false;
-    XkbFileInfo result;
-    memset(&result, '\0', sizeof(result));
-    result.xkb = XkbGetKeyboard(display, XkbAllMapComponentsMask, XkbUseCoreKbd);
-    if (result.xkb == NULL) {
-        fprintf(stderr, "[i3lock] XKB: XkbGetKeyboard failed\n");
-        return false;
-    }
-
-    FILE *temp = tmpfile();
-    if (temp == NULL) {
-        fprintf(stderr, "[i3lock] could not create tempfile\n");
-        return false;
-    }
-
-    bool ok = XkbWriteXKBKeymap(temp, &result, false, false, NULL, NULL);
-    if (!ok) {
-        fprintf(stderr, "[i3lock] XkbWriteXKBKeymap failed\n");
-        goto out;
-    }
-
-    rewind(temp);
-
     if (xkb_context == NULL) {
         if ((xkb_context = xkb_context_new(0)) == NULL) {
             fprintf(stderr, "[i3lock] could not create xkbcommon context\n");
-            goto out;
+            return false;
         }
     }
 
     if (xkb_keymap != NULL)
         xkb_keymap_unref(xkb_keymap);
 
-    if ((xkb_keymap = xkb_keymap_new_from_file(xkb_context, temp, XKB_KEYMAP_FORMAT_TEXT_V1, 0)) == NULL) {
-        fprintf(stderr, "[i3lock] xkb_keymap_new_from_file failed\n");
-        goto out;
+    int32_t device_id = xkb_x11_get_core_keyboard_device_id(conn);
+    DEBUG("device = %d\n", device_id);
+    if ((xkb_keymap = xkb_x11_keymap_new_from_device(xkb_context, conn, device_id, 0)) == NULL) {
+        fprintf(stderr, "[i3lock] xkb_x11_keymap_new_from_device failed\n");
+        return false;
     }
 
-    struct xkb_state *new_state = xkb_state_new(xkb_keymap);
+    struct xkb_state *new_state =
+        xkb_x11_state_new_from_device(xkb_keymap, conn, device_id);
     if (new_state == NULL) {
-        fprintf(stderr, "[i3lock] xkb_state_new failed\n");
-        goto out;
+        fprintf(stderr, "[i3lock] xkb_x11_state_new_from_device failed\n");
+        return false;
     }
 
     /* Get the initial modifier state to be in sync with the X server.
      * See https://github.com/xkbcommon/libxkbcommon/issues/1 for why we ignore
      * the base and latched fields. */
-    XkbStateRec state_rec;
-    XkbGetState(display, XkbUseCoreKbd, &state_rec);
-
-    xkb_state_update_mask(new_state,
-        0, 0, state_rec.locked_mods,
-        0, 0, state_rec.locked_group);
+    //xkb_state_update_mask(new_state,
+    //    0, 0, new_state->components.locked_mods,
+    //    0, 0, new_state->components.locked_group);
 
     if (xkb_state != NULL)
         xkb_state_unref(xkb_state);
     xkb_state = new_state;
 
-    ret = true;
-out:
-    XkbFreeKeyboard(result.xkb, XkbAllComponentsMask, true);
-    fclose(temp);
-    return ret;
+    return true;
 }
 
 /*
@@ -772,15 +738,21 @@ int main(int argc, char *argv[]) {
         err(EXIT_FAILURE, "Could not lock page in memory, check RLIMIT_MEMLOCK");
 #endif
 
-    /* Initialize connection to X11 */
-    if ((display = XOpenDisplay(NULL)) == NULL)
-        errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
-    XSetEventQueueOwner(display, XCBOwnsEventQueue);
-    conn = XGetXCBConnection(display);
-
     /* Double checking that connection is good and operatable with xcb */
-    if (xcb_connection_has_error(conn))
+    int screennr;
+    if ((conn = xcb_connect(NULL, &screennr)) == NULL ||
+        xcb_connection_has_error(conn))
         errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
+
+    if (xkb_x11_setup_xkb_extension(conn,
+            XKB_X11_MIN_MAJOR_XKB_VERSION,
+            XKB_X11_MIN_MINOR_XKB_VERSION,
+            0,
+            NULL,
+            NULL,
+            &xkb_base_event,
+            &xkb_base_error) != 1)
+        errx(EXIT_FAILURE, "Could not setup XKB extension.");
 
     /* When we cannot initially load the keymap, we better exit */
     if (!load_keymap())
