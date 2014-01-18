@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <xcb/xcb.h>
+#include <xcb/xkb.h>
 #include <xcb/dpms.h>
 #include <err.h>
 #include <assert.h>
@@ -402,11 +403,54 @@ static void handle_visibility_notify(xcb_connection_t *conn,
 /*
  * Called when the keyboard mapping changes. We update our symbols.
  *
+ * We ignore errors — if the new keymap cannot be loaded it’s better if the
+ * screen stays locked and the user intervenes by using killall i3lock.
+ *
  */
-static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
-    /* We ignore errors — if the new keymap cannot be loaded it’s better if the
-     * screen stays locked and the user intervenes by using killall i3lock. */
-    (void)load_keymap();
+static void process_xkb_event(xcb_generic_event_t *gevent) {
+    union xkb_event {
+        struct {
+            uint8_t response_type;
+            uint8_t xkbType;
+            uint16_t sequence;
+            xcb_timestamp_t time;
+            uint8_t deviceID;
+        } any;
+        xcb_xkb_new_keyboard_notify_event_t new_keyboard_notify;
+        xcb_xkb_map_notify_event_t map_notify;
+        xcb_xkb_state_notify_event_t state_notify;
+    } *event = (union xkb_event*)gevent;
+
+    DEBUG("process_xkb_event for device %d\n", event->any.deviceID);
+
+    if (event->any.deviceID != xkb_x11_get_core_keyboard_device_id(conn))
+        return;
+
+    /*
+     * XkbNewKkdNotify and XkbMapNotify together capture all sorts of keymap
+     * updates (e.g. xmodmap, xkbcomp, setxkbmap), with minimal redundent
+     * recompilations.
+     */
+    switch (event->any.xkbType) {
+        case XCB_XKB_NEW_KEYBOARD_NOTIFY:
+            if (event->new_keyboard_notify.changed & XCB_XKB_NKN_DETAIL_KEYCODES)
+                (void)load_keymap();
+            break;
+
+        case XCB_XKB_MAP_NOTIFY:
+            (void)load_keymap();
+            break;
+
+        case XCB_XKB_STATE_NOTIFY:
+            xkb_state_update_mask(xkb_state,
+                                  event->state_notify.baseMods,
+                                  event->state_notify.latchedMods,
+                                  event->state_notify.lockedMods,
+                                  event->state_notify.baseGroup,
+                                  event->state_notify.latchedGroup,
+                                  event->state_notify.lockedGroup);
+            break;
+    }
 }
 
 /*
@@ -512,6 +556,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
 
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
+
         switch (type) {
             case XCB_KEY_PRESS:
                 handle_key_press((xcb_key_press_event_t*)event);
@@ -546,13 +591,13 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 }
                 break;
 
-            case XCB_MAPPING_NOTIFY:
-                handle_mapping_notify((xcb_mapping_notify_event_t*)event);
-                break;
-
             case XCB_CONFIGURE_NOTIFY:
                 handle_screen_resize();
                 break;
+
+            default:
+                if (type == xkb_base_event)
+                    process_xkb_event(event);
         }
 
         free(event);
@@ -744,6 +789,30 @@ int main(int argc, char *argv[]) {
             &xkb_base_event,
             &xkb_base_error) != 1)
         errx(EXIT_FAILURE, "Could not setup XKB extension.");
+
+    static const xcb_xkb_map_part_t required_map_parts =
+        (XCB_XKB_MAP_PART_KEY_TYPES |
+         XCB_XKB_MAP_PART_KEY_SYMS |
+         XCB_XKB_MAP_PART_MODIFIER_MAP |
+         XCB_XKB_MAP_PART_EXPLICIT_COMPONENTS |
+         XCB_XKB_MAP_PART_KEY_ACTIONS |
+         XCB_XKB_MAP_PART_VIRTUAL_MODS |
+         XCB_XKB_MAP_PART_VIRTUAL_MOD_MAP);
+
+    static const xcb_xkb_event_type_t required_events =
+        (XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY |
+         XCB_XKB_EVENT_TYPE_MAP_NOTIFY |
+         XCB_XKB_EVENT_TYPE_STATE_NOTIFY);
+
+    xcb_xkb_select_events(
+        conn,
+        xkb_x11_get_core_keyboard_device_id(conn),
+        required_events,
+        0,
+        required_events,
+        required_map_parts,
+        required_map_parts,
+        0);
 
     /* When we cannot initially load the keymap, we better exit */
     if (!load_keymap())
