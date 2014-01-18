@@ -258,15 +258,6 @@ static void input_done(void) {
     }
 }
 
-/*
- * Called when the user releases a key. We need to leave the Mode_switch
- * state when the user releases the Mode_switch key.
- *
- */
-static void handle_key_release(xcb_key_release_event_t *event) {
-    xkb_state_update_key(xkb_state, event->detail, XKB_KEY_UP);
-}
-
 static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
     redraw_screen();
     STOP_TIMER(w);
@@ -296,7 +287,6 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, "Control", XKB_STATE_MODS_DEPRESSED);
-    xkb_state_update_key(xkb_state, event->detail, XKB_KEY_DOWN);
 
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
@@ -563,8 +553,6 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 break;
 
             case XCB_KEY_RELEASE:
-                handle_key_release((xcb_key_release_event_t*)event);
-
                 /* If this was the backspace or escape key we are back at an
                  * empty input, so turn off the screen if DPMS is enabled, but
                  * only do that after some timeout: maybe user mistyped and
