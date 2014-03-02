@@ -73,6 +73,16 @@ void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
 }
 
+static void turn_monitors_on(void) {
+    if (dpms)
+        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
+}
+
+static void turn_monitors_off(void) {
+    if (dpms)
+        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
+}
+
 /*
  * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
  * Necessary so that we can properly let xkbcommon track the keyboard state and
@@ -214,8 +224,7 @@ static void input_done(void) {
         clear_password_memory();
         /* Turn the screen on, as it may have been turned off
          * on release of the 'enter' key. */
-        if (dpms)
-            dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
+        turn_monitors_on();
         exit(0);
     }
 
@@ -500,8 +509,8 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
 
                 /* If this was the backspace or escape key we are back at an
                  * empty input, so turn off the screen if DPMS is enabled */
-                if (dpms && input_position == 0)
-                    dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
+                if (input_position == 0)
+                    turn_monitors_off();
 
                 break;
 
@@ -774,8 +783,7 @@ int main(int argc, char *argv[]) {
      * keyboard. */
     (void)load_keymap();
 
-    if (dpms)
-        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
+    turn_monitors_off();
 
     /* Initialize the libev event loop. */
     main_loop = EV_DEFAULT;
