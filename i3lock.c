@@ -217,7 +217,7 @@ ev_timer* stop_timer(ev_timer *timer_obj) {
 }
 
 /*
- * Resets pam_state to STATE_PAM_IDLE 2 seconds after an unsuccesful
+ * Resets pam_state to STATE_PAM_IDLE 2 seconds after an unsuccessful
  * authentication event.
  *
  */
