@@ -35,6 +35,7 @@
 #include "xinerama.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
+#define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
 #define START_TIMER(timer_obj, timeout, callback) \
     timer_obj = start_timer(timer_obj, timeout, callback)
 #define STOP_TIMER(timer_obj) \
@@ -62,6 +63,7 @@ struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *dpms_timeout;
+static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 
@@ -256,6 +258,12 @@ static void turn_off_monitors_cb(EV_P_ ev_timer *w, int revents) {
     STOP_TIMER(dpms_timeout);
 }
 
+static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
+    clear_input();
+    turn_monitors_off();
+    STOP_TIMER(discard_passwd_timeout);
+}
+
 static void input_done(void) {
     if (clear_pam_wrong_timeout) {
         ev_timer_stop(main_loop, clear_pam_wrong_timeout);
@@ -413,6 +421,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     }
 
     STOP_TIMER(clear_indicator_timeout);
+    START_TIMER(discard_passwd_timeout, TSTAMP_N_MINS(3), discard_passwd_cb);
 }
 
 /*
