@@ -34,6 +34,7 @@
 #include "unlock_indicator.h"
 #include "xinerama.h"
 
+#define TSTAMP_N_SECS(n) (n * 1.0)
 #define START_TIMER(timer_obj, timeout, callback) \
     timer_obj = start_timer(timer_obj, timeout, callback)
 #define STOP_TIMER(timer_obj) \
@@ -44,6 +45,7 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 /* We need this for libxkbfile */
 static Display *display;
 char color[7] = "ffffff";
+int inactivity_timeout = 30;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -59,6 +61,7 @@ static bool dont_fork = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
+static struct ev_timer *dpms_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 
@@ -244,6 +247,13 @@ static void clear_input(void) {
     unlock_state = STATE_BACKSPACE_ACTIVE;
     redraw_screen();
     unlock_state = STATE_KEY_PRESSED;
+}
+
+static void turn_off_monitors_cb(EV_P_ ev_timer *w, int revents) {
+    if (input_position == 0)
+        turn_monitors_off();
+
+    STOP_TIMER(dpms_timeout);
 }
 
 static void input_done(void) {
@@ -545,10 +555,11 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 handle_key_release((xcb_key_release_event_t*)event);
 
                 /* If this was the backspace or escape key we are back at an
-                 * empty input, so turn off the screen if DPMS is enabled */
-                if (input_position == 0)
-                    turn_monitors_off();
-
+                 * empty input, so turn off the screen if DPMS is enabled, but
+                 * only do that after some timeout: maybe user mistyped and
+                 * will type again right away */
+                START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
+                            turn_off_monitors_cb);
                 break;
 
             case XCB_VISIBILITY_NOTIFY:
@@ -660,13 +671,15 @@ int main(int argc, char *argv[]) {
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
+        {"inactivity-timeout", required_argument, NULL, 'I'},
         {NULL, no_argument, NULL, 0}
     };
 
     if ((username = getenv("USER")) == NULL)
         errx(EXIT_FAILURE, "USER environment variable not set, please set it.\n");
 
-    while ((o = getopt_long(argc, argv, "hvnbdc:p:ui:te", longopts, &optind)) != -1) {
+    char *optstring = "hvnbdc:p:ui:teI:";
+    while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
             errx(EXIT_SUCCESS, "version " VERSION " © 2010-2012 Michael Stapelberg");
@@ -679,6 +692,13 @@ int main(int argc, char *argv[]) {
         case 'd':
             dpms = true;
             break;
+        case 'I': {
+            int time = 0;
+            if (sscanf(optarg, "%d", &time) != 1 || time < 0)
+                errx(EXIT_FAILURE, "invalid timeout, it must be a positive integer\n");
+            inactivity_timeout = time;
+            break;
+        }
         case 'c': {
             char *arg = optarg;
 
@@ -718,7 +738,7 @@ int main(int argc, char *argv[]) {
             break;
         default:
             errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-            " [-i image.png] [-t] [-e]"
+            " [-i image.png] [-t] [-e] [-I]"
             );
         }
     }
