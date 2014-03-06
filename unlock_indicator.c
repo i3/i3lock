@@ -31,9 +31,6 @@
  * characters of the password have already been entered or not. */
 int input_position;
 
-/* The ev main loop. */
-struct ev_loop *main_loop;
-
 /* The lock window. */
 extern xcb_window_t win;
 
@@ -54,8 +51,6 @@ extern char color[7];
 /*******************************************************************************
  * Local variables.
  ******************************************************************************/
-
-static struct ev_timer *clear_indicator_timeout;
 
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
@@ -279,45 +274,9 @@ void redraw_screen(void) {
  * password buffer.
  *
  */
-static void clear_indicator(EV_P_ ev_timer *w, int revents) {
+void clear_indicator(void) {
     if (input_position == 0) {
         unlock_state = STATE_STARTED;
     } else unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
-
-    ev_timer_stop(main_loop, clear_indicator_timeout);
-    free(clear_indicator_timeout);
-    clear_indicator_timeout = NULL;
-}
-
-/*
- * (Re-)starts the clear_indicator timeout. Called after pressing backspace or
- * after an unsuccessful authentication attempt.
- *
- */
-void start_clear_indicator_timeout(void) {
-    if (clear_indicator_timeout) {
-        ev_timer_stop(main_loop, clear_indicator_timeout);
-        ev_timer_set(clear_indicator_timeout, 1.0, 0.);
-        ev_timer_start(main_loop, clear_indicator_timeout);
-    } else {
-        /* When there is no memory, we just don’t have a timeout. We cannot
-         * exit() here, since that would effectively unlock the screen. */
-        if (!(clear_indicator_timeout = calloc(sizeof(struct ev_timer), 1)))
-            return;
-        ev_timer_init(clear_indicator_timeout, clear_indicator, 1.0, 0.);
-        ev_timer_start(main_loop, clear_indicator_timeout);
-    }
-}
-
-/*
- * Stops the clear_indicator timeout.
- *
- */
-void stop_clear_indicator_timeout(void) {
-    if (clear_indicator_timeout) {
-        ev_timer_stop(main_loop, clear_indicator_timeout);
-        free(clear_indicator_timeout);
-        clear_indicator_timeout = NULL;
-    }
 }
