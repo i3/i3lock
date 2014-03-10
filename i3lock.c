@@ -74,6 +74,7 @@ static struct xkb_keymap *xkb_keymap;
 cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
+bool skip_repeated_empty_password = false;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c) & 0xC0) != 0x80)
@@ -325,6 +326,16 @@ static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
     free(w);
 }
 
+static bool skip_without_validation(void) {
+    if (input_position != 0)
+        return false;
+
+    if (skip_repeated_empty_password || ignore_empty_password)
+        return true;
+
+    return false;
+}
+
 /*
  * Handle key presses. Fixes state, then looks up the key symbol for the
  * given keycode, then looks up the key symbol (as UCS-2), converts it to
@@ -349,7 +360,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     case XKB_KEY_Return:
     case XKB_KEY_KP_Enter:
     case XKB_KEY_XF86ScreenSaver:
-        if (ignore_empty_password && input_position == 0) {
+        if (skip_without_validation()) {
             clear_input();
             return;
         }
@@ -357,8 +368,13 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         unlock_state = STATE_KEY_PRESSED;
         redraw_screen();
         input_done();
+        skip_repeated_empty_password = true;
         return;
+    default:
+        skip_repeated_empty_password = false;
+    }
 
+    switch (ksym) {
     case XKB_KEY_u:
         if (ctrl) {
             DEBUG("C-u pressed\n");
