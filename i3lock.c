@@ -664,7 +664,7 @@ int main(int argc, char *argv[]) {
     };
 
     if ((username = getenv("USER")) == NULL)
-        errx(1, "USER environment variable not set, please set it.\n");
+        errx(EXIT_FAILURE, "USER environment variable not set, please set it.\n");
 
     while ((o = getopt_long(argc, argv, "hvnbdc:p:ui:te", longopts, &optind)) != -1) {
         switch (o) {
@@ -687,7 +687,7 @@ int main(int argc, char *argv[]) {
                 arg++;
 
             if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
-                errx(1, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
+                errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
 
             break;
         }
@@ -706,7 +706,7 @@ int main(int argc, char *argv[]) {
             } else if (!strcmp(optarg, "default")) {
                 curs_choice = CURS_DEFAULT;
             } else {
-                errx(1, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".\n");
+                errx(EXIT_FAILURE, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".\n");
             }
             break;
         case 'e':
@@ -717,7 +717,7 @@ int main(int argc, char *argv[]) {
                 debug_mode = true;
             break;
         default:
-            errx(1, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+            errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
             " [-i image.png] [-t] [-e]"
             );
         }
