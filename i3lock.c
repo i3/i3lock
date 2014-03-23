@@ -229,9 +229,7 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     redraw_screen();
 
     /* Now free this timeout. */
-    ev_timer_stop(main_loop, clear_pam_wrong_timeout);
-    free(clear_pam_wrong_timeout);
-    clear_pam_wrong_timeout = NULL;
+    STOP_TIMER(clear_pam_wrong_timeout);
 }
 
 static void clear_indicator_cb(EV_P_ ev_timer *w, int revents) {
@@ -266,12 +264,7 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
 }
 
 static void input_done(void) {
-    if (clear_pam_wrong_timeout) {
-        ev_timer_stop(main_loop, clear_pam_wrong_timeout);
-        free(clear_pam_wrong_timeout);
-        clear_pam_wrong_timeout = NULL;
-    }
-
+    STOP_TIMER(clear_pam_wrong_timeout);
     pam_state = STATE_PAM_VERIFY;
     redraw_screen();
 
@@ -294,10 +287,7 @@ static void input_done(void) {
     /* Clear this state after 2 seconds (unless the user enters another
      * password during that time). */
     ev_now_update(main_loop);
-    if ((clear_pam_wrong_timeout = calloc(sizeof(struct ev_timer), 1))) {
-        ev_timer_init(clear_pam_wrong_timeout, clear_pam_wrong, 2.0, 0.);
-        ev_timer_start(main_loop, clear_pam_wrong_timeout);
-    }
+    START_TIMER(clear_pam_wrong_timeout, TSTAMP_N_SECS(2), clear_pam_wrong);
 
     /* Cancel the clear_indicator_timeout, it would hide the unlock indicator
      * too early. */
@@ -321,9 +311,7 @@ static void handle_key_release(xcb_key_release_event_t *event) {
 
 static void redraw_timeout(EV_P_ ev_timer *w, int revents) {
     redraw_screen();
-
-    ev_timer_stop(main_loop, w);
-    free(w);
+    STOP_TIMER(w);
 }
 
 static bool skip_without_validation(void) {
@@ -430,12 +418,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     redraw_screen();
     unlock_state = STATE_KEY_PRESSED;
 
-    struct ev_timer *timeout = calloc(sizeof(struct ev_timer), 1);
-    if (timeout) {
-        ev_timer_init(timeout, redraw_timeout, 0.25, 0.);
-        ev_timer_start(main_loop, timeout);
-    }
-
+    struct ev_timer *timeout = NULL;
+    START_TIMER(timeout, TSTAMP_N_SECS(0.25), redraw_timeout);
     STOP_TIMER(clear_indicator_timeout);
     START_TIMER(discard_passwd_timeout, TSTAMP_N_MINS(3), discard_passwd_cb);
 }
