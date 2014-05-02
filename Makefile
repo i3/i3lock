@@ -15,6 +15,7 @@ CFLAGS += $(shell pkg-config --cflags cairo xcb-dpms xcb-xinerama xcb-atom xkbco
 LIBS += $(shell pkg-config --libs cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xkbcommon xkbfile x11 x11-xcb)
 LIBS += -lpam
 LIBS += -lev
+LIBS += -lm
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
