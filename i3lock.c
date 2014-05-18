@@ -82,6 +82,7 @@ static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
+bool showtime = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
@@ -754,6 +755,7 @@ int main(int argc, char *argv[]) {
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
+        {"time", no_argument, NULL, 'T'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -765,7 +767,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:F:p:ui:teI:f";
+    char *optstring = "hvnbdc:F:p:ui:teI:Tf";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
@@ -805,6 +807,9 @@ int main(int argc, char *argv[]) {
             break;
         case 't':
             tile = true;
+            break;
+        case 'T':
+            showtime = true;
             break;
         case 'p':
             if (!strcmp(optarg, "win")) {
