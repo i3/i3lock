@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include <xcb/xcb.h>
 #include <ev.h>
 #include <cairo.h>
@@ -134,6 +135,32 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
+    }
+
+    /* Drawing the current time */
+    char text[20];
+    time_t t;
+    struct tm *tm;
+
+    t = time(NULL);
+    tm = localtime(&t);
+    if (strftime(text, sizeof(text), "%T", tm)) {
+        const int fontsz = 100;
+        cairo_text_extents_t extents;
+        double x, y;
+
+        cairo_select_font_face(xcb_ctx, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size (xcb_ctx, fontsz);
+
+        //cairo_move_to (xcb_ctx, 10.0, 135.0);
+
+        cairo_text_extents(xcb_ctx, text, &extents);
+        x = resolution[0] / 2 - ((extents.width / 2) + extents.x_bearing);
+        y = resolution[1] / 2 - ((extents.height / 2) + extents.y_bearing);
+
+        cairo_move_to(xcb_ctx, x, y);
+        cairo_set_source_rgb (xcb_ctx, 0, 0, 0);
+        cairo_show_text (xcb_ctx, text);
     }
 
     if (unlock_state >= STATE_KEY_PRESSED && unlock_indicator) {
