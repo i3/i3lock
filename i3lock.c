@@ -47,6 +47,8 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
 char color[7] = "ffffff";
+uint8_t bgcolor[3] = {255, 255, 255};
+uint8_t fgcolor[3] = {0, 0, 0};
 int inactivity_timeout = 30;
 uint32_t last_resolution[2];
 xcb_window_t win;
@@ -92,6 +94,26 @@ bool skip_repeated_empty_password = false;
  */
 void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
+}
+
+static int parse_color(const char *str, uint8_t color[]) {
+    char buf[6];
+    /* Skip # if present */
+    if (str[0] == '#')
+        str++;
+
+    if (strlen(str) != 6 || sscanf(str, "%06[0-9a-fA-F]", buf) != 1)
+        return -1;
+
+    char strgroups[3][3] = {{buf[0], buf[1], '\0'},
+        {buf[2], buf[3], '\0'},
+        {buf[4], buf[5], '\0'}};
+
+    color[0] = strtol(strgroups[0], NULL, 16);
+    color[1] = strtol(strgroups[1], NULL, 16);
+    color[2] = strtol(strgroups[2], NULL, 16);
+
+    return 0;
 }
 
 static void turn_monitors_on(void) {
@@ -725,6 +747,7 @@ int main(int argc, char *argv[]) {
         {"beep", no_argument, NULL, 'b'},
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
+        {"fgcolor", required_argument, NULL, 'F'},
         {"pointer", required_argument, NULL , 'p'},
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
@@ -742,7 +765,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:F:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
@@ -764,15 +787,14 @@ int main(int argc, char *argv[]) {
             break;
         }
         case 'c': {
-            char *arg = optarg;
-
-            /* Skip # if present */
-            if (arg[0] == '#')
-                arg++;
-
-            if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
+            if (parse_color(optarg, bgcolor) != 0)
                 errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
-
+            strncpy(color, optarg, 7);
+            break;
+        }
+        case 'F': {
+            if (parse_color(optarg, fgcolor) != 0)
+                errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
             break;
         }
         case 'u':
