@@ -150,9 +150,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             /* frame spec */
             static double rx, ry, rw, rh;
-            const double lw = 6, spc = 15;
+            const double lw = 4, spc = 15;
 
-            cairo_set_font_size (xcb_ctx, fontsz);
+            cairo_set_font_size(xcb_ctx, fontsz);
             cairo_text_extents(xcb_ctx, text, &extents);
             /* avoid wobbling */
             if (fresh) {
@@ -167,17 +167,18 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             }
 
             /* draw a frame */
-            cairo_set_source_rgb (xcb_ctx, bgcolor[0] / 255.0, bgcolor[1] / 255.0, bgcolor[2] / 255.0);
+            cairo_set_line_join(xcb_ctx, CAIRO_LINE_JOIN_ROUND);
+            cairo_set_source_rgb(xcb_ctx, bgcolor[0] / 255.0, bgcolor[1] / 255.0, bgcolor[2] / 255.0);
             cairo_rectangle(xcb_ctx, rx, ry, rw, rh);
             cairo_fill(xcb_ctx);
-            cairo_set_source_rgb (xcb_ctx, fgcolor[0] / 255.0, fgcolor[1] / 255.0, fgcolor[2] / 255.0);
+            cairo_set_source_rgb(xcb_ctx, fgcolor[0] / 255.0, fgcolor[1] / 255.0, fgcolor[2] / 255.0);
             cairo_set_line_width(xcb_ctx, lw);
             cairo_rectangle(xcb_ctx, rx, ry, rw, rh);
             cairo_stroke(xcb_ctx);
 
             /* draw the time */
             cairo_move_to(xcb_ctx, x, y);
-            cairo_show_text (xcb_ctx, text);
+            cairo_show_text(xcb_ctx, text);
         }
     }
     if (unlock_state >= STATE_KEY_PRESSED && unlock_indicator) {
