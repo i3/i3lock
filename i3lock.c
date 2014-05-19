@@ -67,6 +67,7 @@ static struct ev_timer *clear_pam_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *dpms_timeout;
 static struct ev_timer *discard_passwd_timeout;
+static struct ev_timer clock_timer;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 int failed_attempts = 0;
@@ -273,6 +274,10 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
     clear_input();
     turn_monitors_off();
     STOP_TIMER(discard_passwd_timeout);
+}
+
+static void clock_tick_cb(EV_P_ ev_timer *w, int revents) {
+    redraw_screen();
 }
 
 static void input_done(void) {
@@ -983,6 +988,11 @@ int main(int argc, char *argv[]) {
     main_loop = EV_DEFAULT;
     if (main_loop == NULL)
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
+
+    if (showtime) {
+        ev_timer_init(&clock_timer, clock_tick_cb, 1.0, 1.0);
+        ev_timer_start(main_loop, &clock_timer);
+    }
 
     struct ev_io *xcb_watcher = calloc(sizeof(struct ev_io), 1);
     struct ev_check *xcb_check = calloc(sizeof(struct ev_check), 1);
