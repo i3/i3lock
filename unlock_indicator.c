@@ -143,21 +143,40 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         t = time(NULL);
         tm = localtime(&t);
         if (strftime(text, sizeof(text), "%T", tm)) {
-            const int fontsz = 100;
+            const int fontsz = resolution[0] / 10;
             cairo_text_extents_t extents;
-            double x, y;
+            static bool fresh = true;
+            static double x, y;
 
-            cairo_select_font_face(xcb_ctx, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+            /* frame spec */
+            static double rx, ry, rw, rh;
+            const double lw = 6, spc = 15;
+
             cairo_set_font_size (xcb_ctx, fontsz);
-
-            //cairo_move_to (xcb_ctx, 10.0, 135.0);
-
             cairo_text_extents(xcb_ctx, text, &extents);
-            x = resolution[0] / 2 - ((extents.width / 2) + extents.x_bearing);
-            y = resolution[1] / 2 - ((extents.height / 2) + extents.y_bearing);
+            /* avoid wobbling */
+            if (fresh) {
+                x = resolution[0] / 2 - ((extents.width / 2) + extents.x_bearing);
+                y = resolution[1] / 2 - ((extents.height / 2) + extents.y_bearing);
 
-            cairo_move_to(xcb_ctx, x, y);
+                rx = x + extents.x_bearing - lw - spc;
+                ry = y + extents.y_bearing - lw - spc;
+                rw = extents.width + 2 * (lw + spc);
+                rh = extents.height + 2 * (lw + spc);
+                fresh = false;
+            }
+
+            /* draw a frame */
+            cairo_set_source_rgb (xcb_ctx, bgcolor[0] / 255.0, bgcolor[1] / 255.0, bgcolor[2] / 255.0);
+            cairo_rectangle(xcb_ctx, rx, ry, rw, rh);
+            cairo_fill(xcb_ctx);
             cairo_set_source_rgb (xcb_ctx, fgcolor[0] / 255.0, fgcolor[1] / 255.0, fgcolor[2] / 255.0);
+            cairo_set_line_width(xcb_ctx, lw);
+            cairo_rectangle(xcb_ctx, rx, ry, rw, rh);
+            cairo_stroke(xcb_ctx);
+
+            /* draw the time */
+            cairo_move_to(xcb_ctx, x, y);
             cairo_show_text (xcb_ctx, text);
         }
     }
