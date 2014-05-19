@@ -836,8 +836,8 @@ int main(int argc, char *argv[]) {
             show_failed_attempts = true;
             break;
         default:
-            errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-            " [-i image.png] [-t] [-e] [-I] [-f]"
+            errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c bgcolor] [-F fgcolor] [-u] [-p win|default]"
+            " [-i image.png] [-t] [-e] [-I] [-T] [-f]"
             );
         }
     }

@@ -23,12 +23,15 @@ i3lock \- improved screen locker
 .IR image.png \|]
 .RB [\|\-c
 .IR color \|]
+.RB [\|\-F
+.IR fgcolor \|]
 .RB [\|\-t\|]
 .RB [\|\-p
 .IR pointer\|]
 .RB [\|\-u\|]
 .RB [\|\-e\|]
 .RB [\|\-I\|]
+.RB [\|\-T\|]
 .RB [\|\-f\|]
 
 .SH DESCRIPTION
@@ -94,6 +97,10 @@ Turn the screen into the given color instead of white. Color must be given in 3-
 format: rrggbb (i.e. ff0000 is red).
 
 .TP
+.BI \-F\  rrggbb \fR,\ \fB\-\-fgcolor= rrggbb
+Sets the color used for text.
+
+.TP
 .B \-t, \-\-tiling
 If an image is specified (via \-i) it will display the image tiled all over the screen
 (if it is a multi-monitor setup, the image is visible on all screens).
@@ -115,6 +122,12 @@ and, if invalid, the user will have to wait a few seconds before
 another try. This can be useful if the XF86ScreenSaver key is used to
 put a laptop to sleep and bounce on resume or if you happen to wake up
 your computer with the enter key.
+
+.TP
+.B \-T, \-\-time
+Makes
+.B i3lock
+draw the current time in the middle of the screen.
 
 .TP
 .B \-f, \-\-show-failed-attempts
