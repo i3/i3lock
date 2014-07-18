@@ -1,3 +1,17 @@
+2014-07-18 i3lock 2.6
+
+ • NEW DEPENDENCY: use libxkbcommon-x11 instead of libX11
+   This helps us get rid of all code that directly uses libX11
+ • Use cairo_status_to_string for descriptive errors.
+ • Add `-e` option to not validate empty password.
+ • Bugfix: update the initial keyboard modifier state (Thanks lee, Ran)
+ • Re-raise i3lock when obscured in a separate process
+ • Turn on the screen on successful authentication
+ • Delay to turn off the screen after wrong passwd
+ • Discard half-entered passwd after some inactivity
+ • Ignore empty passwd after repeated Enter keypress
+ • Scale the unlock indicator (for retina displays)
+
 2013-06-09 i3lock 2.5
 
  • NEW DEPENDENCY: Use libxkbcommon for input handling
