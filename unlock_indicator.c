@@ -52,6 +52,11 @@ extern bool tile;
 /* The background color to use (in hex). */
 extern char color[7];
 
+/* Whether the failed attempts should be displayed. */
+extern bool show_failed_attempts;
+/* Number of failed unlock attempts. */
+extern int failed_attempts;
+
 /*******************************************************************************
  * Variables defined in xcb.c.
  ******************************************************************************/
@@ -185,6 +190,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Display a (centered) text of the current PAM state. */
         char *text = NULL;
+        /* We don't want to show more than a 3-digit number. */
+        char buf[4];
+
+        cairo_set_source_rgb(ctx, 0, 0, 0);
+        cairo_set_font_size(ctx, 28.0);
         switch (pam_state) {
             case STATE_PAM_VERIFY:
                 text = "verifying…";
@@ -193,15 +203,22 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 text = "wrong!";
                 break;
             default:
+                if (show_failed_attempts && failed_attempts > 0){
+                    if (failed_attempts > 999) {
+                        text = "> 999";
+                    } else {
+                        snprintf(buf, sizeof(buf), "%d", failed_attempts);
+                        text = buf;
+                    }
+                    cairo_set_source_rgb(ctx, 1, 0, 0);
+                    cairo_set_font_size(ctx, 32.0);
+                }
                 break;
         }
 
         if (text) {
             cairo_text_extents_t extents;
             double x, y;
-
-            cairo_set_source_rgb(ctx, 0, 0, 0);
-            cairo_set_font_size(ctx, 28.0);
 
             cairo_text_extents(ctx, text, &extents);
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);

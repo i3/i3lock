@@ -64,6 +64,8 @@ static struct ev_timer *dpms_timeout;
 static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
+int failed_attempts = 0;
+bool show_failed_attempts = false;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -239,6 +241,7 @@ static void input_done(void) {
         fprintf(stderr, "Authentication failure\n");
 
     pam_state = STATE_PAM_WRONG;
+    failed_attempts += 1;
     clear_input();
     redraw_screen();
 
@@ -674,13 +677,14 @@ int main(int argc, char *argv[]) {
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
+        {"show-failed-attempts", no_argument, NULL, 'f'},
         {NULL, no_argument, NULL, 0}
     };
 
     if ((username = getenv("USER")) == NULL)
         errx(EXIT_FAILURE, "USER environment variable not set, please set it.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:";
+    char *optstring = "hvnbdc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
@@ -738,9 +742,12 @@ int main(int argc, char *argv[]) {
             if (strcmp(longopts[optind].name, "debug") == 0)
                 debug_mode = true;
             break;
+        case 'f':
+            show_failed_attempts = true;
+            break;
         default:
             errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-            " [-i image.png] [-t] [-e] [-I]"
+            " [-i image.png] [-t] [-e] [-I] [-f]"
             );
         }
     }
