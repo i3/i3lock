@@ -534,6 +534,9 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
 static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
     xcb_generic_event_t *event;
 
+    if (xcb_connection_has_error(conn))
+        errx(EXIT_FAILURE, "X11 connection broke, did your server terminate?\n");
+
     while ((event = xcb_poll_for_event(conn)) != NULL) {
         if (event->response_type == 0) {
             xcb_generic_error_t *error = (xcb_generic_error_t*)event;
