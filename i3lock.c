@@ -299,6 +299,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     case XKB_KEY_Return:
     case XKB_KEY_KP_Enter:
     case XKB_KEY_XF86ScreenSaver:
+        if (pam_state == STATE_PAM_WRONG)
+            return;
+
         if (skip_without_validation()) {
             clear_input();
             return;
