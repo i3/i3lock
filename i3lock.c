@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <pwd.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -658,8 +659,18 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+char* whoami(void) {
+    uid_t uid = geteuid();
+    struct passwd *pw = getpwuid(uid);
+    if (pw) {
+        return pw->pw_name;
+     } else {
+        errx(EXIT_FAILURE, "Username not known!\n");
+     }
+}
+
 int main(int argc, char *argv[]) {
-    char *username;
+    char *username = whoami();
     char *image_path = NULL;
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -683,9 +694,6 @@ int main(int argc, char *argv[]) {
         {"show-failed-attempts", no_argument, NULL, 'f'},
         {NULL, no_argument, NULL, 0}
     };
-
-    if ((username = getenv("USER")) == NULL)
-        errx(EXIT_FAILURE, "USER environment variable not set, please set it.\n");
 
     char *optstring = "hvnbdc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
