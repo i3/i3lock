@@ -8,6 +8,8 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <pwd.h>
+#include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -659,6 +661,7 @@ static void raise_loop(xcb_window_t window) {
 }
 
 int main(int argc, char *argv[]) {
+    struct passwd *pw;
     char *username;
     char *image_path = NULL;
     int ret;
@@ -684,8 +687,10 @@ int main(int argc, char *argv[]) {
         {NULL, no_argument, NULL, 0}
     };
 
-    if ((username = getenv("USER")) == NULL)
-        errx(EXIT_FAILURE, "USER environment variable not set, please set it.\n");
+    if ((pw = getpwuid(getuid())) == NULL)
+        err(EXIT_FAILURE, "getpwuid() failed");
+    if ((username = pw->pw_name) == NULL)
+        errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
     char *optstring = "hvnbdc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
