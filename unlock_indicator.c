@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <xcb/xcb.h>
 #include <ev.h>
@@ -43,6 +44,10 @@ extern uint32_t last_resolution[2];
 
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
+
+/* Whether the capslock and numlock mods are active or not. */
+extern bool capslock_active;
+extern bool numlock_active;
 
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
@@ -227,6 +232,29 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_move_to(ctx, x, y);
             cairo_show_text(ctx, text);
             cairo_close_path(ctx);
+        }
+
+        if (pam_state == STATE_PAM_WRONG && (capslock_active || numlock_active)) {
+            cairo_text_extents_t extents;
+            double x, y;
+            char *lock_text = NULL;
+
+            if (asprintf(&lock_text, "%s%s%s locked",
+                        capslock_active ? "Caps" : "",
+                        capslock_active && numlock_active ? ", " : "",
+                        numlock_active ? "Num" : "") != -1) {
+                cairo_set_font_size(ctx, 14.0);
+
+                cairo_text_extents(ctx, lock_text, &extents);
+                x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+                y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
+
+                cairo_move_to(ctx, x, y);
+                cairo_show_text(ctx, lock_text);
+                cairo_close_path(ctx);
+
+                free(lock_text);
+            }
         }
 
         /* After the user pressed any valid key or the backspace key, we
