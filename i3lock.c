@@ -25,6 +25,7 @@
 #include <ev.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -72,6 +73,8 @@ bool show_failed_attempts = false;
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
 static struct xkb_keymap *xkb_keymap;
+static struct xkb_compose_table *xkb_compose_table;
+static struct xkb_compose_state *xkb_compose_state;
 static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
 
@@ -133,6 +136,30 @@ static bool load_keymap(void) {
 
     xkb_state_unref(xkb_state);
     xkb_state = new_state;
+
+    return true;
+}
+
+/*
+ * Loads the XKB compose table from the given locale.
+ *
+ */
+static bool load_compose_table(const char *locale) {
+    xkb_compose_table_unref(xkb_compose_table);
+
+    if ((xkb_compose_table = xkb_compose_table_new_from_locale(xkb_context, locale, 0)) == NULL) {
+        fprintf(stderr, "[i3lock] xkb_compose_table_new_from_locale failed\n");
+        return false;
+    }
+
+    struct xkb_compose_state *new_compose_state = xkb_compose_state_new(xkb_compose_table, 0);
+    if (new_compose_state == NULL) {
+        fprintf(stderr, "[i3lock] xkb_compose_state_new failed\n");
+        return false;
+    }
+
+    xkb_compose_state_unref(xkb_compose_state);
+    xkb_compose_state = new_compose_state;
 
     return true;
 }
@@ -289,13 +316,36 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     char buffer[128];
     int n;
     bool ctrl;
+    bool composed = false;
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, "Control", XKB_STATE_MODS_DEPRESSED);
 
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
-    n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
+
+    if (xkb_compose_state && xkb_compose_state_feed(xkb_compose_state, ksym) == XKB_COMPOSE_FEED_ACCEPTED) {
+        switch (xkb_compose_state_get_status(xkb_compose_state)) {
+        case XKB_COMPOSE_NOTHING:
+            break;
+        case XKB_COMPOSE_COMPOSING:
+            return;
+        case XKB_COMPOSE_COMPOSED:
+            /* xkb_compose_state_get_utf8 doesn't include the terminating byte in the return value
+             * as xkb_keysym_to_utf8 does. Adding one makes the variable n consistent. */
+            n = xkb_compose_state_get_utf8(xkb_compose_state, buffer, sizeof(buffer)) + 1;
+            ksym = xkb_compose_state_get_one_sym(xkb_compose_state);
+            composed = true;
+            break;
+        case XKB_COMPOSE_CANCELLED:
+            xkb_compose_state_reset(xkb_compose_state);
+            return;
+        }
+    }
+
+    if (!composed) {
+        n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
+    }
 
     switch (ksym) {
     case XKB_KEY_Return:
@@ -823,6 +873,19 @@ int main(int argc, char *argv[]) {
     /* When we cannot initially load the keymap, we better exit */
     if (!load_keymap())
         errx(EXIT_FAILURE, "Could not load keymap");
+
+    const char *locale = getenv("LC_ALL");
+    if (!locale)
+        locale = getenv("LC_CTYPE");
+    if (!locale)
+        locale = getenv("LANG");
+    if (!locale) {
+        if (debug_mode)
+            fprintf(stderr, "Can't detect your locale, fallback to C\n");
+        locale = "C";
+    }
+
+    load_compose_table(locale);
 
     xinerama_init();
     xinerama_query_screens();
