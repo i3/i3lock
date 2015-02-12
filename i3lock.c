@@ -145,13 +145,6 @@ static bool load_keymap(void) {
  *
  */
 static bool load_compose_table(const char *locale) {
-    if (xkb_context == NULL) {
-        if ((xkb_context = xkb_context_new(0)) == NULL) {
-            fprintf(stderr, "[i3lock] could not create xkbcommon context\n");
-            return false;
-        }
-    }
-
     xkb_compose_table_unref(xkb_compose_table);
 
     if ((xkb_compose_table = xkb_compose_table_new_from_locale(xkb_context, locale, 0)) == NULL) {
