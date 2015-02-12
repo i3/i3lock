@@ -339,7 +339,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             break;
         case XKB_COMPOSE_CANCELLED:
             xkb_compose_state_reset(xkb_compose_state);
-            break;
+            return;
         }
     }
 
