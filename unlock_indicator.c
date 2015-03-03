@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include <xcb/xcb.h>
 #include <ev.h>
 #include <cairo.h>
@@ -49,8 +50,11 @@ extern cairo_surface_t *img;
 
 /* Whether the image should be tiled. */
 extern bool tile;
-/* The background color to use (in hex). */
+/* Whether we need to draw clock */
+extern bool showtime;
+/* The background and foreground color to use. */
 extern char color[7];
+extern uint8_t bgcolor[3], fgcolor[3];
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -125,17 +129,58 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_pattern_destroy(pattern);
         }
     } else {
-        char strgroups[3][3] = {{color[0], color[1], '\0'},
-                                {color[2], color[3], '\0'},
-                                {color[4], color[5], '\0'}};
-        uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
-                             (strtol(strgroups[1], NULL, 16)),
-                             (strtol(strgroups[2], NULL, 16))};
-        cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
+        cairo_set_source_rgb(xcb_ctx, bgcolor[0] / 255.0, bgcolor[1] / 255.0, bgcolor[2] / 255.0);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
 
+    if (showtime) {
+        /* Drawing the current time */
+        char text[20];
+        time_t t;
+        struct tm *tm;
+
+        t = time(NULL);
+        tm = localtime(&t);
+        if (strftime(text, sizeof(text), "%T", tm)) {
+            const int fontsz = resolution[0] / 10;
+            cairo_text_extents_t extents;
+            static bool fresh = true;
+            static double x, y;
+
+            /* frame spec */
+            static double rx, ry, rw, rh;
+            const double lw = 4, spc = 15;
+
+            cairo_set_font_size(xcb_ctx, fontsz);
+            cairo_text_extents(xcb_ctx, text, &extents);
+            /* avoid wobbling */
+            if (fresh) {
+                x = resolution[0] / 2 - ((extents.width / 2) + extents.x_bearing);
+                y = resolution[1] / 2 - ((extents.height / 2) + extents.y_bearing);
+
+                rx = x + extents.x_bearing - lw - spc;
+                ry = y + extents.y_bearing - lw - spc;
+                rw = extents.width + 2 * (lw + spc);
+                rh = extents.height + 2 * (lw + spc);
+                fresh = false;
+            }
+
+            /* draw a frame */
+            cairo_set_line_join(xcb_ctx, CAIRO_LINE_JOIN_ROUND);
+            cairo_set_source_rgb(xcb_ctx, bgcolor[0] / 255.0, bgcolor[1] / 255.0, bgcolor[2] / 255.0);
+            cairo_rectangle(xcb_ctx, rx, ry, rw, rh);
+            cairo_fill(xcb_ctx);
+            cairo_set_source_rgb(xcb_ctx, fgcolor[0] / 255.0, fgcolor[1] / 255.0, fgcolor[2] / 255.0);
+            cairo_set_line_width(xcb_ctx, lw);
+            cairo_rectangle(xcb_ctx, rx, ry, rw, rh);
+            cairo_stroke(xcb_ctx);
+
+            /* draw the time */
+            cairo_move_to(xcb_ctx, x, y);
+            cairo_show_text(xcb_ctx, text);
+        }
+    }
     if (unlock_state >= STATE_KEY_PRESSED && unlock_indicator) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */

@@ -47,6 +47,8 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
 char color[7] = "ffffff";
+uint8_t bgcolor[3] = {255, 255, 255};
+uint8_t fgcolor[3] = {0, 0, 0};
 int inactivity_timeout = 30;
 uint32_t last_resolution[2];
 xcb_window_t win;
@@ -65,6 +67,7 @@ static struct ev_timer *clear_pam_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *dpms_timeout;
 static struct ev_timer *discard_passwd_timeout;
+static struct ev_timer clock_timer;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 int failed_attempts = 0;
@@ -80,6 +83,7 @@ static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
+bool showtime = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
@@ -92,6 +96,26 @@ bool skip_repeated_empty_password = false;
  */
 void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
+}
+
+static int parse_color(const char *str, uint8_t color[]) {
+    char buf[6];
+    /* Skip # if present */
+    if (str[0] == '#')
+        str++;
+
+    if (strlen(str) != 6 || sscanf(str, "%06[0-9a-fA-F]", buf) != 1)
+        return -1;
+
+    char strgroups[3][3] = {{buf[0], buf[1], '\0'},
+        {buf[2], buf[3], '\0'},
+        {buf[4], buf[5], '\0'}};
+
+    color[0] = strtol(strgroups[0], NULL, 16);
+    color[1] = strtol(strgroups[1], NULL, 16);
+    color[2] = strtol(strgroups[2], NULL, 16);
+
+    return 0;
 }
 
 static void turn_monitors_on(void) {
@@ -250,6 +274,10 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
     clear_input();
     turn_monitors_off();
     STOP_TIMER(discard_passwd_timeout);
+}
+
+static void clock_tick_cb(EV_P_ ev_timer *w, int revents) {
+    redraw_screen();
 }
 
 static void input_done(void) {
@@ -725,12 +753,14 @@ int main(int argc, char *argv[]) {
         {"beep", no_argument, NULL, 'b'},
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
+        {"fgcolor", required_argument, NULL, 'F'},
         {"pointer", required_argument, NULL , 'p'},
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
+        {"time", no_argument, NULL, 'T'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -742,7 +772,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:F:p:ui:teI:Tf";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
         case 'v':
@@ -764,15 +794,14 @@ int main(int argc, char *argv[]) {
             break;
         }
         case 'c': {
-            char *arg = optarg;
-
-            /* Skip # if present */
-            if (arg[0] == '#')
-                arg++;
-
-            if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
+            if (parse_color(optarg, bgcolor) != 0)
                 errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
-
+            strncpy(color, optarg, 7);
+            break;
+        }
+        case 'F': {
+            if (parse_color(optarg, fgcolor) != 0)
+                errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
             break;
         }
         case 'u':
@@ -783,6 +812,9 @@ int main(int argc, char *argv[]) {
             break;
         case 't':
             tile = true;
+            break;
+        case 'T':
+            showtime = true;
             break;
         case 'p':
             if (!strcmp(optarg, "win")) {
@@ -804,8 +836,8 @@ int main(int argc, char *argv[]) {
             show_failed_attempts = true;
             break;
         default:
-            errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-            " [-i image.png] [-t] [-e] [-I] [-f]"
+            errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c bgcolor] [-F fgcolor] [-u] [-p win|default]"
+            " [-i image.png] [-t] [-e] [-I] [-T] [-f]"
             );
         }
     }
@@ -956,6 +988,11 @@ int main(int argc, char *argv[]) {
     main_loop = EV_DEFAULT;
     if (main_loop == NULL)
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
+
+    if (showtime) {
+        ev_timer_init(&clock_timer, clock_tick_cb, 1.0, 1.0);
+        ev_timer_start(main_loop, &clock_timer);
+    }
 
     struct ev_io *xcb_watcher = calloc(sizeof(struct ev_io), 1);
     struct ev_check *xcb_check = calloc(sizeof(struct ev_check), 1);
