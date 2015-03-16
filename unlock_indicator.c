@@ -151,10 +151,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
          * (currently verifying, wrong password, or default) */
         switch (pam_state) {
             case STATE_PAM_VERIFY:
-                cairo_set_source_rgba(ctx, 0, 114.0/255, 255.0/255, 0.75);
+                cairo_set_source_rgba(ctx, 0, 114.0 / 255, 255.0 / 255, 0.75);
                 break;
             case STATE_PAM_WRONG:
-                cairo_set_source_rgba(ctx, 250.0/255, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
                 break;
             default:
                 cairo_set_source_rgba(ctx, 0, 0, 0, 0.75);
@@ -164,13 +164,13 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         switch (pam_state) {
             case STATE_PAM_VERIFY:
-                cairo_set_source_rgb(ctx, 51.0/255, 0, 250.0/255);
+                cairo_set_source_rgb(ctx, 51.0 / 255, 0, 250.0 / 255);
                 break;
             case STATE_PAM_WRONG:
-                cairo_set_source_rgb(ctx, 125.0/255, 51.0/255, 0);
+                cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
                 break;
             case STATE_PAM_IDLE:
-                cairo_set_source_rgb(ctx, 51.0/255, 125.0/255, 0);
+                cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
                 break;
         }
         cairo_stroke(ctx);
@@ -203,7 +203,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 text = "wrong!";
                 break;
             default:
-                if (show_failed_attempts && failed_attempts > 0){
+                if (show_failed_attempts && failed_attempts > 0) {
                     if (failed_attempts > 999) {
                         text = "> 999";
                     } else {
@@ -244,10 +244,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
-                cairo_set_source_rgb(ctx, 51.0/255, 219.0/255, 0);
+                cairo_set_source_rgb(ctx, 51.0 / 255, 219.0 / 255, 0);
             } else {
                 /* For backspace, we use red. */
-                cairo_set_source_rgb(ctx, 219.0/255, 51.0/255, 0);
+                cairo_set_source_rgb(ctx, 219.0 / 255, 51.0 / 255, 0);
             }
             cairo_stroke(ctx);
 
@@ -304,7 +304,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
-    xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){ bg_pixmap });
+    xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
      * screen instead of the whole screen. */
     xcb_clear_area(conn, 0, win, 0, 0, last_resolution[0], last_resolution[1]);
@@ -320,6 +320,7 @@ void redraw_screen(void) {
 void clear_indicator(void) {
     if (input_position == 0) {
         unlock_state = STATE_STARTED;
-    } else unlock_state = STATE_KEY_PRESSED;
+    } else
+        unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
 }
