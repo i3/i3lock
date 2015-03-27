@@ -59,6 +59,8 @@ static bool beep = false;
 bool debug_mode = false;
 static bool dpms = false;
 bool unlock_indicator = true;
+bool capslock_active = false;
+bool numlock_active = false;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
@@ -277,6 +279,11 @@ static void input_done(void) {
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
 
+    /* Get state of Caps and Num lock modifiers, to be displayed in
+     * STATE_PAM_WRONG state */
+    capslock_active = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CAPS, XKB_STATE_MODS_EFFECTIVE);
+    numlock_active = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_NUM, XKB_STATE_MODS_EFFECTIVE);
+
     pam_state = STATE_PAM_WRONG;
     failed_attempts += 1;
     clear_input();
@@ -327,7 +334,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     bool composed = false;
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
-    ctrl = xkb_state_mod_name_is_active(xkb_state, "Control", XKB_STATE_MODS_DEPRESSED);
+    ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
 
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
