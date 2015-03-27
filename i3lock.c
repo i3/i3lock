@@ -263,6 +263,14 @@ static void input_done(void) {
         /* Turn the screen on, as it may have been turned off
          * on release of the 'enter' key. */
         turn_monitors_on();
+
+        /* PAM credentials should be refreshed, this will for example update any kerberos tickets.
+         * Related to credentials pam_end() needs to be called to cleanup any temporary
+         * credentials like kerberos /tmp/krb5cc_pam_* files which may of been left behind if the
+         * refresh of the credentials failed. */
+        pam_setcred(pam_handle, PAM_REFRESH_CRED);
+        pam_end(pam_handle, PAM_SUCCESS);
+
         exit(0);
     }
 
