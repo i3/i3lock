@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <xcb/xcb.h>
 #include <ev.h>
@@ -43,6 +44,9 @@ extern uint32_t last_resolution[2];
 
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
+
+/* List of pressed modifiers, or NULL if none are pressed. */
+extern char *modifier_string;
 
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
@@ -226,6 +230,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             cairo_move_to(ctx, x, y);
             cairo_show_text(ctx, text);
+            cairo_close_path(ctx);
+        }
+
+        if (pam_state == STATE_PAM_WRONG && (modifier_string != NULL)) {
+            cairo_text_extents_t extents;
+            double x, y;
+
+            cairo_set_font_size(ctx, 14.0);
+
+            cairo_text_extents(ctx, modifier_string, &extents);
+            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
+
+            cairo_move_to(ctx, x, y);
+            cairo_show_text(ctx, modifier_string);
             cairo_close_path(ctx);
         }
 

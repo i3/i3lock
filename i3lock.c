@@ -59,6 +59,7 @@ static bool beep = false;
 bool debug_mode = false;
 static bool dpms = false;
 bool unlock_indicator = true;
+char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
@@ -217,6 +218,12 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     unlock_state = STATE_STARTED;
     redraw_screen();
 
+    /* Clear modifier string. */
+    if (modifier_string != NULL) {
+        free(modifier_string);
+        modifier_string = NULL;
+    }
+
     /* Now free this timeout. */
     STOP_TIMER(clear_pam_wrong_timeout);
 }
@@ -277,6 +284,41 @@ static void input_done(void) {
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
 
+    /* Get state of Caps and Num lock modifiers, to be displayed in
+     * STATE_PAM_WRONG state */
+    xkb_mod_index_t idx, num_mods;
+    const char *mod_name;
+
+    num_mods = xkb_keymap_num_mods(xkb_keymap);
+
+    for (idx = 0; idx < num_mods; idx++) {
+        if (!xkb_state_mod_index_is_active(xkb_state, idx, XKB_STATE_MODS_EFFECTIVE))
+            continue;
+
+        mod_name = xkb_keymap_mod_get_name(xkb_keymap, idx);
+        if (mod_name == NULL)
+            continue;
+
+        /* Replace certain xkb names with nicer, human-readable ones. */
+        if (strcmp(mod_name, XKB_MOD_NAME_CAPS) == 0)
+            mod_name = "Caps Lock";
+        else if (strcmp(mod_name, XKB_MOD_NAME_ALT) == 0)
+            mod_name = "Alt";
+        else if (strcmp(mod_name, XKB_MOD_NAME_NUM) == 0)
+            mod_name = "Num Lock";
+        else if (strcmp(mod_name, XKB_MOD_NAME_LOGO) == 0)
+            mod_name = "Win";
+
+        char *tmp;
+        if (modifier_string == NULL) {
+            if (asprintf(&tmp, "%s", mod_name) != -1)
+                modifier_string = tmp;
+        } else if (asprintf(&tmp, "%s, %s", modifier_string, mod_name) != -1) {
+            free(modifier_string);
+            modifier_string = tmp;
+        }
+    }
+
     pam_state = STATE_PAM_WRONG;
     failed_attempts += 1;
     clear_input();
@@ -327,7 +369,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     bool composed = false;
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
-    ctrl = xkb_state_mod_name_is_active(xkb_state, "Control", XKB_STATE_MODS_DEPRESSED);
+    ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
 
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
