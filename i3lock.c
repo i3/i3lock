@@ -1,7 +1,7 @@
 /*
  * vim:ts=4:sw=4:expandtab
  *
- * © 2010-2013 Michael Stapelberg
+ * © 2010 Michael Stapelberg
  *
  * See LICENSE for licensing information
  *
@@ -793,7 +793,7 @@ int main(int argc, char *argv[]) {
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
-                errx(EXIT_SUCCESS, "version " VERSION " © 2010-2012 Michael Stapelberg");
+                errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg");
             case 'n':
                 dont_fork = true;
                 break;
