@@ -1,7 +1,7 @@
 /*
  * vim:ts=4:sw=4:expandtab
  *
- * © 2010-2014 Michael Stapelberg
+ * © 2010 Michael Stapelberg
  *
  * See LICENSE for licensing information
  *
