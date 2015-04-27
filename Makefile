@@ -1,18 +1,19 @@
 INSTALL=install
 PREFIX=/usr
 SYSCONFDIR=/etc
+PKG_CONFIG=pkg-config
 
 # Check if pkg-config is installed, we need it for building CFLAGS/LIBS
-ifeq ($(shell which pkg-config 2>/dev/null 1>/dev/null || echo 1),1)
-$(error "pkg-config was not found")
+ifeq ($(shell which $(PKG_CONFIG) 2>/dev/null 1>/dev/null || echo 1),1)
+$(error "$(PKG_CONFIG) was not found")
 endif
 
 CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
 CPPFLAGS += -D_GNU_SOURCE
-CFLAGS += $(shell pkg-config --cflags cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
-LIBS += $(shell pkg-config --libs cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
+CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
+LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += -lpam
 LIBS += -lev
 LIBS += -lm
