@@ -48,7 +48,7 @@ dist: clean
 	[ ! -d i3lock-${VERSION} ] || rm -rf i3lock-${VERSION}
 	[ ! -e i3lock-${VERSION}.tar.bz2 ] || rm i3lock-${VERSION}.tar.bz2
 	mkdir i3lock-${VERSION}
-	cp *.c *.h i3lock.1 i3lock.pam Makefile LICENSE README CHANGELOG i3lock-${VERSION}
+	cp *.c *.h i3lock.1 i3lock.pam Makefile LICENSE README.md CHANGELOG i3lock-${VERSION}
 	sed -e 's/^GIT_VERSION:=\(.*\)/GIT_VERSION:=$(shell /bin/echo '${GIT_VERSION}' | sed 's/\\/\\\\/g')/g;s/^VERSION:=\(.*\)/VERSION:=${VERSION}/g' Makefile > i3lock-${VERSION}/Makefile
 	tar cfj i3lock-${VERSION}.tar.bz2 i3lock-${VERSION}
 	rm -rf i3lock-${VERSION}
