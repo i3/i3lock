@@ -1,7 +1,7 @@
 /*
  * vim:ts=4:sw=4:expandtab
  *
- * © 2010-2012 Michael Stapelberg
+ * © 2010 Michael Stapelberg
  *
  * See LICENSE for licensing information
  *
@@ -82,8 +82,8 @@ void xinerama_query_screens(void) {
         xr_resolutions[screen].width = screen_info[screen].width;
         xr_resolutions[screen].height = screen_info[screen].height;
         DEBUG("found Xinerama screen: %d x %d at %d x %d\n",
-                        screen_info[screen].width, screen_info[screen].height,
-                        screen_info[screen].x_org, screen_info[screen].y_org);
+              screen_info[screen].width, screen_info[screen].height,
+              screen_info[screen].x_org, screen_info[screen].y_org);
     }
 
     free(reply);
