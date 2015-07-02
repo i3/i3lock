@@ -28,7 +28,8 @@ i3lock \- improved screen locker
 .IR pointer\|]
 .RB [\|\-u\|]
 .RB [\|\-e\|]
-.RB [\|\-I\|]
+.RB [\|\-I
+.IR timeout\|]
 .RB [\|\-f\|]
 
 .SH DESCRIPTION
@@ -71,7 +72,7 @@ option, DPMS will turn off your screen after 15 minutes of inactivity anyways (i
 you did not disable this in your X server).
 
 .TP
-.B \-I, \-\-inactivity-timeout
+.BI \-I\  seconds \fR,\ \fB\-\-inactivity-timeout= seconds
 Specifies the number of seconds i3lock will wait for another password before
 turning off the monitors, in case you entered a wrong password or canceled by
 pressing Escape. Only makes sense together with \-d. If omitted, the default is
