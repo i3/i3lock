@@ -858,7 +858,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
 
