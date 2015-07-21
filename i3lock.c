@@ -29,6 +29,14 @@
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <utmp.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -48,6 +56,7 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 /* We need this for libxkbfile */
 char color[7] = "ffffff";
 int inactivity_timeout = 30;
+int lock_pid = -1;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -84,6 +93,18 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+void f_child(int sig) {
+    int status = 0;
+    int pid = 0;
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if (lock_pid != 0 && lock_pid == pid) {
+            lock_pid = 0;
+            if (debug_mode)
+                fprintf(stderr, "Screen unlocked with status %d\n", status);
+        } else if (debug_mode)
+            fprintf(stderr, "Exited child process %d with status %d\n", pid, status);
+    }
+}
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -766,13 +787,18 @@ static void raise_loop(xcb_window_t window) {
 
 int main(int argc, char *argv[]) {
     struct passwd *pw;
-    char *username;
+    char *username = NULL;
+    char *sock_cmd = NULL;
     char *image_path = NULL;
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int curs_choice = CURS_NONE;
     int o;
     int optind = 0;
+    int c_socket = 0;
+    struct sockaddr_un c_addr = {
+        PF_UNIX, ""};
+    char buff[8192] = "";
     struct option longopts[] = {
         {"version", no_argument, NULL, 'v'},
         {"nofork", no_argument, NULL, 'n'},
@@ -788,14 +814,15 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        //---->
+        {"socket", required_argument, NULL, 'S'},
+        {"cmd", required_argument, NULL, 'C'},
+        //<----
         {NULL, no_argument, NULL, 0}};
+    signal(SIGCHLD, &f_child);
+    char *optstring = "hvnbdc:p:ui:teI:fS:C:D:U:X:";
 
-    if ((pw = getpwuid(getuid())) == NULL)
-        err(EXIT_FAILURE, "getpwuid() failed");
-    if ((username = pw->pw_name) == NULL)
-        errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
-
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *control_socket = NULL;
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -856,12 +883,75 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'S':
+                control_socket = strdup(optarg);
+                break;
+            case 'C':
+                sock_cmd = strdup(optarg);
+                break;
+            case 'U':
+                username = strdup(optarg);
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
-
+    if (username == NULL || (username != NULL && *username == 0)) {
+        if ((pw = getpwuid(getuid())) == NULL)
+            err(EXIT_FAILURE, "getpwuid() failed");
+        if ((username = pw->pw_name) == NULL)
+            errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
+    } else if ((pw = getpwnam(username)) == NULL) {
+        err(EXIT_FAILURE, "getpwnam() failed");
+    }
+    if (control_socket != NULL && *control_socket != 0) {
+        dont_fork = true;
+        if ((c_socket = socket(PF_UNIX, SOCK_DGRAM, 0)) == -1)
+            err(EXIT_FAILURE, "socket() failed");
+        memset((void *)&c_addr.sun_path, 0, sizeof(c_addr.sun_path));
+        strncpy((char *)&c_addr.sun_path, (char *)control_socket, strlen(control_socket));
+        if (sock_cmd == NULL) {  //Server
+            unlink(control_socket);
+            if (bind(c_socket, (const struct sockaddr *)&c_addr, sizeof(c_addr)) == -1)
+                err(EXIT_FAILURE, "bind() failed");
+            memset((void *)&buff, 0, sizeof(buff));
+            while (recvfrom(c_socket, (void *)&buff, sizeof(buff), 0, NULL, NULL)) {
+                if (debug_mode)
+                    fprintf(stderr, "Buff: %s\n", (char *)&buff);
+                if (strcmp((char *)&buff, "unlock") == 0) {
+                    if (debug_mode)
+                        fprintf(stderr, "DEBUG: Screen unlock command\n");
+                    if (lock_pid != 0 && kill(lock_pid, SIGTERM) == -1)
+                        fprintf(stderr, "Can't kill PID:%d %d\n", lock_pid, errno);
+                    else
+                        lock_pid = 0;
+                } else if (strcmp((char *)&buff, "stop-server") == 0) {
+                    if (lock_pid && kill(lock_pid, SIGTERM) == -1)
+                        fprintf(stderr, "Can't kill PID:%d %d\n", lock_pid, errno);
+                    close(c_socket);
+                    unlink(control_socket);
+                    return 0;
+                } else {
+                    if (debug_mode)
+                        fprintf(stderr, "DEBUG: Screen lock command\n");
+                    if (lock_pid != 0)
+                        continue;
+                    lock_pid = fork();
+                    if (lock_pid == 0) {  // Child close server socket handle,break loop
+                        close(c_socket);
+                        break;
+                    }
+                }
+            }
+        } else {
+            if (debug_mode)
+                fprintf(stderr, "executing '%s' command on the server '%s'\n", sock_cmd, c_addr.sun_path);
+            if (sendto(c_socket, sock_cmd, strlen(sock_cmd), 0, (const struct sockaddr *)&c_addr, sizeof(c_addr)) == -1)
+                err(EXIT_FAILURE, "sendto()");
+            exit(0);
+        }
+    }
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
     srand(time(NULL));
