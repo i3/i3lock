@@ -103,7 +103,7 @@ void f_child(int sig) {
     int status = 0;
     int pid = 0;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        if (lock_pid != 0 && lock_pid == pid) {
+        if (lock_pid > 0 && lock_pid == pid) {
             lock_pid = 0;
             if (debug_mode)
                 fprintf(stderr, "Screen unlocked with status %d\n", status);
@@ -989,12 +989,12 @@ int main(int argc, char *argv[]) {
                 if (strcmp((char *)&buff, "unlock") == 0) {
                     if (debug_mode)
                         fprintf(stderr, "DEBUG: Screen unlock command\n");
-                    if (lock_pid != 0 && kill(lock_pid, SIGTERM) == -1)
+                    if (lock_pid > 0 && kill(lock_pid, SIGTERM) == -1)
                         fprintf(stderr, "Can't kill PID:%d %d\n", lock_pid, errno);
                     else
                         lock_pid = 0;
                 } else if (strcmp((char *)&buff, "stop-server") == 0) {
-                    if (lock_pid && kill(lock_pid, SIGTERM) == -1)
+                    if (lock_pid > 0 && kill(lock_pid, SIGTERM) == -1)
                         fprintf(stderr, "Can't kill PID:%d %d\n", lock_pid, errno);
                     close(c_socket);
                     unlink(control_socket);
@@ -1002,7 +1002,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     if (debug_mode)
                         fprintf(stderr, "DEBUG: Screen lock command\n");
-                    if (lock_pid != 0)
+                    if (lock_pid > 0)
                         continue;
                     lock_pid = fork();
                     if (lock_pid == 0) {  // Child close server socket handle,break loop
