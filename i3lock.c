@@ -953,7 +953,10 @@ int main(int argc, char *argv[]) {
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png ] [-t] [-e] [-I] [-f]"
-                                   " [--scale-image] [--socket=/var/run/i3lock.sock [--cmd=lock | unlock | stop-server]] [--user=username] [--display=display] [--xauth=/path/to/.Xauthority]"
+#ifdef CANSCALE
+                                   " [--scale-image] "
+#endif
+                                   "[--socket=/var/run/i3lock.sock [--cmd=lock | unlock | stop-server]] [--user=username] [--display=display] [--xauth=/path/to/.Xauthority]"
                                    " [--failure-script=/path/to/script]");
         }
     }
