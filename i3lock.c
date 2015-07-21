@@ -60,6 +60,7 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
 char color[7] = "ffffff";
+char *failure_script = NULL;
 int inactivity_timeout = 30;
 int lock_pid = -1;
 uint32_t last_resolution[2];
@@ -288,6 +289,7 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
 }
 
 static void input_done(void) {
+    int fail_pid = 0;
     STOP_TIMER(clear_pam_wrong_timeout);
     pam_state = STATE_PAM_VERIFY;
     redraw_screen();
@@ -308,7 +310,16 @@ static void input_done(void) {
 
         exit(0);
     }
-
+    if (failure_script != NULL && *failure_script != 0) {
+        fail_pid = fork();
+        if (fail_pid == 0) {
+            execle(failure_script, failure_script, "", (char *)NULL, 0);
+            perror("execl() failure!");
+            _exit(1);
+        } else if (debug_mode) {
+            fprintf(stderr, "Exec fail-script '%s' PID: %d\n", failure_script, fail_pid);
+        }
+    }
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
 
@@ -833,6 +844,7 @@ int main(int argc, char *argv[]) {
         {"scale-image", no_argument, NULL, 1},
 #endif
         {"lock-ttys", no_argument, NULL, 2},
+        {"failure-script", required_argument, NULL, 3},
         //<----
         {NULL, no_argument, NULL, 0}};
     signal(SIGCHLD, &f_child);
@@ -933,13 +945,17 @@ int main(int argc, char *argv[]) {
             case 2:
                 lock_ttys = true;
                 break;
+            case 3:
+                failure_script = strdup(optarg);
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]"
 #ifdef CANSCALE
                                    " [--scale-image] "
 #endif
-                );
+                                   " [--socket=/var/run/i3lock.sock [--cmd=lock | unlock | stop-server]] [--user=username] [--display=display] [--xauth=/path/to/.Xauthority]"
+                                   " [--failure-script=/path/to/script]");
         }
     }
     if (username == NULL || (username != NULL && *username == 0)) {
