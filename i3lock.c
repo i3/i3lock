@@ -62,7 +62,7 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 char color[7] = "ffffff";
 char *failure_script = NULL;
 int inactivity_timeout = 30;
-int lock_pid = -1;
+int lock_pid = 0;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
