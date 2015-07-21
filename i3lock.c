@@ -790,14 +790,17 @@ int main(int argc, char *argv[]) {
     char *username = NULL;
     char *sock_cmd = NULL;
     char *image_path = NULL;
+    char x_authority[256];
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int curs_choice = CURS_NONE;
     int o;
     int optind = 0;
+    bool lock_ttys = false;
     int c_socket = 0;
     struct sockaddr_un c_addr = {
         PF_UNIX, ""};
+    char *XAUTHORITY = NULL;
     char buff[8192] = "";
     struct option longopts[] = {
         {"version", no_argument, NULL, 'v'},
@@ -817,12 +820,17 @@ int main(int argc, char *argv[]) {
         //---->
         {"socket", required_argument, NULL, 'S'},
         {"cmd", required_argument, NULL, 'C'},
+        {"display", required_argument, NULL, 'D'},
+        {"user", required_argument, NULL, 'U'},
+        {"xauth", required_argument, NULL, 'X'},
         {"lock-ttys", no_argument, NULL, 2},
         //<----
         {NULL, no_argument, NULL, 0}};
     signal(SIGCHLD, &f_child);
+    XAUTHORITY = getenv("XAUTHORITY");
     char *optstring = "hvnbdc:p:ui:teI:fS:C:D:U:X:";
 
+    struct utmp *utent = NULL;
     char *control_socket = NULL;
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
@@ -893,6 +901,16 @@ int main(int argc, char *argv[]) {
             case 'U':
                 username = strdup(optarg);
                 break;
+            case 'D':
+                setenv("DISPLAY", optarg, 1);
+                if (debug_mode)
+                    fprintf(stderr, "Set DISPLAY='%s'\n", optarg);
+                break;
+            case 'X':
+                if (debug_mode)
+                    fprintf(stderr, "Set XAUTHORITY='%s'\n", optarg);
+                setenv("XAUTHORITY", optarg, 1);
+                break;
             case 2:
                 lock_ttys = true;
                 break;
@@ -908,6 +926,12 @@ int main(int argc, char *argv[]) {
             errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
     } else if ((pw = getpwnam(username)) == NULL) {
         err(EXIT_FAILURE, "getpwnam() failed");
+    }
+    if (XAUTHORITY == NULL && pw != NULL && pw->pw_dir != NULL) {
+        sprintf((char *)&x_authority, "%s/.Xauthority", pw->pw_dir);
+        if (debug_mode)
+            fprintf(stderr, "Set XAUTHORITY='%s'\n", x_authority);
+        setenv("XAUTHORITY", (const char *)&x_authority, 1);
     }
     if (control_socket != NULL && *control_socket != 0) {
         dont_fork = true;
