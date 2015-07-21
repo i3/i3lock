@@ -817,6 +817,7 @@ int main(int argc, char *argv[]) {
         //---->
         {"socket", required_argument, NULL, 'S'},
         {"cmd", required_argument, NULL, 'C'},
+        {"lock-ttys", no_argument, NULL, 2},
         //<----
         {NULL, no_argument, NULL, 0}};
     signal(SIGCHLD, &f_child);
@@ -892,6 +893,9 @@ int main(int argc, char *argv[]) {
             case 'U':
                 username = strdup(optarg);
                 break;
+            case 2:
+                lock_ttys = true;
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
@@ -951,6 +955,17 @@ int main(int argc, char *argv[]) {
                 err(EXIT_FAILURE, "sendto()");
             exit(0);
         }
+    }
+    if (lock_ttys) {
+        while ((utent = getutent()) != NULL) {
+            if (utent->ut_type == USER_PROCESS) {
+                if (debug_mode)
+                    fprintf(stderr, "logout() TTY: %s; PID: %d; USER: %s\n", utent->ut_line, utent->ut_pid, utent->ut_user);
+                if (kill(utent->ut_pid, SIGTERM) != -1 && logout(utent->ut_line) == 0)
+                    errx(EXIT_FAILURE, "Can't logout %s from %s", utent->ut_user, utent->ut_line);
+            }
+        }
+        endutent();
     }
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
