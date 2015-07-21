@@ -23,7 +23,7 @@ Requirements
 - libxcb
 - libxcb-util
 - libpam-dev
-- libcairo-dev
+- libcairo-dev #if >=1.14.0 background can be scaled --scale-image
 - libxcb-xinerama
 - libev
 - libx11-dev
