@@ -51,6 +51,12 @@
 #define STOP_TIMER(timer_obj) \
     timer_obj = stop_timer(timer_obj)
 
+#if (CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 14, 0))
+#define CAN_SCALE
+#else
+#undef CAN_SCALE
+#endif
+
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
@@ -836,7 +842,9 @@ int main(int argc, char *argv[]) {
         {"display", required_argument, NULL, 'D'},
         {"user", required_argument, NULL, 'U'},
         {"xauth", required_argument, NULL, 'X'},
+#ifdef CAN_SCALE
         {"scale-image", no_argument, NULL, 1},
+#endif
         {"lock-ttys", no_argument, NULL, 2},
         {"failure-script", required_argument, NULL, 3},
         //<----
@@ -844,10 +852,12 @@ int main(int argc, char *argv[]) {
     signal(SIGCHLD, &f_child);
     XAUTHORITY = getenv("XAUTHORITY");
     char *optstring = "hvnbdc:p:ui:teI:fS:C:D:U:X:";
+#ifdef CAN_SCALE
     struct s_scale {
         double x;
         double y;
     } scale = {0, 0};
+#endif
     struct utmp *utent = NULL;
     char *control_socket = NULL;
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
@@ -929,9 +939,11 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Set XAUTHORITY='%s'\n", optarg);
                 setenv("XAUTHORITY", optarg, 1);
                 break;
+#ifdef CAN_SCALE
             case 1:
                 use_scale = true;
                 break;
+#endif
             case 2:
                 lock_ttys = true;
                 break;
@@ -1122,19 +1134,21 @@ int main(int argc, char *argv[]) {
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
-        if (use_scale == true) {
-            scale.x = cairo_image_surface_get_width(img);
-            scale.x /= last_resolution[0];
-            scale.y = cairo_image_surface_get_height(img);
-            scale.y /= last_resolution[1];
-            cairo_surface_set_device_scale(img, scale.x, scale.y);
-        }
         /* In case loading failed, we just pretend no -i was specified. */
         if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
         }
+#ifdef CAN_SCALE
+        if (use_scale == true && img != NULL) {
+            scale.x = cairo_image_surface_get_width(img);
+            scale.x /= last_resolution[0];
+            scale.y = cairo_image_surface_get_height(img);
+            scale.y /= last_resolution[1];
+            cairo_surface_set_device_scale(img, scale.x, scale.y);
+        }
+#endif
     }
 
     /* Pixmap on which the image is rendered to (if any) */
