@@ -1,0 +1,12 @@
+[Unit]
+Description=i3lock Daemon
+
+[Service]
+Type=simple
+User=root
+ExecStart=%BIN% --user=%USERNAME% --display=:0.0 --socket=/var/run/%BIN_NAME%.sock %ARGS% >/dev/null 2>&1 &
+ExecStop=%BIN% --socket=/var/run/%BIN_NAME%.sock --cmd=stop-server
+
+[Install]
+WantedBy=multi-user.target
+
