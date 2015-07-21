@@ -9,8 +9,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pwd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/types.h>
 #include <string.h>
+#include <signal.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -29,6 +33,10 @@
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <utmp.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -47,7 +55,9 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
 char color[7] = "ffffff";
+char *failure_script = NULL;
 int inactivity_timeout = 30;
+int lock_pid = 0;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -83,6 +93,19 @@ cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+
+void f_child (int sig){
+    int status=0;
+    int pid = 0;
+    while((pid = waitpid(-1,&status,WNOHANG))>0){
+        if(lock_pid!=0 && lock_pid == pid){
+            lock_pid=0;
+            if(debug_mode)
+                fprintf(stderr,"Screen unlocked with status %d\n",status);
+        }else if(debug_mode)
+            fprintf(stderr,"Exited child process %d with status %d\n",pid,status);
+    }
+}
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -262,6 +285,7 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
 }
 
 static void input_done(void) {
+    int fail_pid = 0;
     STOP_TIMER(clear_pam_wrong_timeout);
     pam_state = STATE_PAM_VERIFY;
     redraw_screen();
@@ -282,7 +306,16 @@ static void input_done(void) {
 
         exit(0);
     }
-
+    if(failure_script != NULL && *failure_script!=0){
+        fail_pid = fork();
+        if(fail_pid==0){
+            execle(failure_script,failure_script,"",(char*)NULL,0);
+            perror("execl() failure!");
+            _exit(1);
+        }else if(debug_mode){
+            fprintf(stderr,"Exec fail-script '%s' PID: %d\n",failure_script,fail_pid);
+        }
+    }
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
 
@@ -766,13 +799,23 @@ static void raise_loop(xcb_window_t window) {
 
 int main(int argc, char *argv[]) {
     struct passwd *pw;
-    char *username;
+    char *username = NULL;
+    char *sock_cmd = NULL;
     char *image_path = NULL;
+    char x_authority[256];
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int curs_choice = CURS_NONE;
     int o;
     int optind = 0;
+    bool use_scale = false;
+    bool lock_ttys = false;
+    int c_socket = 0;
+    struct sockaddr_un c_addr = {
+        PF_UNIX,""
+    };
+    char* XAUTHORITY=NULL;
+    char buff[8192] = "";
     struct option longopts[] = {
         {"version", no_argument, NULL, 'v'},
         {"nofork", no_argument, NULL, 'n'},
@@ -788,14 +831,26 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+//---->
+        {"socket", required_argument, NULL, 'S'},
+        {"cmd", required_argument, NULL, 'C'},
+        {"display", required_argument, NULL, 'D'},
+        {"user", required_argument, NULL, 'U'},
+        {"xauth", required_argument, NULL, 'X'},
+        {"scale-image", no_argument, NULL, 1},
+        {"lock-ttys", no_argument, NULL, 2},
+        {"failure-script", required_argument, NULL, 3},
+//<----
         {NULL, no_argument, NULL, 0}};
-
-    if ((pw = getpwuid(getuid())) == NULL)
-        err(EXIT_FAILURE, "getpwuid() failed");
-    if ((username = pw->pw_name) == NULL)
-        errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
-
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    signal(SIGCHLD,&f_child);
+    XAUTHORITY=getenv("XAUTHORITY");
+    char *optstring = "hvnbdc:p:ui:teI:fS:C:D:U:X:";
+    struct s_scale {
+        double x;
+        double y;
+    } scale = {0,0};
+    struct utmp* utent = NULL;
+    char *control_socket = NULL;
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -856,12 +911,113 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'S':
+                control_socket = strdup(optarg);
+                break;
+            case 'C':
+                sock_cmd = strdup(optarg);
+                break;
+            case 'U':
+                username = strdup(optarg);
+                break;
+            case 'D':
+                setenv("DISPLAY",optarg,1);
+                if(debug_mode)
+                    fprintf(stderr,"Set DISPLAY='%s'\n",optarg);
+                break;
+            case 'X':
+                if(debug_mode)
+                    fprintf(stderr,"Set XAUTHORITY='%s'\n",optarg);
+                setenv("XAUTHORITY",optarg,1);
+                break;
+            case 1:
+                use_scale=true;
+                break;
+            case 2:
+                lock_ttys=true;
+                break;
+            case 3:
+                failure_script = strdup(optarg);
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png ] [-t] [-e] [-I] [-f]"
+                                   " [--scale-image] [--socket=/var/run/i3lock.sock [--cmd=lock | unlock | stop-server]] [--user=username] [--display=display] [--xauth=/path/to/.Xauthority]"
+                                   " [--failure-script=/path/to/script]"
+                );
         }
     }
-
+    if (username == NULL || (username != NULL && *username == 0)){
+        if((pw = getpwuid(getuid())) == NULL)
+            err(EXIT_FAILURE, "getpwuid() failed");
+        if ((username = pw->pw_name) == NULL)
+            errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
+    }else if((pw = getpwnam(username)) == NULL){
+        err(EXIT_FAILURE, "getpwnam() failed");
+    }
+    if(XAUTHORITY==NULL && pw != NULL && pw->pw_dir != NULL){
+        sprintf((char*)&x_authority,"%s/.Xauthority",pw->pw_dir);
+        if(debug_mode)
+            fprintf(stderr,"Set XAUTHORITY='%s'\n",x_authority);
+        setenv("XAUTHORITY",(const char*)&x_authority,1);
+    }
+    if(control_socket != NULL && *control_socket != 0){
+        dont_fork=true;
+        if((c_socket = socket(PF_UNIX,SOCK_DGRAM,0)) == -1)
+            err(EXIT_FAILURE, "socket() failed");
+        memset((void*)&c_addr.sun_path,0,sizeof(c_addr.sun_path));
+        strncpy((char*)&c_addr.sun_path,(char *)control_socket,strlen(control_socket));
+        if(sock_cmd==NULL){ //Server
+            unlink(control_socket);
+            if(bind(c_socket,(const struct sockaddr*)&c_addr,sizeof(c_addr))==-1)
+                err(EXIT_FAILURE, "bind() failed");
+            memset((void*)&buff,0,sizeof(buff));
+            while(recvfrom(c_socket,(void*)&buff,sizeof(buff),0,NULL,NULL)){
+                if(debug_mode)
+                    fprintf(stderr,"Buff: %s\n",(char*)&buff);
+                if(strcmp((char*)&buff,"unlock")==0){
+                    if(debug_mode)
+                        fprintf(stderr,"DEBUG: Screen unlock command\n");
+                    if(lock_pid!=0 && kill(lock_pid,SIGTERM)==-1)
+                        fprintf(stderr,"Can't kill PID:%d %d\n",lock_pid,errno);
+                    else
+                        lock_pid=0;
+                }else if(strcmp((char*)&buff,"stop-server")==0){
+                    if(lock_pid && kill(lock_pid,SIGTERM)==-1)
+                        fprintf(stderr,"Can't kill PID:%d %d\n",lock_pid,errno);
+                    close(c_socket);
+                    unlink(control_socket);
+                    return 0;
+                }else{
+                    if(debug_mode)
+                        fprintf(stderr,"DEBUG: Screen lock command\n");
+                    if(lock_pid!=0) continue;
+                    lock_pid = fork();
+                    if(lock_pid==0){ // Child close server socket handle,break loop
+                        close(c_socket);
+                        break;
+                    }
+                }
+            }
+        }else{
+            if(debug_mode)
+                fprintf(stderr,"executing '%s' command on the server '%s'\n",sock_cmd,c_addr.sun_path);
+            if(sendto(c_socket,sock_cmd,strlen(sock_cmd),0,(const struct sockaddr *)&c_addr,sizeof(c_addr))==-1)
+                err(EXIT_FAILURE,"sendto()");
+            exit(0);
+        }
+    }
+    if(lock_ttys){
+        while((utent = getutent())!=NULL){
+            if(utent->ut_type==USER_PROCESS){
+                if(debug_mode)
+                    fprintf(stderr,"logout() TTY: %s; PID: %d; USER: %s\n",utent->ut_line,utent->ut_pid,utent->ut_user);
+                if(kill(utent->ut_pid,SIGTERM)!=-1 && logout(utent->ut_line)==0)
+                    errx(EXIT_FAILURE,"Can't logout %s from %s",utent->ut_user,utent->ut_line);
+            }
+        }
+        endutent();
+    }
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
     srand(time(NULL));
@@ -967,6 +1123,13 @@ int main(int argc, char *argv[]) {
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
+        if(use_scale==true){
+            scale.x = cairo_image_surface_get_width(img);
+            scale.x /= last_resolution[0];
+            scale.y = cairo_image_surface_get_height(img);
+            scale.y /= last_resolution[1];
+            cairo_surface_set_device_scale(img,scale.x,scale.y);
+        }
         /* In case loading failed, we just pretend no -i was specified. */
         if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",
@@ -1028,3 +1191,4 @@ int main(int argc, char *argv[]) {
     ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
 }
+

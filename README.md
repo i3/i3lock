@@ -15,6 +15,13 @@ Many little improvements have been made to i3lock over time:
 
 - You can specify whether i3lock should bell upon a wrong password.
 
+- You can specify i3lock to logout from any TTYs
+
+- You can run any password-failure script
+
+- You can lock/unlock screen using control socket, if i3lock runs as daemon.
+  This feature allow you to lock screen and ttys plug-in (unlock) or plug-out (lock) any device trough USB using UDEV-RULES see z99-lockscreen.rules-example
+
 - i3lock uses PAM and therefore is compatible with LDAP etc.
 
 Requirements

@@ -11,18 +11,22 @@ endif
 CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
+ifeq ($(DEBUG),1)
+CFLAGS += -ggdb
+endif
 CPPFLAGS += -D_GNU_SOURCE
 CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += -lpam
 LIBS += -lev
 LIBS += -lm
+LIBS += -lutil
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
 
-VERSION:=$(shell git describe --tags --abbrev=0)
-GIT_VERSION:="$(shell git describe --tags --always) ($(shell git log --pretty=format:%cd --date=short -n1))"
+VERSION:=2.7
+GIT_VERSION:="2.7 (2015-07-20) With Control Socket"
 CPPFLAGS += -DVERSION=\"${GIT_VERSION}\"
 
 .PHONY: install clean uninstall
@@ -33,12 +37,19 @@ i3lock: ${FILES}
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	rm -f i3lock ${FILES} i3lock-${VERSION}.tar.gz
+	rm -f i3lock ${FILES} i3lock-${VERSION}.tar.gz *.service
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/pam.d
 	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
+ifdef SERVICE
+	 sed -e 's,%ARGS%,$(I3ARGS),g' \
+		-e 's,%USERNAME%,$(USERNAME),g' \
+		-e 's,%BIN%,$(DESTDIR)$(PREFIX)/bin/i3lock,g' \
+		-e 's,%BIN_NAME%,i3lock,g' i3lock.service.in >i3lock.service
+	$(INSTALL) -m 644 i3lock.service /usr/lib/systemd/system/i3lock.service
+endif
 	$(INSTALL) -m 644 i3lock.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock
 
 uninstall:
