@@ -30,7 +30,7 @@ Requirements
 - libxcb
 - libxcb-util
 - libpam-dev
-- libcairo-dev
+- libcairo-dev #if >=1.14.0 background can be scaled --scale-image
 - libxcb-xinerama
 - libev
 - libx11-dev
@@ -43,6 +43,19 @@ Running i3lock
 -------------
 Simply invoke the 'i3lock' command. To get out of it, enter your password and
 press enter.
+
+Installing systemd.service
+------------
+sudo make \
+	USERNAME=crown \
+	I3ARGS="--lock-ttys" \
+	INSTALL_SERVICE=1 \
+	install
+
+Using udev-rules
+------------
+To lock/unlock using udev rules edit z99-lockscreen.rules-example or write your own rule
+For example my screen locks when i disconnect my smartfome from usb, and unlocks when connect.
 
 Upstream
 --------

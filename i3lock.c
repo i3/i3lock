@@ -37,6 +37,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -50,6 +54,11 @@
     timer_obj = start_timer(timer_obj, timeout, callback)
 #define STOP_TIMER(timer_obj) \
     timer_obj = stop_timer(timer_obj)
+#if (CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 14, 0))
+#define CAN_SCALE
+#else
+#undef CAN_SCALE
+#endif
 
 #if (CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 14, 0))
 #define CAN_SCALE
@@ -104,7 +113,7 @@ void f_child(int sig) {
     int status = 0;
     int pid = 0;
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        if (lock_pid != 0 && lock_pid == pid) {
+        if (lock_pid > 0 && lock_pid == pid) {
             lock_pid = 0;
             if (debug_mode)
                 fprintf(stderr, "Screen unlocked with status %d\n", status);
@@ -112,7 +121,6 @@ void f_child(int sig) {
             fprintf(stderr, "Exited child process %d with status %d\n", pid, status);
     }
 }
-
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -952,11 +960,11 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png ] [-t] [-e] [-I] [-f]"
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]"
 #ifdef CANSCALE
                                    " [--scale-image] "
 #endif
-                                   "[--socket=/var/run/i3lock.sock [--cmd=lock | unlock | stop-server]] [--user=username] [--display=display] [--xauth=/path/to/.Xauthority]"
+                                   " [--socket=/var/run/i3lock.sock [--cmd=lock | unlock | stop-server]] [--user=username] [--display=display] [--xauth=/path/to/.Xauthority]"
                                    " [--failure-script=/path/to/script]");
         }
     }
@@ -991,12 +999,12 @@ int main(int argc, char *argv[]) {
                 if (strcmp((char *)&buff, "unlock") == 0) {
                     if (debug_mode)
                         fprintf(stderr, "DEBUG: Screen unlock command\n");
-                    if (lock_pid != 0 && kill(lock_pid, SIGTERM) == -1)
+                    if (lock_pid > 0 && kill(lock_pid, SIGTERM) == -1)
                         fprintf(stderr, "Can't kill PID:%d %d\n", lock_pid, errno);
                     else
                         lock_pid = 0;
                 } else if (strcmp((char *)&buff, "stop-server") == 0) {
-                    if (lock_pid && kill(lock_pid, SIGTERM) == -1)
+                    if (lock_pid > 0 && kill(lock_pid, SIGTERM) == -1)
                         fprintf(stderr, "Can't kill PID:%d %d\n", lock_pid, errno);
                     close(c_socket);
                     unlink(control_socket);
@@ -1004,7 +1012,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     if (debug_mode)
                         fprintf(stderr, "DEBUG: Screen lock command\n");
-                    if (lock_pid != 0)
+                    if (lock_pid > 0)
                         continue;
                     lock_pid = fork();
                     if (lock_pid == 0) {  // Child close server socket handle,break loop
@@ -1137,6 +1145,15 @@ int main(int argc, char *argv[]) {
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
+#ifdef CAN_SCALE
+        if (use_scale == true && img != NULL) {
+            scale.x = cairo_image_surface_get_width(img);
+            scale.x /= last_resolution[0];
+            scale.y = cairo_image_surface_get_height(img);
+            scale.y /= last_resolution[1];
+            cairo_surface_set_device_scale(img, scale.x, scale.y);
+        }
+#endif
         /* In case loading failed, we just pretend no -i was specified. */
         if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",

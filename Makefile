@@ -11,7 +11,7 @@ endif
 CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
-ifeq ($(DEBUG),1)
+ifdef DEBUG
 CFLAGS += -ggdb
 endif
 CPPFLAGS += -D_GNU_SOURCE
@@ -43,7 +43,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/pam.d
 	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
-ifdef SERVICE
+ifdef INSTALL_SERVICE
 	 sed -e 's,%ARGS%,$(I3ARGS),g' \
 		-e 's,%USERNAME%,$(USERNAME),g' \
 		-e 's,%BIN%,$(DESTDIR)$(PREFIX)/bin/i3lock,g' \
