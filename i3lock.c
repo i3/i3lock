@@ -9,12 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pwd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <sys/types.h>
 #include <string.h>
-#include <signal.h>
-#include <errno.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -60,17 +56,11 @@
 #undef CAN_SCALE
 #endif
 
-#if (CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 14, 0))
-#define CAN_SCALE
-#else
-#undef CAN_SCALE
-#endif
-
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 /* We need this for libxkbfile */
 char color[7] = "ffffff";
-char *failure_script = NULL;
+char *failure_script[] = {NULL, NULL};
 int inactivity_timeout = 30;
 int lock_pid = 0;
 uint32_t last_resolution[2];
@@ -320,14 +310,19 @@ static void input_done(void) {
 
         exit(0);
     }
-    if (failure_script != NULL && *failure_script != 0) {
+    if (failure_script[0] != NULL && *failure_script[0] != 0) {
         fail_pid = fork();
         if (fail_pid == 0) {
-            execle(failure_script, failure_script, "", (char *)NULL, 0);
-            perror("execl() failure!");
-            _exit(1);
+            if (debug_mode == false) {
+                close(0);
+                close(1);
+                close(2);
+            }
+            if (-1 == execve(failure_script[0], failure_script, NULL) && debug_mode)
+                fprintf(stderr, "(PID:%d) execve(%s): %s\n", getpid(), failure_script[0], strerror(errno));
+            _exit(0);
         } else if (debug_mode) {
-            fprintf(stderr, "Exec fail-script '%s' PID: %d\n", failure_script, fail_pid);
+            fprintf(stderr, "Executing failure-sript '%s' PID:%d\n", failure_script[0], fail_pid);
         }
     }
     if (debug_mode)
@@ -956,7 +951,7 @@ int main(int argc, char *argv[]) {
                 lock_ttys = true;
                 break;
             case 3:
-                failure_script = strdup(optarg);
+                failure_script[0] = strdup(optarg);
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
@@ -1160,15 +1155,6 @@ int main(int argc, char *argv[]) {
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
         }
-#ifdef CAN_SCALE
-        if (use_scale == true && img != NULL) {
-            scale.x = cairo_image_surface_get_width(img);
-            scale.x /= last_resolution[0];
-            scale.y = cairo_image_surface_get_height(img);
-            scale.y /= last_resolution[1];
-            cairo_surface_set_device_scale(img, scale.x, scale.y);
-        }
-#endif
     }
 
     /* Pixmap on which the image is rendered to (if any) */
