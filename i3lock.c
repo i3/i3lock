@@ -16,7 +16,6 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
-#include <xcb/dpms.h>
 #include <err.h>
 #include <assert.h>
 #include <security/pam_appl.h>
@@ -57,14 +56,12 @@ int input_position = 0;
 static char password[512];
 static bool beep = false;
 bool debug_mode = false;
-static bool dpms = false;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
-static struct ev_timer *dpms_timeout;
 static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
@@ -93,16 +90,6 @@ bool skip_repeated_empty_password = false;
  */
 void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
-}
-
-static void turn_monitors_on(void) {
-    if (dpms)
-        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
-}
-
-static void turn_monitors_off(void) {
-    if (dpms)
-        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
 }
 
 /*
@@ -248,16 +235,8 @@ static void clear_input(void) {
     }
 }
 
-static void turn_off_monitors_cb(EV_P_ ev_timer *w, int revents) {
-    if (input_position == 0)
-        turn_monitors_off();
-
-    STOP_TIMER(dpms_timeout);
-}
-
 static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
     clear_input();
-    turn_monitors_off();
     STOP_TIMER(discard_passwd_timeout);
 }
 
@@ -269,9 +248,6 @@ static void input_done(void) {
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
-        /* Turn the screen on, as it may have been turned off
-         * on release of the 'enter' key. */
-        turn_monitors_on();
 
         /* PAM credentials should be refreshed, this will for example update any kerberos tickets.
          * Related to credentials pam_end() needs to be called to cleanup any temporary
@@ -668,15 +644,6 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 handle_key_press((xcb_key_press_event_t *)event);
                 break;
 
-            case XCB_KEY_RELEASE:
-                /* If this was the backspace or escape key we are back at an
-                 * empty input, so turn off the screen if DPMS is enabled, but
-                 * only do that after some timeout: maybe user mistyped and
-                 * will type again right away */
-                START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
-                            turn_off_monitors_cb);
-                break;
-
             case XCB_VISIBILITY_NOTIFY:
                 handle_visibility_notify(conn, (xcb_visibility_notify_event_t *)event);
                 break;
@@ -807,7 +774,7 @@ int main(int argc, char *argv[]) {
                 beep = true;
                 break;
             case 'd':
-                dpms = true;
+                fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
                 break;
             case 'I': {
                 int time = 0;
@@ -942,20 +909,6 @@ int main(int argc, char *argv[]) {
     xinerama_init();
     xinerama_query_screens();
 
-    /* if DPMS is enabled, check if the X server really supports it */
-    if (dpms) {
-        xcb_dpms_capable_cookie_t dpmsc = xcb_dpms_capable(conn);
-        xcb_dpms_capable_reply_t *dpmsr;
-        if ((dpmsr = xcb_dpms_capable_reply(conn, dpmsc, NULL))) {
-            if (!dpmsr->capable) {
-                if (debug_mode)
-                    fprintf(stderr, "Disabling DPMS, X server not DPMS capable\n");
-                dpms = false;
-            }
-            free(dpmsr);
-        }
-    }
-
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
     last_resolution[0] = screen->width_in_pixels;
@@ -1001,8 +954,6 @@ int main(int argc, char *argv[]) {
      * we should get all key presses/releases due to having grabbed the
      * keyboard. */
     (void)load_keymap();
-
-    turn_monitors_off();
 
     /* Initialize the libev event loop. */
     main_loop = EV_DEFAULT;
