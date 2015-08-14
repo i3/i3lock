@@ -1,0 +1,22 @@
+language: c
+compiler:
+  - gcc
+# TODO: re-enable clang once libxkbcommon >= 0.5.0 can be installed from packages. Compiling libxkbcommon with clang fails in the libtool step.
+#  - clang
+before_install:
+  # The travis VMs run on Ubuntu 12.04 which is very old and a huge pain to get
+  # into a state where we can build a recent version of i3status :(.
+  - "echo 'APT::Default-Release \"precise\";' | sudo tee /etc/apt/apt.conf.d/default-release"
+  - "echo 'deb http://archive.ubuntu.com/ubuntu/ utopic main universe' | sudo tee /etc/apt/sources.list.d/utopic.list"
+  - sudo apt-get update
+  - sudo apt-get install -t utopic clang-format-3.5
+  - clang-format-3.5 --version
+install:
+  # TODO: Once libxkbcommon >= 0.5.0 is in Debian, install it from there.
+  # These are the Build-Depends of libxkbcommon:
+  - sudo apt-get install pkg-config xutils-dev bison flex libx11-dev libxcb-xkb-dev x11-xkb-utils x11proto-core-dev x11proto-kb-dev xkb-data xvfb
+  - (cd /tmp && wget -nv https://github.com/xkbcommon/libxkbcommon/archive/xkbcommon-0.5.0.tar.gz && tar xf xkbcommon-0.5.0.tar.gz && cd libxkbcommon-xkbcommon-0.5.0; ./autogen.sh && ./configure && make && sudo make install)
+  - sudo apt-get install pkg-config libpam0g-dev libcairo2-dev libxcb1-dev libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev libev-dev libxcb-xinerama0-dev libxcb-xkb-dev libxkbfile-dev
+script:
+  - make -j
+  - clang-format-3.5 -i *.[ch] && git diff --exit-code || (echo 'Code was not formatted using clang-format!'; false)

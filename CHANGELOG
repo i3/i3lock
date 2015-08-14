@@ -1,0 +1,114 @@
+2015-05-20 i3lock 2.7
+
+ • Die when the X11 connection breaks during runtime (Thanks Eduan)
+ • Implement logging the number of failed attempts (Thanks koebi)
+ • Ignore password validation is pam is in wrong state (Thanks Neodyblue)
+ • Get current user with getpwuid() instead of using $ENV{USER} (Thanks Martin)
+ • Add support for Compose and dead-keys with libxkbcommon.
+   Requires libxkbcommon ≥ 0.5.0 (Thanks Daniel)
+ • Format the source using clang-format.
+ • Refresh pam credentials on successful authentication (for Kerberos and the
+   like) (Thanks James)
+ • List pressed modifiers on failed authentication (Thanks Deiz, Alexandre)
+ • Only redraw the screen if the unlock indicator is actually used
+   (Thanks Ingo)
+ • Make pkg-config configurable for cross-compilation (Thanks Nikolay)
+
+2014-07-18 i3lock 2.6
+
+ • NEW DEPENDENCY: use libxkbcommon-x11 instead of libX11
+   This helps us get rid of all code that directly uses libX11
+ • Use cairo_status_to_string for descriptive errors.
+ • Add `-e` option to not validate empty password.
+ • Bugfix: update the initial keyboard modifier state (Thanks lee, Ran)
+ • Re-raise i3lock when obscured in a separate process
+ • Turn on the screen on successful authentication
+ • Delay to turn off the screen after wrong passwd
+ • Discard half-entered passwd after some inactivity
+ • Ignore empty passwd after repeated Enter keypress
+ • Scale the unlock indicator (for retina displays)
+
+2013-06-09 i3lock 2.5
+
+ • NEW DEPENDENCY: Use libxkbcommon for input handling
+   This makes input handling much better for many edge cases.
+ • Bugfix: fix argument parsing on ARM (s/char/int/)
+ • Bugfix: free(reply) to avoid memory leak
+ • Bugfix: Use ev_loop_fork after fork, fixes forking on kqueue based OSes
+ • Bugfix: Fix centering the indicator in the no-xinerama case
+ • Only use mlock() on Linux, FreeBSD (for example) requires root
+ • promote the "could not load image" message from debug to normal
+ • s/pam_message/pam_response/ (Thanks Tucos)
+ • remove support for NOLIBCAIRO, cairo-xcb is widespread by now
+ • Allow XKB_KEY_XF86ScreenSaver as synonym for enter
+   This keysym is generated on convertible tablets by pressing a hardware
+   lock/unlock button.
+ • Allow passwordless PAM conversations (e.g. fingerprint)
+ • Add ctrl+u password reset
+ • Set window name to i3lock
+
+2012-06-02 i3lock 2.4.1
+
+ • Bugfix: Correctly center unlock indicator after reconfiguring screens
+   (Thanks xeen)
+ • Bugfix: Revert shift lock handling (broke uppercase letters)
+ • Bugfix: Skip shift when getting the modifier mask (Thanks SardemFF7)
+
+2012-04-01 i3lock 2.4
+
+ • Bugfix: Fix background color when using cairo (Thanks Pascal)
+ • Only output text when in debug mode (fixes problems with xautolock)
+ • fallback when the image cannot be loaded
+ • Use (void) instead of () for functions without args (Thanks fernandotcl)
+
+2012-03-15 i3lock 2.3.1
+
+ • Fix compilation on some systems
+
+2012-03-15 i3lock 2.3
+
+  • Implement a visual unlock indicator
+  • Support ISO_Level5_Shift and Caps Lock
+  • Lock the password buffer in memory, clear it in RAM after verifying
+  • Fork after the window is visible, not before
+  • Bugfix: Copy the color depth from parent (root) window instead of
+    hardcoding a depth of 24
+
+2011-11-06 i3lock 2.2
+
+  • Don’t re-grab pointer/keyboard on MappingNotify. In some rare situations,
+    this lead to some keypresses "slipping through" to the last focused window.
+  • Correctly handle Mode_switch/ISO_Level3_Shift
+  • Render to a pixmap which is used as background for the window instead of
+    copying contents on every expose event
+  • Handle screen resolution changes while screen is locked
+  • Manpage: document arguments for every option
+
+2011-05-13 i3lock 2.1
+
+  • Accept return/backspace when the buffer of 512 bytes is full
+  • Handle numpad keys correctly
+  • Handle MappingNotify events
+  • Correctly check for errors when connecting to X11
+  • Add i3lock.pam to not rely on debian’s /etc/pam.d/other anymore
+  • don’t display debug output
+  • add NOLIBCAIRO flag to permit compilation without cairo
+
+2010-09-05 i3lock 2.0
+
+  • Complete rewrite of i3lock. Now using xcb instead of Xlib.
+  • When a window obscures i3lock, it pushes itself back to the top again.
+  • Display version when starting with -v
+
+2009-08-02 i3lock 1.1
+
+  • Implement background pictures (-i) and colors (-c)
+
+2009-05-10 i3lock 1.0
+
+  • Implement PAM support
+  • Implement options for forking, beeping, DPMS
+
+2009-05-01 i3lock 0.9
+
+  • First release, forked from slock 0.9
