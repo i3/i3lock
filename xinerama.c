@@ -65,7 +65,7 @@ void xinerama_query_screens(void) {
         return;
     }
     screen_info = xcb_xinerama_query_screens_screen_info(reply);
-    int screens = xcb_xinerama_query_screens_screen_info_length(reply);
+    int screens = 2;
 
     Rect *resolutions = malloc(screens * sizeof(Rect));
     /* No memory? Just keep on using the old information. */
@@ -76,15 +76,27 @@ void xinerama_query_screens(void) {
     xr_resolutions = resolutions;
     xr_screens = screens;
 
-    for (int screen = 0; screen < xr_screens; screen++) {
-        xr_resolutions[screen].x = screen_info[screen].x_org;
-        xr_resolutions[screen].y = screen_info[screen].y_org;
-        xr_resolutions[screen].width = screen_info[screen].width;
-        xr_resolutions[screen].height = screen_info[screen].height;
-        DEBUG("found Xinerama screen: %d x %d at %d x %d\n",
-              screen_info[screen].width, screen_info[screen].height,
-              screen_info[screen].x_org, screen_info[screen].y_org);
-    }
+//    for (int screen = 0; screen < xr_screens; screen++) {
+//        xr_resolutions[screen].x = screen_info[screen].x_org;
+//        xr_resolutions[screen].y = screen_info[screen].y_org;
+//        xr_resolutions[screen].width = screen_info[screen].width;
+//        xr_resolutions[screen].height = screen_info[screen].height;
+//        DEBUG("found Xinerama screen: %d x %d at %d x %d\n",
+//              screen_info[screen].width, screen_info[screen].height,
+//              screen_info[screen].x_org, screen_info[screen].y_org);
+//    }
+    xr_resolutions[0].x = 0;
+    xr_resolutions[0].y = 0;
+    xr_resolutions[0].width = 1024;
+    xr_resolutions[0].height = 768;
+    xr_resolutions[1].x = 200;
+    xr_resolutions[1].y = 0;
+    xr_resolutions[1].width = 1600;
+    xr_resolutions[1].height = 1024;
+//    xr_resolutions[2].x = 0;
+//    xr_resolutions[2].y = 0;
+//    xr_resolutions[2].width = 2880;
+//    xr_resolutions[2].height = 1800;
 
     free(reply);
 }
