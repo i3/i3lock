@@ -15,6 +15,7 @@
 #include <ev.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <unistd.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -26,6 +27,11 @@
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
+#define INFO_MAXLENGTH 100
+#define INFO_TIME_FORMAT "%H:%M"
+#define INFO_LOCKTIME_FORMAT "%H:%M"
+#define INFO_MARGIN 12
+
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -62,6 +68,8 @@ extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
 extern int failed_attempts;
 
+/* When was the computer locked. */
+extern struct tm *lock_time;
 /*******************************************************************************
  * Variables defined in xcb.c.
  ******************************************************************************/
@@ -184,6 +192,82 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
         cairo_stroke(ctx);
 
+        /* Display some useful information. */
+        /* Time (centered) */
+        char *text = malloc(INFO_MAXLENGTH);
+        time_t curtime = time(NULL);
+        struct tm *tm = localtime(&curtime);
+        strftime(text, 100, INFO_TIME_FORMAT, tm);
+
+        cairo_set_source_rgb(ctx, 255, 255, 255);
+        cairo_set_font_size(ctx, 32.0);
+
+        cairo_text_extents_t time_extents;
+        double time_x, time_y;
+        cairo_text_extents(ctx, text, &time_extents);
+        time_x = BUTTON_CENTER - ((time_extents.width / 2) + time_extents.x_bearing);
+        time_y = BUTTON_CENTER - ((time_extents.height / 2) + time_extents.y_bearing);
+
+        cairo_move_to(ctx, time_x, time_y);
+        cairo_show_text(ctx, text);
+        cairo_close_path(ctx);
+
+        free(text);
+
+        /* Failed attempts (below) */
+        if (failed_attempts == 0) {
+            text = getlogin();
+        } else if (failed_attempts == 1) {
+            text = "1 failed attempt";
+        } else {
+            text = malloc(INFO_MAXLENGTH);
+            snprintf(text, INFO_MAXLENGTH, "%i failed attempts.", failed_attempts);
+        }
+
+        cairo_set_font_size(ctx, 14.0);
+
+        double x, y;
+        cairo_text_extents_t extents;
+        cairo_text_extents(ctx, text, &extents);
+        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+        y = time_y - extents.y_bearing + INFO_MARGIN;
+
+        if (show_failed_attempts && failed_attempts > 0) {
+            cairo_move_to(ctx, x, y);
+            cairo_show_text(ctx, text);
+            cairo_close_path(ctx);
+        }
+
+        if (failed_attempts >= 1)
+        {
+            if (failed_attempts > 1)
+                free(text);
+
+            text = getlogin();
+
+            cairo_text_extents(ctx, text, &extents);
+            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+            y = time_y - time_extents.y_bearing + INFO_MARGIN * 2;
+
+            cairo_move_to(ctx, x, y);
+            cairo_show_text(ctx, text);
+            cairo_close_path(ctx);
+        }
+
+        /* Lock time (above) */
+        text = malloc(INFO_MAXLENGTH);
+        strftime(text, INFO_MAXLENGTH, "Locked since " INFO_LOCKTIME_FORMAT ".", lock_time);
+
+        cairo_text_extents(ctx, text, &extents);
+        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+        y = time_y + time_extents.y_bearing - INFO_MARGIN;
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, text);
+        cairo_close_path(ctx);
+
+        free(text);
+
         /* Draw an inner seperator line. */
         cairo_set_source_rgb(ctx, 0, 0, 0);
         cairo_set_line_width(ctx, 2.0);
@@ -197,71 +281,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         cairo_set_line_width(ctx, 10.0);
 
-        /* Display a (centered) text of the current PAM state. */
-        char *text = NULL;
-        /* We don't want to show more than a 3-digit number. */
-        char buf[4];
-
-        cairo_set_source_rgb(ctx, 0, 0, 0);
-        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
-        switch (auth_state) {
-            case STATE_AUTH_VERIFY:
-                text = "Verifying…";
-                break;
-            case STATE_AUTH_LOCK:
-                text = "Locking…";
-                break;
-            case STATE_AUTH_WRONG:
-                text = "Wrong!";
-                break;
-            case STATE_I3LOCK_LOCK_FAILED:
-                text = "Lock failed!";
-                break;
-            default:
-                if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    text = "No input";
-                }
-                if (show_failed_attempts && failed_attempts > 0) {
-                    if (failed_attempts > 999) {
-                        text = "> 999";
-                    } else {
-                        snprintf(buf, sizeof(buf), "%d", failed_attempts);
-                        text = buf;
-                    }
-                    cairo_set_source_rgb(ctx, 1, 0, 0);
-                    cairo_set_font_size(ctx, 32.0);
-                }
-                break;
-        }
-
-        if (text) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_text_extents(ctx, text, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
-        }
-
-        if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_set_font_size(ctx, 14.0);
-
-            cairo_text_extents(ctx, modifier_string, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, modifier_string);
-            cairo_close_path(ctx);
-        }
 
         /* After the user pressed any valid key or the backspace key, we
          * highlight a random part of the unlock indicator to confirm this
@@ -353,9 +372,6 @@ void redraw_screen(void) {
  *
  */
 void clear_indicator(void) {
-    if (input_position == 0) {
-        unlock_state = STATE_STARTED;
-    } else
-        unlock_state = STATE_KEY_PRESSED;
+    unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
 }
