@@ -944,6 +944,7 @@ int main(int argc, char *argv[]) {
                         (double)last_resolution[1] / (double)img_height);
             cairo_set_source_surface(cr, unscaled_img, 0, 0);
             cairo_paint(cr);
+            cairo_destroy(cr);
             cairo_surface_destroy(unscaled_img);
         }
 
