@@ -57,6 +57,7 @@ static char password[512];
 static bool beep = false;
 bool debug_mode = false;
 bool unlock_indicator = true;
+bool image_scale = false;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
@@ -751,6 +752,7 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
+        {"scale", no_argument, NULL, 's'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -762,7 +764,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:steI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -801,6 +803,9 @@ int main(int argc, char *argv[]) {
             case 'i':
                 image_path = strdup(optarg);
                 break;
+            case 's':
+                image_scale = true;
+                break;
             case 't':
                 tile = true;
                 break;
@@ -825,7 +830,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-s] [-t] [-e] [-I timeout] [-f]");
         }
     }
 
@@ -919,13 +924,29 @@ int main(int argc, char *argv[]) {
 
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
+        cairo_surface_t* unscaled_img = cairo_image_surface_create_from_png(image_path);
+        img = unscaled_img;
+
         /* In case loading failed, we just pretend no -i was specified. */
         if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
+        } else if (image_scale) {
+            /* Get image size */
+            int img_width = cairo_image_surface_get_width(unscaled_img);
+            int img_height = cairo_image_surface_get_height(unscaled_img);
+
+            /* Scale the image to display resolution */
+            img = cairo_image_surface_create(CAIRO_FORMAT_RGB24, last_resolution[0], last_resolution[1]);
+            cairo_t* cr = cairo_create(img);
+            cairo_scale(cr, (double)last_resolution[0] / (double)img_width,
+                        (double)last_resolution[1] / (double)img_height);
+            cairo_set_source_surface(cr, unscaled_img, 0, 0);
+            cairo_paint(cr);
+            cairo_surface_destroy(unscaled_img);
         }
+
     }
 
     /* Pixmap on which the image is rendered to (if any) */
