@@ -1,6 +1,7 @@
 INSTALL=install
 PREFIX=/usr
 SYSCONFDIR=/etc
+MANDIR=$(PREFIX)/share/man
 PKG_CONFIG=pkg-config
 
 # Check if pkg-config is installed, we need it for building CFLAGS/LIBS
@@ -38,11 +39,15 @@ clean:
 install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/pam.d
+	$(INSTALL) -d $(DESTDIR)$(MANDIR)/man1/
 	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
 	$(INSTALL) -m 644 i3lock.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock
+	$(INSTALL) -m 644 i3lock.1 $(DESTDIR)$(MANDIR)/man1/i3lock.1
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/i3lock
+	rm -f $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock
+	rm -f $(DESTDIR)$(MANDIR)/man1/i3lock.1
 
 dist: clean
 	[ ! -d i3lock-${VERSION} ] || rm -rf i3lock-${VERSION}
