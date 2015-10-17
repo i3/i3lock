@@ -735,6 +735,10 @@ int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
+    int top_margin = 0;
+    int bottom_margin = 0;
+    int left_margin = 0;
+    int right_margin = 0;
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
     int curs_choice = CURS_NONE;
@@ -755,6 +759,10 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"top-margin", required_argument, NULL, 'T'},
+        {"bottom-margin", required_argument, NULL, 'B'},
+        {"left-margin", required_argument, NULL, 'L'},
+        {"right-margin", required_argument, NULL, 'R'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -822,6 +830,22 @@ int main(int argc, char *argv[]) {
                 break;
             case 'f':
                 show_failed_attempts = true;
+                break;
+            case 'T':
+                if (sscanf(optarg, "%d", &top_margin) != 1 || top_margin < 0)
+                    errx(EXIT_FAILURE, "invalid top margin, it must be a positive integer\n");
+                break;
+            case 'B':
+                if (sscanf(optarg, "%d", &bottom_margin) != 1 || bottom_margin < 0)
+                    errx(EXIT_FAILURE, "invalid bottom margin, it must be a positive integer\n");
+                break;
+            case 'L':
+                if (sscanf(optarg, "%d", &left_margin) != 1 || left_margin < 0)
+                    errx(EXIT_FAILURE, "invalid left margin, it must be a positive integer\n");
+                break;
+            case 'R':
+                if (sscanf(optarg, "%d", &right_margin) != 1 || right_margin < 0)
+                    errx(EXIT_FAILURE, "invalid right margin, it must be a positive integer\n");
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
@@ -932,7 +956,7 @@ int main(int argc, char *argv[]) {
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
     /* open the fullscreen window, already with the correct pixmap in place */
-    win = open_fullscreen_window(conn, screen, color, bg_pixmap);
+    win = open_fullscreen_window(conn, screen, color, bg_pixmap, top_margin, bottom_margin, left_margin, right_margin);
     xcb_free_pixmap(conn, bg_pixmap);
 
     pid_t pid = fork();

@@ -97,7 +97,7 @@ xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32
     return bg_pixmap;
 }
 
-xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color, xcb_pixmap_t pixmap) {
+xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color, xcb_pixmap_t pixmap, int top_margin, int bottom_margin, int left_margin, int right_margin) {
     uint32_t mask = 0;
     uint32_t values[3];
     xcb_window_t win = xcb_generate_id(conn);
@@ -124,9 +124,9 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
                       XCB_COPY_FROM_PARENT,
                       win,       /* the window id */
                       scr->root, /* parent == root */
-                      0, 0,
-                      scr->width_in_pixels,
-                      scr->height_in_pixels, /* dimensions */
+                      left_margin, top_margin,
+                      scr->width_in_pixels - left_margin - right_margin,
+                      scr->height_in_pixels - top_margin - bottom_margin, /* dimensions */
                       0,                     /* border = 0, we draw our own */
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,
                       XCB_WINDOW_CLASS_COPY_FROM_PARENT, /* copy visual from parent */
