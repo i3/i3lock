@@ -834,8 +834,10 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     /* Initialize PAM */
-    ret = pam_start("i3lock", username, &conv, &pam_handle);
-    if (ret != PAM_SUCCESS)
+    if ((ret = pam_start("i3lock", username, &conv, &pam_handle)) != PAM_SUCCESS)
+        errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
+
+    if ((ret = pam_set_item(pam_handle, PAM_TTY, getenv("DISPLAY"))) != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
 
 /* Using mlock() as non-super-user seems only possible in Linux. Users of other
