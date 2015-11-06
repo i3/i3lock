@@ -3,14 +3,15 @@ compiler:
   - gcc
 # TODO: re-enable clang once libxkbcommon >= 0.5.0 can be installed from packages. Compiling libxkbcommon with clang fails in the libtool step.
 #  - clang
-before_install:
-  # The travis VMs run on Ubuntu 12.04 which is very old and a huge pain to get
-  # into a state where we can build a recent version of i3status :(.
-  - "echo 'APT::Default-Release \"precise\";' | sudo tee /etc/apt/apt.conf.d/default-release"
-  - "echo 'deb http://archive.ubuntu.com/ubuntu/ utopic main universe' | sudo tee /etc/apt/sources.list.d/utopic.list"
-  - sudo apt-get update
-  - sudo apt-get install -t utopic clang-format-3.5
-  - clang-format-3.5 --version
+addons:
+  apt:
+    sources:
+    - llvm-toolchain-precise-3.5
+    # ubuntu-toolchain-r-test contains libstdc++6 >= 4.8 which libllvm3.5 needs.
+    - ubuntu-toolchain-r-test
+    packages:
+    - clang-format-3.5
+    - libllvm3.5
 install:
   # TODO: Once libxkbcommon >= 0.5.0 is in Debian, install it from there.
   # These are the Build-Depends of libxkbcommon:
