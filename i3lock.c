@@ -44,7 +44,6 @@
 
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
-/* We need this for libxkbfile */
 char color[7] = "ffffff";
 int inactivity_timeout = 30;
 uint32_t last_resolution[2];
