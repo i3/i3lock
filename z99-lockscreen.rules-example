@@ -1,0 +1,2 @@
+SUBSYSTEM=="usb",ACTION=="remove",ENV{ID_SERIAL_SHORT}=="ANY_SERIAL",RUN+="/usr/bin/i3lock --socket=/var/run/i3lock.sock --cmd=lock"
+SUBSYSTEM=="usb",ACTION=="add",ENV{ID_SERIAL_SHORT}=="ANY_SERIAL",RUN+="/usr/bin/i3lock --socket=/var/run/i3lock.sock --cmd=unlock"

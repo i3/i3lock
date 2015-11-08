@@ -15,6 +15,13 @@ Many little improvements have been made to i3lock over time:
 
 - You can specify whether i3lock should bell upon a wrong password.
 
+- You can specify i3lock to logout from any TTYs
+
+- You can run any password-failure script
+
+- You can lock/unlock screen using control socket, if i3lock runs as daemon.
+  This feature allow you to lock screen and ttys plug-in (unlock) or plug-out (lock) any device trough USB using UDEV-RULES see z99-lockscreen.rules-example
+
 - i3lock uses PAM and therefore is compatible with LDAP etc.
 
 Requirements
@@ -23,7 +30,7 @@ Requirements
 - libxcb
 - libxcb-util
 - libpam-dev
-- libcairo-dev
+- libcairo-dev #if >=1.14.0 background can be scaled --scale-image
 - libxcb-xinerama
 - libev
 - libx11-dev
@@ -35,6 +42,19 @@ Running i3lock
 -------------
 Simply invoke the 'i3lock' command. To get out of it, enter your password and
 press enter.
+
+Installing systemd.service
+------------
+sudo make \
+	USERNAME=crown \
+	I3ARGS="--lock-ttys" \
+	INSTALL_SERVICE=1 \
+	install
+
+Using udev-rules
+------------
+To lock/unlock using udev rules edit z99-lockscreen.rules-example or write your own rule
+For example my screen locks when i disconnect my smartfome from usb, and unlocks when connect.
 
 Upstream
 --------
