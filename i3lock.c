@@ -66,6 +66,7 @@ extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
+bool display_clock = false;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -754,6 +755,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"clock", no_argument, NULL, "C"},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -761,7 +763,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fC";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -821,6 +823,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'f':
                 show_failed_attempts = true;
+                break;
+            case 'C':
+                display_clock = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"

@@ -15,6 +15,7 @@
 #include <ev.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <time.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -60,6 +61,9 @@ extern char color[7];
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
 extern int failed_attempts;
+
+/* Whether the clock shall be displayed. */
+extern int display_clock;
 
 /*******************************************************************************
  * Variables defined in xcb.c.
@@ -207,6 +211,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 text = "wrong!";
                 break;
             default:
+                if (display_clock) {
+                    time_t tm;
+
+                    tm = time(NULL);
+                    if (tm != ((time_t) -1)) {
+                        text = ctime(&tm);
+                        while (*text && *text != ':')
+                            ++text;
+                        if (*text && strlen(text) > 8) {
+                            text -= 2;
+                            text[8] = 0;
+                        }
+                    }
+                    cairo_set_source_rgb(ctx, 0.75, 0.75, 0.75);
+                }
                 if (show_failed_attempts && failed_attempts > 0) {
                     if (failed_attempts > 999) {
                         text = "> 999";
