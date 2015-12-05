@@ -15,6 +15,7 @@
 #include <ev.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <time.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -60,6 +61,9 @@ extern char color[7];
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
 extern int failed_attempts;
+
+/* Whether the clock shall be displayed. */
+extern int display_clock;
 
 /*******************************************************************************
  * Variables defined in xcb.c.
@@ -228,12 +232,48 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
             y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
 
+            if (display_clock && pam_state == STATE_PAM_IDLE) {
+                y += (extents.height);
+            }
+
             cairo_move_to(ctx, x, y);
             cairo_show_text(ctx, text);
             cairo_close_path(ctx);
         }
 
+        if (display_clock && pam_state == STATE_PAM_IDLE) {
+            char *time_ptr = NULL;
+            time_t tm;
+
+            tm = time(NULL);
+            if (tm != ((time_t) -1)) {
+                time_ptr = ctime(&tm);
+                while (*time_ptr && *time_ptr != ':')
+                    ++time_ptr;
+                if (*time_ptr && strlen(time_ptr) > 5) {
+                    time_ptr -= 2;
+                    time_ptr[5] = '\0';
+                }
+            }
+            cairo_set_font_size(ctx, 28.0);
+            cairo_set_source_rgb(ctx, 0.75, 0.75, 0.75);
+            cairo_text_extents_t extents;
+            double x, y;
+
+            cairo_text_extents(ctx, time_ptr, &extents);
+            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
+            if (text) {
+                y -= (extents.height);
+            }
+
+            cairo_move_to(ctx, x, y);
+            cairo_show_text(ctx, time_ptr);
+            cairo_close_path(ctx);
+        }
+
         if (pam_state == STATE_PAM_WRONG && (modifier_string != NULL)) {
+
             cairo_text_extents_t extents;
             double x, y;
 
