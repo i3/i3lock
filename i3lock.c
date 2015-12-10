@@ -56,6 +56,7 @@ static char password[512];
 static bool beep = false;
 bool debug_mode = false;
 bool unlock_indicator = true;
+bool pwd_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
@@ -226,7 +227,7 @@ static void clear_input(void) {
 
     /* Hide the unlock indicator after a bit if the password buffer is
      * empty. */
-    if (unlock_indicator) {
+    if (unlock_indicator || pwd_indicator) {
         START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
         unlock_state = STATE_BACKSPACE_ACTIVE;
         redraw_screen();
@@ -299,7 +300,7 @@ static void input_done(void) {
     pam_state = STATE_PAM_WRONG;
     failed_attempts += 1;
     clear_input();
-    if (unlock_indicator)
+    if (unlock_indicator || pwd_indicator)
         redraw_screen();
 
     /* Clear this state after 2 seconds (unless the user enters another
@@ -448,7 +449,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     input_position += n - 1;
     DEBUG("current password = %.*s\n", input_position, password);
 
-    if (unlock_indicator) {
+    if (unlock_indicator || pwd_indicator) {
         unlock_state = STATE_KEY_ACTIVE;
         redraw_screen();
         unlock_state = STATE_KEY_PRESSED;
@@ -749,6 +750,7 @@ int main(int argc, char *argv[]) {
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
+        {"no-password-indicator", no_argument, NULL, 'h'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
@@ -796,6 +798,9 @@ int main(int argc, char *argv[]) {
             }
             case 'u':
                 unlock_indicator = false;
+                break;
+            case 'h':
+                pwd_indicator = false;
                 break;
             case 'i':
                 image_path = strdup(optarg);

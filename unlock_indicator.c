@@ -21,10 +21,13 @@
 #include "unlock_indicator.h"
 #include "xinerama.h"
 
+#define CANVAS_SCALE 4
 #define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
-#define BUTTON_CENTER (BUTTON_RADIUS + 5)
+#define BUTTON_CENTER (BUTTON_RADIUS + 5) * CANVAS_SCALE
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
+
+#define MAX_PWD_INDICATOR 15
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -44,6 +47,9 @@ extern uint32_t last_resolution[2];
 
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
+
+/* Whether the password indicator is enabled (defaults to true). */
+extern bool pwd_indicator;
 
 /* List of pressed modifiers, or NULL if none are pressed. */
 extern char *modifier_string;
@@ -98,7 +104,7 @@ static double scaling_factor(void) {
  */
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
-    int button_diameter_physical = ceil(scaling_factor() * BUTTON_DIAMETER);
+    int button_diameter_physical = ceil(scaling_factor() * BUTTON_DIAMETER) * CANVAS_SCALE;
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor(), button_diameter_physical);
 
@@ -288,6 +294,29 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       (highlight_start + (M_PI / 3.0)) + (M_PI / 128.0) /* end */);
             cairo_stroke(ctx);
         }
+    }
+
+    if (pwd_indicator) {
+        /* Display the unicode password characters */
+        char pwd_placeholder[MAX_PWD_INDICATOR * 4];
+        pwd_placeholder[0] = '\0';
+
+        for (int i = 0; i < MAX_PWD_INDICATOR; i++) {
+            if (i < input_position)
+                strcat(pwd_placeholder, "\u25CF");
+        }
+
+        cairo_text_extents_t extents;
+        double x, y;
+        cairo_set_font_size(ctx, 32.0);
+      
+        cairo_text_extents(ctx, pwd_placeholder, &extents);
+        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+        y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + BUTTON_RADIUS * 2;
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, pwd_placeholder);
+        cairo_close_path(ctx);
     }
 
     if (xr_screens > 0) {
