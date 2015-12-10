@@ -313,7 +313,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_text_extents(ctx, pwd_placeholder, &extents);
         x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
         y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + BUTTON_RADIUS * 2;
-
         cairo_move_to(ctx, x, y);
         cairo_show_text(ctx, pwd_placeholder);
         cairo_close_path(ctx);
