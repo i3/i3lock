@@ -201,7 +201,6 @@ ev_timer *stop_timer(ev_timer *timer_obj) {
 static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     DEBUG("clearing pam wrong\n");
     pam_state = STATE_PAM_IDLE;
-    unlock_state = STATE_STARTED;
     redraw_screen();
 
     /* Clear modifier string. */
@@ -223,15 +222,6 @@ static void clear_input(void) {
     input_position = 0;
     clear_password_memory();
     password[input_position] = '\0';
-
-    /* Hide the unlock indicator after a bit if the password buffer is
-     * empty. */
-    if (unlock_indicator) {
-        START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
-        unlock_state = STATE_BACKSPACE_ACTIVE;
-        redraw_screen();
-        unlock_state = STATE_KEY_PRESSED;
-    }
 }
 
 static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
@@ -242,6 +232,7 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
 static void input_done(void) {
     STOP_TIMER(clear_pam_wrong_timeout);
     pam_state = STATE_PAM_VERIFY;
+    unlock_state = STATE_STARTED;
     redraw_screen();
 
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
@@ -398,16 +389,22 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 
     switch (ksym) {
         case XKB_KEY_u:
-            if (ctrl) {
+        case XKB_KEY_Escape:
+            if ((ksym == XKB_KEY_u && ctrl) ||
+                ksym == XKB_KEY_Escape) {
                 DEBUG("C-u pressed\n");
                 clear_input();
+                /* Hide the unlock indicator after a bit if the password buffer is
+                 * empty. */
+                if (unlock_indicator) {
+                    START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
+                    unlock_state = STATE_BACKSPACE_ACTIVE;
+                    redraw_screen();
+                    unlock_state = STATE_KEY_PRESSED;
+                }
                 return;
             }
             break;
-
-        case XKB_KEY_Escape:
-            clear_input();
-            return;
 
         case XKB_KEY_Delete:
         case XKB_KEY_KP_Delete:
