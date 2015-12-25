@@ -409,6 +409,14 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             clear_input();
             return;
 
+        case XKB_KEY_Delete:
+        case XKB_KEY_KP_Delete:
+            /* Deleting forward doesn’t make sense, as i3lock doesn’t allow you
+             * to move the cursor when entering a password. We need to eat this
+             * key press so that it won’t be treated as part of the password,
+             * see issue #50. */
+            return;
+
         case XKB_KEY_BackSpace:
             if (input_position == 0)
                 return;
