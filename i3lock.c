@@ -66,6 +66,7 @@ extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
+bool blur = false;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -748,6 +749,7 @@ int main(int argc, char *argv[]) {
         {"version", no_argument, NULL, 'v'},
         {"nofork", no_argument, NULL, 'n'},
         {"beep", no_argument, NULL, 'b'},
+        {"blur", no_argument, NULL, 0},
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL, 'p'},
@@ -823,6 +825,8 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
                     debug_mode = true;
+                if (strcmp(longopts[optind].name, "blur") == 0)
+                    blur = true;
                 break;
             case 'f':
                 show_failed_attempts = true;
@@ -932,6 +936,10 @@ int main(int argc, char *argv[]) {
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
         }
+    }
+
+    if(blur && img != NULL) {
+        // blur handling goes here
     }
 
     /* Pixmap on which the image is rendered to (if any) */
