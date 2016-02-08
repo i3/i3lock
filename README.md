@@ -1,5 +1,8 @@
 i3lock-color - improved screen locker
 ===============================
+
+* This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to @eBrnd! *
+
 i3lock is a simple screen locker like slock. After starting it, you will
 see a white screen (you can configure the color/an image). You can return
 to your screen by entering your password.
@@ -45,7 +48,7 @@ Requirements
 - libxkbcommon-x11 >= 0.5.0
 
 Running i3lock
--------------
+--------------
 Simply invoke the 'i3lock' command. To get out of it, enter your password and
 press enter.
 
@@ -57,4 +60,4 @@ i3lock --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor=fffff
 
 Upstream
 --------
-Please submit pull requests to https://github.com/i3/i3lock
+Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for color things to me at https://github.com/Arcaena/i3lock-color.
