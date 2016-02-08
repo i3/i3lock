@@ -20,7 +20,7 @@ Many little improvements have been made to i3lock over time:
      - `--insidevercolor=rrggbbaa` -- Inside of the circle while the password is being verified
      - `--insidewrongcolor=rrggbbaa` -- Inside of the circle when a wrong password was entered
      - `--insidecolor=rrggbbaa` -- Inside of the circle while typing/idle
-     - `--ringvercolor=rrggbbaa` -- Outer ring while the password is being
+     - `--ringvercolor=rrggbbaa` -- Outer ring while the password is being verified
      - `--ringwrongcolor=rrggbbaa` -- Outer ring when a wrong password was entered
      - `--ringcolor=rrggbbaa` -- Outer ring while typing/idle
      - `--linecolor=rrggbbaa` -- Line separating outer ring from inside of the circle and delimiting the highlight segments
