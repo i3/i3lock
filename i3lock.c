@@ -45,6 +45,19 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 char color[7] = "ffffff";
+
+/* options for unlock indicator colors */
+char insidevercolor[9] = "006effbf";
+char insidewrongcolor[9] = "fa0000bf";
+char insidecolor[9] = "000000bf";
+char ringvercolor[9] = "3300faff";
+char ringwrongcolor[9] = "7d3300ff";
+char ringcolor[9] = "337d00ff";
+char linecolor[9] = "000000ff";
+char textcolor[9] = "000000ff";
+char keyhlcolor[9] = "33db00ff";
+char bshlcolor[9] = "db3300ff";
+
 int inactivity_timeout = 30;
 uint32_t last_resolution[2];
 xcb_window_t win;
@@ -756,6 +769,20 @@ int main(int argc, char *argv[]) {
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
+
+        /* options for unlock indicator colors */
+        // defining a lot of different chars here for the options -- TODO find a nicer way for this, maybe not offering single character options at all
+        {"insidevercolor", required_argument, NULL, 0},
+        {"insidewrongcolor", required_argument, NULL, 0},
+        {"insidecolor", required_argument, NULL, 0},
+        {"ringvercolor", required_argument, NULL, 0},
+        {"ringwrongcolor", required_argument, NULL, 0},
+        {"ringcolor", required_argument, NULL, 0},
+        {"linecolor", required_argument, NULL, 0},
+        {"textcolor", required_argument, NULL, 0},
+        {"keyhlcolor", required_argument, NULL, 0},
+        {"bshlcolor", required_argument, NULL, 0},
+
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -823,6 +850,106 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
                     debug_mode = true;
+                else if (strcmp(longopts[optind].name, "insidevercolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidevercolor) != 1)
+                        errx(1, "insidevercolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[optind].name, "insidewrongcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidewrongcolor) != 1)
+                        errx(1, "insidewrongcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[optind].name, "insidecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidecolor) != 1)
+                        errx(1, "insidecolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[optind].name, "ringvercolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringvercolor) != 1)
+                        errx(1, "ringvercolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "ringwrongcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
+                        errx(1, "ringwrongcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "ringcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringcolor) != 1)
+                        errx(1, "ringcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "linecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", linecolor) != 1)
+                        errx(1, "linecolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "textcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
+                        errx(1, "textcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "keyhlcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", keyhlcolor) != 1)
+                        errx(1, "keyhlcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "bshlcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bshlcolor) != 1)
+                        errx(1, "bshlcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
                 break;
             case 'f':
                 show_failed_attempts = true;
