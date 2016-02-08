@@ -1,7 +1,7 @@
 i3lock-color - improved screen locker
 ===============================
 
-_This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to @eBrnd!_
+_This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to [eBrnd](https://github.com/eBrnd/) !_
 
 i3lock is a simple screen locker like slock. After starting it, you will
 see a white screen (you can configure the color/an image). You can return
