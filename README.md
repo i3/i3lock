@@ -23,10 +23,13 @@ Many little improvements have been made to i3lock over time:
      - `--ringvercolor=rrggbbaa` -- Outer ring while the password is being verified
      - `--ringwrongcolor=rrggbbaa` -- Outer ring when a wrong password was entered
      - `--ringcolor=rrggbbaa` -- Outer ring while typing/idle
-     - `--linecolor=rrggbbaa` -- Line separating outer ring from inside of the circle and delimiting the highlight segments
+     - `--linecolor=rrggbbaa` -- Line separating outer ring from inside of the circle
+     - `--separatorcolor=rrggbbaa` -- Lines delimiting the highlight segments
      - `--textcolor=rrggbbaa` -- Text ("verifying", "wrong!")
      - `--keyhlcolor=rrggbbaa` -- Keypress highlight segments
      - `--bshlcolor=rrggbbaa` -- Backspace highlight segments
+     - `--line-uses-ring`, `-r` -- the line between the inside and outer ring uses the ring color for its color
+     - `--line-uses-inside`, `-s` -- the line between the inside and outer ring uses the inside color for its color
   - All the colors have an alpha channel now. Please keep in mind that this was not intended when the program was originally written, so making things transparent that weren't before can make it look strange.
 
 - You can specify whether i3lock should bell upon a wrong password.
@@ -54,7 +57,7 @@ press enter.
 
 Example usage for colors:
 
-i3lock --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor=ffffffbf --ringvercolor=0020ffff --ringwrongcolor=4040ffff --ringcolor=404090ff --textcolor=ffffffff  --linecolor=aaaaaaff --keyhlcolor=30ccccff --bshlcolor=ff8000ff
+i3lock --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor=ffffffbf --ringvercolor=0020ffff --ringwrongcolor=4040ffff --ringcolor=404090ff --textcolor=ffffffff  --linecolor=aaaaaaff --keyhlcolor=30ccccff --bshlcolor=ff8000ff -r
 
 
 Upstream

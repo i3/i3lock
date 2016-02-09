@@ -66,6 +66,7 @@ extern char linecolor[9];
 extern char textcolor[9];
 extern char keyhlcolor[9];
 extern char bshlcolor[9];
+extern char separatorcolor[9];
 extern int internal_line_source;
 
 /* Whether the failed attempts should be displayed. */
@@ -217,22 +218,30 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                           (strtol(strgroupst[1], NULL, 16)),
                           (strtol(strgroupst[2], NULL, 16)),
                           (strtol(strgroupst[3], NULL, 16))};
-    char strgroupsk[4][3] = {{keyhlcolor[0], textcolor[1], '\0'},
-                             {keyhlcolor[2], textcolor[3], '\0'},
-                             {keyhlcolor[4], textcolor[5], '\0'},
-                             {keyhlcolor[6], textcolor[7], '\0'}};
+    char strgroupsk[4][3] = {{keyhlcolor[0], keyhlcolor[1], '\0'},
+                             {keyhlcolor[2], keyhlcolor[3], '\0'},
+                             {keyhlcolor[4], keyhlcolor[5], '\0'},
+                             {keyhlcolor[6], keyhlcolor[7], '\0'}};
     uint32_t keyhl16[4] = {(strtol(strgroupsk[0], NULL, 16)),
                            (strtol(strgroupsk[1], NULL, 16)),
                            (strtol(strgroupsk[2], NULL, 16)),
                            (strtol(strgroupsk[3], NULL, 16))};
-    char strgroupsb[4][3] = {{bshlcolor[0], textcolor[1], '\0'},
-                             {bshlcolor[2], textcolor[3], '\0'},
-                             {bshlcolor[4], textcolor[5], '\0'},
-                             {bshlcolor[6], textcolor[7], '\0'}};
+    char strgroupsb[4][3] = {{bshlcolor[0], bshlcolor[1], '\0'},
+                             {bshlcolor[2], bshlcolor[3], '\0'},
+                             {bshlcolor[4], bshlcolor[5], '\0'},
+                             {bshlcolor[6], bshlcolor[7], '\0'}};
     uint32_t bshl16[4] = {(strtol(strgroupsb[0], NULL, 16)),
                           (strtol(strgroupsb[1], NULL, 16)),
                           (strtol(strgroupsb[2], NULL, 16)),
                           (strtol(strgroupsb[3], NULL, 16))};
+    char strgroupss[4][3] = {{separatorcolor[0], separatorcolor[1], '\0'},
+                             {separatorcolor[2], separatorcolor[3], '\0'},
+                             {separatorcolor[4], separatorcolor[5], '\0'},
+                             {separatorcolor[6], separatorcolor[7], '\0'}};
+    uint32_t sep16[4] = {(strtol(strgroupss[0], NULL, 16)),
+                          (strtol(strgroupss[1], NULL, 16)),
+                          (strtol(strgroupss[2], NULL, 16)),
+                          (strtol(strgroupss[3], NULL, 16))};
 
     if (unlock_indicator &&
         (unlock_state >= STATE_KEY_PRESSED || pam_state > STATE_PAM_IDLE)) {
@@ -251,30 +260,12 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (pam_state) {
             case STATE_PAM_VERIFY:
                 cairo_set_source_rgba(ctx, (double)insidever16[0]/255, (double)insidever16[1]/255, (double)insidever16[2]/255, (double)insidever16[3]/255);
-                if (internal_line_source == 2) {
-                  line16[0] = insidever16[0];
-                  line16[1] = insidever16[1];
-                  line16[2] = insidever16[2];
-                  line16[3] = insidever16[3];
-                }
                 break;
             case STATE_PAM_WRONG:
                 cairo_set_source_rgba(ctx, (double)insidewrong16[0]/255, (double)insidewrong16[1]/255, (double)insidewrong16[2]/255, (double)insidewrong16[3]/255);
-                if (internal_line_source == 2) {
-                  line16[0] = insidewrong16[0];
-                  line16[1] = insidewrong16[1];
-                  line16[2] = insidewrong16[2];
-                  line16[3] = insidewrong16[3];
-                }
                 break;
             default:
                 cairo_set_source_rgba(ctx, (double)inside16[0]/255, (double)inside16[1]/255, (double)inside16[2]/255, (double)inside16[3]/255);
-                if (internal_line_source == 2) {
-                  line16[0] = inside16[0];
-                  line16[1] = inside16[1];
-                  line16[2] = inside16[2];
-                  line16[3] = inside16[3];
-                }
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -310,16 +301,18 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
         cairo_stroke(ctx);
 
-        /* Draw an inner seperator line. */
-        cairo_set_source_rgba(ctx, (double)line16[0]/255, (double)line16[1]/255, (double)line16[2]/255, (double)line16[3]/255);
-        cairo_set_line_width(ctx, 2.0);
-        cairo_arc(ctx,
-                  BUTTON_CENTER /* x */,
-                  BUTTON_CENTER /* y */,
-                  BUTTON_RADIUS - 5 /* radius */,
-                  0,
-                  2 * M_PI);
-        cairo_stroke(ctx);
+        /* Draw an inner separator line. */
+        if (internal_line_source != 2) { //pretty sure this only needs drawn if it's being drawn over the inside?
+          cairo_set_source_rgba(ctx, (double)line16[0]/255, (double)line16[1]/255, (double)line16[2]/255, (double)line16[3]/255);
+          cairo_set_line_width(ctx, 2.0);
+          cairo_arc(ctx,
+                    BUTTON_CENTER /* x */,
+                    BUTTON_CENTER /* y */,
+                    BUTTON_RADIUS - 5 /* radius */,
+                    0,
+                    2 * M_PI);
+          cairo_stroke(ctx);
+        }
 
         cairo_set_line_width(ctx, 10.0);
 
@@ -403,7 +396,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             /* Draw two little separators for the highlighted part of the
              * unlock indicator. */
-            cairo_set_source_rgba(ctx, (double)line16[0]/255, (double)line16[1]/255, (double)line16[2]/255, (double)line16[3]/255);
+            cairo_set_source_rgba(ctx, (double)sep16[0]/255, (double)sep16[1]/255, (double)sep16[2]/255, (double)sep16[3]/255);
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,

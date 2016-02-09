@@ -57,6 +57,7 @@ char linecolor[9] = "000000ff";
 char textcolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
+char separatorcolor[9] = "000000ff";
 /* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
 int internal_line_source = 0;
 
@@ -784,6 +785,7 @@ int main(int argc, char *argv[]) {
         {"textcolor", required_argument, NULL, 0},        // --t-c
         {"keyhlcolor", required_argument, NULL, 0},       // --k-c
         {"bshlcolor", required_argument, NULL, 0},        // --b-c
+        {"separatorcolor", required_argument, NULL, 0},
         {"line-uses-ring", no_argument, NULL, 'r'},
         {"line-uses-inside", no_argument, NULL, 's'},
         /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh */
@@ -965,6 +967,16 @@ int main(int argc, char *argv[]) {
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bshlcolor) != 1)
                         errx(1, "bshlcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "separatorcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
+                        errx(1, "separator is invalid, color must be given in 8-byte format: rrggbb\n");
                 }
                 break;
             case 'f':
