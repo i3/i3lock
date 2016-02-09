@@ -66,6 +66,7 @@ extern char linecolor[9];
 extern char textcolor[9];
 extern char keyhlcolor[9];
 extern char bshlcolor[9];
+extern int internal_line_source;
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -250,12 +251,30 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (pam_state) {
             case STATE_PAM_VERIFY:
                 cairo_set_source_rgba(ctx, (double)insidever16[0]/255, (double)insidever16[1]/255, (double)insidever16[2]/255, (double)insidever16[3]/255);
+                if (internal_line_source == 2) {
+                  line16[0] = insidever16[0];
+                  line16[1] = insidever16[1];
+                  line16[2] = insidever16[2];
+                  line16[3] = insidever16[3];
+                }
                 break;
             case STATE_PAM_WRONG:
                 cairo_set_source_rgba(ctx, (double)insidewrong16[0]/255, (double)insidewrong16[1]/255, (double)insidewrong16[2]/255, (double)insidewrong16[3]/255);
+                if (internal_line_source == 2) {
+                  line16[0] = insidewrong16[0];
+                  line16[1] = insidewrong16[1];
+                  line16[2] = insidewrong16[2];
+                  line16[3] = insidewrong16[3];
+                }
                 break;
             default:
                 cairo_set_source_rgba(ctx, (double)inside16[0]/255, (double)inside16[1]/255, (double)inside16[2]/255, (double)inside16[3]/255);
+                if (internal_line_source == 2) {
+                  line16[0] = inside16[0];
+                  line16[1] = inside16[1];
+                  line16[2] = inside16[2];
+                  line16[3] = inside16[3];
+                }
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -263,12 +282,30 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (pam_state) {
             case STATE_PAM_VERIFY:
                 cairo_set_source_rgba(ctx, (double)ringver16[0]/255, (double)ringver16[1]/255, (double)ringver16[2]/255, (double)ringver16[3]/255);
+                if (internal_line_source == 1) {
+                  line16[0] = ringver16[0];
+                  line16[1] = ringver16[1];
+                  line16[2] = ringver16[2];
+                  line16[3] = ringver16[3];
+                }
                 break;
             case STATE_PAM_WRONG:
                 cairo_set_source_rgba(ctx, (double)ringwrong16[0]/255, (double)ringwrong16[1]/255, (double)ringwrong16[2]/255, (double)ringwrong16[3]/255);
+                if (internal_line_source == 1) {
+                  line16[0] = ringwrong16[0];
+                  line16[1] = ringwrong16[1];
+                  line16[2] = ringwrong16[2];
+                  line16[3] = ringwrong16[3];
+                }
                 break;
             case STATE_PAM_IDLE:
                 cairo_set_source_rgba(ctx, (double)ring16[0]/255, (double)ring16[1]/255, (double)ring16[2]/255, (double)ring16[3]/255);
+                if (internal_line_source == 1) {
+                  line16[0] = ring16[0];
+                  line16[1] = ring16[1];
+                  line16[2] = ring16[2];
+                  line16[3] = ring16[3];
+                }
                 break;
         }
         cairo_stroke(ctx);
@@ -308,7 +345,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                         snprintf(buf, sizeof(buf), "%d", failed_attempts);
                         text = buf;
                     }
-                    cairo_set_source_rgb(ctx, 1, 0, 0);
+                    cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
                     cairo_set_font_size(ctx, 32.0);
                 }
                 break;

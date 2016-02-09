@@ -57,6 +57,8 @@ char linecolor[9] = "000000ff";
 char textcolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
+/* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
+int internal_line_source = 0;
 
 int inactivity_timeout = 30;
 uint32_t last_resolution[2];
@@ -772,17 +774,19 @@ int main(int argc, char *argv[]) {
 
         /* options for unlock indicator colors */
         // defining a lot of different chars here for the options -- TODO find a nicer way for this, maybe not offering single character options at all
-        {"insidevercolor", required_argument, NULL, 0},
-        {"insidewrongcolor", required_argument, NULL, 0},
-        {"insidecolor", required_argument, NULL, 0},
-        {"ringvercolor", required_argument, NULL, 0},
-        {"ringwrongcolor", required_argument, NULL, 0},
-        {"ringcolor", required_argument, NULL, 0},
-        {"linecolor", required_argument, NULL, 0},
-        {"textcolor", required_argument, NULL, 0},
-        {"keyhlcolor", required_argument, NULL, 0},
-        {"bshlcolor", required_argument, NULL, 0},
-
+        {"insidevercolor", required_argument, NULL, 0},   // --i-v
+        {"insidewrongcolor", required_argument, NULL, 0}, // --i-w
+        {"insidecolor", required_argument, NULL, 0},      // --i-c
+        {"ringvercolor", required_argument, NULL, 0},     // --r-v
+        {"ringwrongcolor", required_argument, NULL, 0},   // --r-w
+        {"ringcolor", required_argument, NULL, 0},        // --r-c
+        {"linecolor", required_argument, NULL, 0},        // --l-c
+        {"textcolor", required_argument, NULL, 0},        // --t-c
+        {"keyhlcolor", required_argument, NULL, 0},       // --k-c
+        {"bshlcolor", required_argument, NULL, 0},        // --b-c
+        {"line-uses-ring", no_argument, NULL, 'r'},
+        {"line-uses-inside", no_argument, NULL, 's'},
+        /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh */
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -793,7 +797,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:frs";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -846,6 +850,18 @@ int main(int argc, char *argv[]) {
                 break;
             case 'e':
                 ignore_empty_password = true;
+                break;
+            case 'r':
+                if (internal_line_source != 0) {
+                  errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
+                }
+                internal_line_source = 1; //sets the line drawn inside to use the inside color when drawn
+                break;
+            case 's':
+                if (internal_line_source != 0) {
+                  errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
+                }
+                internal_line_source = 2;
                 break;
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
@@ -955,8 +971,8 @@ int main(int argc, char *argv[]) {
                 show_failed_attempts = true;
                 break;
             default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                errx(EXIT_FAILURE, "Syntax: i3lock-color [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s]");
         }
     }
 
@@ -965,7 +981,7 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     /* Initialize PAM */
-    if ((ret = pam_start("i3lock", username, &conv, &pam_handle)) != PAM_SUCCESS)
+    if ((ret = pam_start("i3lock-color", username, &conv, &pam_handle)) != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
 
     if ((ret = pam_set_item(pam_handle, PAM_TTY, getenv("DISPLAY"))) != PAM_SUCCESS)
