@@ -57,7 +57,7 @@ press enter.
 
 Example usage for colors:
 
-i3lock --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor=ffffffbf --ringvercolor=0020ffff --ringwrongcolor=4040ffff --ringcolor=404090ff --textcolor=ffffffff  --linecolor=aaaaaaff --keyhlcolor=30ccccff --bshlcolor=ff8000ff -r
+i3lock --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor=ffffffbf --ringvercolor=0020ffff --ringwrongcolor=4040ffff --ringcolor=404090ff --textcolor=ffffffff  --separatorcolor=aaaaaaff --keyhlcolor=30ccccff --bshlcolor=ff8000ff -r
 
 
 Upstream
