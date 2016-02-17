@@ -58,6 +58,8 @@ char textcolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
 char separatorcolor[9] = "000000ff";
+
+int screen_number = -1;
 /* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
 int internal_line_source = 0;
 
@@ -789,6 +791,7 @@ int main(int argc, char *argv[]) {
         {"line-uses-ring", no_argument, NULL, 'r'},
         {"line-uses-inside", no_argument, NULL, 's'},
         /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh */
+        {"screen", required_argument, NULL, 'S'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -799,7 +802,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:frs";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -864,6 +867,9 @@ int main(int argc, char *argv[]) {
                   errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
                 }
                 internal_line_source = 2;
+                break;
+            case 'S':
+                screen_number = atoi(optarg);
                 break;
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)

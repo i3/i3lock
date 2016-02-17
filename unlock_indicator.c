@@ -69,6 +69,8 @@ extern char bshlcolor[9];
 extern char separatorcolor[9];
 extern int internal_line_source;
 
+extern int screen_number;
+
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -416,12 +418,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (xr_screens > 0) {
         /* Composite the unlock indicator in the middle of each screen. */
-        for (int screen = 0; screen < xr_screens; screen++) {
-            int x = (xr_resolutions[screen].x + ((xr_resolutions[screen].width / 2) - (button_diameter_physical / 2)));
-            int y = (xr_resolutions[screen].y + ((xr_resolutions[screen].height / 2) - (button_diameter_physical / 2)));
-            cairo_set_source_surface(xcb_ctx, output, x, y);
-            cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-            cairo_fill(xcb_ctx);
+        // excuse me, just gonna hack something in right here
+        if (screen_number != -1 && screen_number < xr_screens) {
+          int x = (xr_resolutions[screen_number].x + ((xr_resolutions[screen_number].width / 2) - (button_diameter_physical / 2)));
+          int y = (xr_resolutions[screen_number].y + ((xr_resolutions[screen_number].height / 2) - (button_diameter_physical / 2)));
+          cairo_set_source_surface(xcb_ctx, output, x, y);
+          cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
+          cairo_fill(xcb_ctx);        }
+        else {
+          for (int screen = 0; screen < xr_screens; screen++) {
+              int x = (xr_resolutions[screen].x + ((xr_resolutions[screen].width / 2) - (button_diameter_physical / 2)));
+              int y = (xr_resolutions[screen].y + ((xr_resolutions[screen].height / 2) - (button_diameter_physical / 2)));
+              cairo_set_source_surface(xcb_ctx, output, x, y);
+              cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
+              cairo_fill(xcb_ctx);
+          }
         }
     } else {
         /* We have no information about the screen sizes/positions, so we just
