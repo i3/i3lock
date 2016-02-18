@@ -2,6 +2,7 @@ INSTALL=install
 PREFIX=/usr
 SYSCONFDIR=/etc
 PKG_CONFIG=pkg-config
+MANDIR=/usr/share/man
 
 # Check if pkg-config is installed, we need it for building CFLAGS/LIBS
 ifeq ($(shell which $(PKG_CONFIG) 2>/dev/null 1>/dev/null || echo 1),1)
@@ -40,15 +41,18 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/pam.d
 	$(INSTALL) -m 755 i3lock-color $(DESTDIR)$(PREFIX)/bin/i3lock-color
 	$(INSTALL) -m 644 i3lock-color.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock-color
+	gzip -kf i3lock-color.1
+	$(INSTALL) -m 644 i3lock-color.1.gz $(MANDIR)/man1/i3lock-color.1.gz
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/i3lock-color
+	rm -f $(MANDIR)/man1/i3lock-color.1.gz
 
 dist: clean
 	[ ! -d i3lock-color-${VERSION} ] || rm -rf i3lock-color-${VERSION}
-	[ ! -e i3lock-c-olor-${VERSION}.tar.bz2 ] || rm i3lock-color-${VERSION}.tar.bz2
+	[ ! -e i3lock-color-${VERSION}.tar.bz2 ] || rm i3lock-color-${VERSION}.tar.bz2
 	mkdir i3lock-${VERSION}
-	cp *.c *.h i3lock.1 i3lock.pam Makefile LICENSE README.md CHANGELOG i3lock-${VERSION}
+	cp *.c *.h i3lock-color.1.gz i3lock.pam Makefile LICENSE README.md CHANGELOG i3lock-${VERSION}
 	sed -e 's/^GIT_VERSION:=\(.*\)/GIT_VERSION:=$(shell /bin/echo '${GIT_VERSION}' | sed 's/\\/\\\\/g')/g;s/^VERSION:=\(.*\)/VERSION:=${VERSION}/g' Makefile > i3lock-${VERSION}/Makefile
 	tar cfj i3lock-color-${VERSION}.tar.bz2 i3lock-color-${VERSION}
 	rm -rf i3lock-color-${VERSION}
