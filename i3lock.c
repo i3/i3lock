@@ -77,6 +77,7 @@ static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
+bool stretch = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
@@ -756,6 +757,7 @@ int main(int argc, char *argv[]) {
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
+        {"stretch", no_argument, NULL, 's'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -766,7 +768,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:tseI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -808,6 +810,9 @@ int main(int argc, char *argv[]) {
             case 't':
                 tile = true;
                 break;
+            case 's':
+                stretch = true;
+                break;
             case 'p':
                 if (!strcmp(optarg, "win")) {
                     curs_choice = CURS_WIN;
@@ -829,7 +834,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-s] [-e] [-I timeout] [-f]");
         }
     }
 
@@ -931,6 +936,25 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
+        } else if(stretch){
+            /* Resize the image if required */
+            int width  = cairo_image_surface_get_width(img);
+            int height = cairo_image_surface_get_height(img);
+            if(width != last_resolution[0] || height != last_resolution[1]){
+                double scalex = (double)last_resolution[0] / width;
+                double scaley = (double)last_resolution[1] / height;
+                cairo_surface_t* tmp =
+                    cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+                                               last_resolution[0],
+                                               last_resolution[1]);
+                cairo_t* ctx = cairo_create(tmp);
+                cairo_scale(ctx, scalex, scaley);
+                cairo_set_source_surface(ctx, img, 0, 0);
+                cairo_paint(ctx);
+                cairo_surface_destroy(img);
+                cairo_destroy(ctx);
+                img = tmp;
+            }
         }
     }
 
