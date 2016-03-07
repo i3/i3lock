@@ -55,6 +55,7 @@ int input_position = 0;
 static char password[512];
 static bool beep = false;
 bool debug_mode = false;
+char *login_failed_execute = NULL;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
@@ -247,6 +248,13 @@ static void input_done(void) {
         pam_end(pam_handle, PAM_SUCCESS);
 
         exit(0);
+    }
+
+    if (login_failed_execute != NULL) {
+        if (debug_mode)
+            fprintf(stderr, "Execute: %s\n", login_failed_execute);
+
+        system(login_failed_execute);
     }
 
     if (debug_mode)
@@ -759,6 +767,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"login_failed_execute", required_argument, NULL, 0},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -823,13 +832,15 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
                     debug_mode = true;
+                if ((strcmp(longopts[optind].name, "login_failed_execute") == 0) && optarg)
+                    login_failed_execute = optarg;
                 break;
             case 'f':
                 show_failed_attempts = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [--login_failed_execute command]");
         }
     }
 
