@@ -297,7 +297,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Lock time (above) */
         //text = malloc(INFO_MAXLENGTH);
-        text = "Locked since";
+        text = "Locked for";
         //strftime(text, INFO_MAXLENGTH, "Locked since " INFO_LOCKTIME_FORMAT ".", lock_time);
 
         cairo_text_extents(ctx, text, &extents);
