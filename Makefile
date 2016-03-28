@@ -28,31 +28,31 @@ CPPFLAGS += -DVERSION=\"${GIT_VERSION}\"
 
 .PHONY: install clean uninstall
 
-all: i3lock-color
+all: i3lock
 
-i3lock-color: ${FILES}
+i3lock: ${FILES}
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	rm -f i3lock-color ${FILES} i3lock-color-${VERSION}.tar.gz
+	rm -f i3lock ${FILES} i3lock-${VERSION}.tar.gz
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -d $(DESTDIR)$(SYSCONFDIR)/pam.d
-	$(INSTALL) -m 755 i3lock-color $(DESTDIR)$(PREFIX)/bin/i3lock-color
-	$(INSTALL) -m 644 i3lock-color.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock-color
-	gzip -kf i3lock-color.1
-	$(INSTALL) -m 644 i3lock-color.1.gz $(MANDIR)/man1/i3lock-color.1.gz
+	$(INSTALL) -m 755 i3lock $(DESTDIR)$(PREFIX)/bin/i3lock
+	$(INSTALL) -m 644 i3lock.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/i3lock
+	gzip -kf i3lock.1
+	$(INSTALL) -m 644 i3lock.1.gz $(MANDIR)/man1/i3lock.1.gz
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/i3lock-color
-	rm -f $(MANDIR)/man1/i3lock-color.1.gz
+	rm -f $(DESTDIR)$(PREFIX)/bin/i3lock
+	rm -f $(MANDIR)/man1/i3lock.1.gz
 
 dist: clean
-	[ ! -d i3lock-color-${VERSION} ] || rm -rf i3lock-color-${VERSION}
-	[ ! -e i3lock-color-${VERSION}.tar.bz2 ] || rm i3lock-color-${VERSION}.tar.bz2
+	[ ! -d i3lock-${VERSION} ] || rm -rf i3lock-${VERSION}
+	[ ! -e i3lock-${VERSION}.tar.bz2 ] || rm i3lock-${VERSION}.tar.bz2
 	mkdir i3lock-${VERSION}
-	cp *.c *.h i3lock-color.1.gz i3lock.pam Makefile LICENSE README.md CHANGELOG i3lock-${VERSION}
+	cp *.c *.h i3lock.1.gz i3lock.pam Makefile LICENSE README.md CHANGELOG i3lock-${VERSION}
 	sed -e 's/^GIT_VERSION:=\(.*\)/GIT_VERSION:=$(shell /bin/echo '${GIT_VERSION}' | sed 's/\\/\\\\/g')/g;s/^VERSION:=\(.*\)/VERSION:=${VERSION}/g' Makefile > i3lock-${VERSION}/Makefile
-	tar cfj i3lock-color-${VERSION}.tar.bz2 i3lock-color-${VERSION}
-	rm -rf i3lock-color-${VERSION}
+	tar cfj i3lock-${VERSION}.tar.bz2 i3lock-${VERSION}
+	rm -rf i3lock-${VERSION}
