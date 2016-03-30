@@ -51,6 +51,8 @@ extern char *modifier_string;
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
 
+/* Whether the image should be scaled. */
+extern bool scale;
 /* Whether the image should be tiled. */
 extern bool tile;
 /* The background color to use (in hex). */
@@ -115,10 +117,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
     if (img) {
-        if (!tile) {
-            cairo_set_source_surface(xcb_ctx, img, 0, 0);
-            cairo_paint(xcb_ctx);
-        } else {
+        if (tile) {
             /* create a pattern and fill a rectangle as big as the screen */
             cairo_pattern_t *pattern;
             pattern = cairo_pattern_create_for_surface(img);
@@ -127,6 +126,25 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
             cairo_fill(xcb_ctx);
             cairo_pattern_destroy(pattern);
+        } else if (scale) {
+            /* create a pattern and fill a rectangle as big as the screen */
+            double width;
+            double height;
+            cairo_pattern_t *pattern;
+            cairo_matrix_t matrix;
+
+            width = (double)cairo_image_surface_get_width(img);
+            height = (double)cairo_image_surface_get_height(img);
+            pattern = cairo_pattern_create_for_surface(img);
+            cairo_matrix_init_scale(&matrix, width / resolution[0], height / resolution[1]);
+            cairo_pattern_set_matrix (pattern, &matrix);
+            cairo_set_source(xcb_ctx, pattern);
+            cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+            cairo_fill(xcb_ctx);
+            cairo_pattern_destroy(pattern);
+        } else {
+            cairo_set_source_surface(xcb_ctx, img, 0, 0);
+            cairo_paint(xcb_ctx);
         }
     } else {
         char strgroups[3][3] = {{color[0], color[1], '\0'},
