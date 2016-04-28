@@ -24,7 +24,9 @@
 #include <ev.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
+#if XKBCOMPOSE == 1
 #include <xkbcommon/xkbcommon-compose.h>
+#endif
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -88,8 +90,10 @@ bool show_failed_attempts = false;
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
 static struct xkb_keymap *xkb_keymap;
+#if XKBCOMPOSE == 1
 static struct xkb_compose_table *xkb_compose_table;
 static struct xkb_compose_state *xkb_compose_state;
+#endif
 static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
 
@@ -145,6 +149,7 @@ static bool load_keymap(void) {
     return true;
 }
 
+#if XKBCOMPOSE == 1
 /*
  * Loads the XKB compose table from the given locale.
  *
@@ -168,6 +173,7 @@ static bool load_compose_table(const char *locale) {
 
     return true;
 }
+#endif /* XKBCOMPOSE */
 
 /*
  * Clears the memory which stored the password to be a bit safer against
@@ -353,7 +359,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     char buffer[128];
     int n;
     bool ctrl;
+#if XKBCOMPOSE == 1
     bool composed = false;
+#endif
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
@@ -361,6 +369,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
 
+#if XKBCOMPOSE == 1
     if (xkb_compose_state && xkb_compose_state_feed(xkb_compose_state, ksym) == XKB_COMPOSE_FEED_ACCEPTED) {
         switch (xkb_compose_state_get_status(xkb_compose_state)) {
             case XKB_COMPOSE_NOTHING:
@@ -383,6 +392,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     if (!composed) {
         n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
     }
+#else
+    n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
+#endif
 
     switch (ksym) {
         case XKB_KEY_Return:
@@ -1060,6 +1072,7 @@ int main(int argc, char *argv[]) {
     if (!load_keymap())
         errx(EXIT_FAILURE, "Could not load keymap");
 
+#if XKBCOMPOSE == 1
     const char *locale = getenv("LC_ALL");
     if (!locale)
         locale = getenv("LC_CTYPE");
@@ -1072,6 +1085,7 @@ int main(int argc, char *argv[]) {
     }
 
     load_compose_table(locale);
+#endif
 
     xinerama_init();
     xinerama_query_screens();
