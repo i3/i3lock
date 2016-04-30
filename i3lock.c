@@ -367,9 +367,13 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     }
 
     switch (ksym) {
+        case XKB_KEY_j:
         case XKB_KEY_Return:
         case XKB_KEY_KP_Enter:
         case XKB_KEY_XF86ScreenSaver:
+            if (ksym == XKB_KEY_j && !ctrl)
+                break;
+
             if (pam_state == STATE_PAM_WRONG)
                 return;
 
@@ -414,7 +418,11 @@ static void handle_key_press(xcb_key_press_event_t *event) {
              * see issue #50. */
             return;
 
+        case XKB_KEY_h:
         case XKB_KEY_BackSpace:
+            if (ksym == XKB_KEY_h && !ctrl)
+                break;
+
             if (input_position == 0)
                 return;
 
@@ -423,7 +431,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             password[input_position] = '\0';
 
             /* Hide the unlock indicator after a bit if the password buffer is
-         * empty. */
+             * empty. */
             START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
             unlock_state = STATE_BACKSPACE_ACTIVE;
             redraw_screen();
