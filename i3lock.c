@@ -628,6 +628,17 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
 }
 
 /*
+ * Try closing logind sleep lock fd passed over from xss-lock, in case we're
+ * being run from there.
+ *
+ */
+static void maybe_close_xss_fd() {
+    char *xss_fd = getenv("XSS_SLEEP_LOCK_FD");
+    if (xss_fd)
+        close(atoi(xss_fd));
+}
+
+/*
  * Instead of polling the X connection socket we leave this to
  * xcb_poll_for_event() which knows better than we can ever know.
  *
@@ -671,6 +682,8 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                         exit(0);
 
                     ev_loop_fork(EV_DEFAULT);
+                } else {
+                    maybe_close_xss_fd();
                 }
                 break;
 
@@ -956,6 +969,7 @@ int main(int argc, char *argv[]) {
     if (pid == 0) {
         /* Child */
         close(xcb_get_file_descriptor(conn));
+        maybe_close_xss_fd();
         raise_loop(win);
         exit(EXIT_SUCCESS);
     }
