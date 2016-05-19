@@ -819,7 +819,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'i':
                 if (optarg == NULL)
-                    image_path = "";
+                    image_path = strdup("");
                 else
                     image_path = strdup(optarg);
                 break;
@@ -847,7 +847,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i [image.png]] [-t] [-e] [-I timeout] [-f]");
         }
     }
 
