@@ -628,6 +628,22 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
 }
 
 /*
+ * Try closing logind sleep lock fd passed over from xss-lock, in case we're
+ * being run from there.
+ *
+ */
+static void maybe_close_sleep_lock_fd(void) {
+    const char *sleep_lock_fd = getenv("XSS_SLEEP_LOCK_FD");
+    char *endptr;
+    if (sleep_lock_fd && *sleep_lock_fd != 0) {
+         long int fd = strtol(sleep_lock_fd, &endptr, 10);
+         if (*endptr == 0) {
+             close(fd);
+         }
+    }
+}
+
+/*
  * Instead of polling the X connection socket we leave this to
  * xcb_poll_for_event() which knows better than we can ever know.
  *
@@ -661,6 +677,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 break;
 
             case XCB_MAP_NOTIFY:
+                maybe_close_sleep_lock_fd();
                 if (!dont_fork) {
                     /* After the first MapNotify, we never fork again. We don’t
                      * expect to get another MapNotify, but better be sure… */
@@ -956,6 +973,7 @@ int main(int argc, char *argv[]) {
     if (pid == 0) {
         /* Child */
         close(xcb_get_file_descriptor(conn));
+        maybe_close_sleep_lock_fd();
         raise_loop(win);
         exit(EXIT_SUCCESS);
     }
