@@ -10,6 +10,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_image.h>
 #include <xcb/xcb_atom.h>
+#include <xcb/xcb_aux.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -149,6 +150,9 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
     /* Raise window (put it on top) */
     values[0] = XCB_STACK_MODE_ABOVE;
     xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+    /* Ensure that the window is created and set up before returning */
+    xcb_aux_sync(conn);
 
     return win;
 }
