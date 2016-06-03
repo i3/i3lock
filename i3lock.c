@@ -636,10 +636,10 @@ static void maybe_close_sleep_lock_fd(void) {
     const char *sleep_lock_fd = getenv("XSS_SLEEP_LOCK_FD");
     char *endptr;
     if (sleep_lock_fd && *sleep_lock_fd != 0) {
-         long int fd = strtol(sleep_lock_fd, &endptr, 10);
-         if (*endptr == 0) {
-             close(fd);
-         }
+        long int fd = strtol(sleep_lock_fd, &endptr, 10);
+        if (*endptr == 0) {
+            close(fd);
+        }
     }
 }
 
