@@ -1,3 +1,15 @@
+2016-06-04 i3lock 2.8
+
+ • Remove DPMS support in favor of a wrapper script and xset(1).
+ • Indicate that the --inactivity-timeout option takes an argument. (Thanks
+   Kenneth Lyons)
+ • fix pam_securetty: set PAM_TTY to getenv("DISPLAY")
+ • Eat XKB_KEY_Delete and XKB_KEY_KP_Delete (Thanks bebehei)
+ • Show unlock indicator if password was entered during PAM verification
+ • Allow CTRL+J as enter and CTRL+H as backspace (Thanks Karl Tarbe)
+ • Flush xcb connection after opening fullscreen window (Thanks martin)
+ • Add support for `xss-lock --transfer-sleep-lock'
+
 2015-05-20 i3lock 2.7
 
  • Die when the X11 connection breaks during runtime (Thanks Eduan)
