@@ -6,6 +6,7 @@
  * See LICENSE for licensing information
  *
  */
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pwd.h>
@@ -46,6 +47,8 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 char color[7] = "ffffff";
 int inactivity_timeout = 30;
+time_t grace_period = 0;
+struct timespec start_time;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -324,6 +327,36 @@ static bool skip_without_validation(void) {
     return false;
 }
 
+static bool check_grace_period(void) {
+    struct timespec current_time;
+    time_t elapsed_seconds;
+    if (grace_period == 0) {
+        return false;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &current_time) != 0) {
+        static bool failed = false;
+        if (!failed) {
+            fprintf(stderr, "i3lock: failed to get monotonic time\n");
+            failed = true;
+        }
+        return false;
+    }
+
+    /* time_t overflow is hard to handle in a portable fashion. */
+    if (current_time.tv_sec < start_time.tv_sec) {
+        return false;
+    }
+
+    elapsed_seconds = current_time.tv_sec - start_time.tv_sec;
+
+    if (current_time.tv_nsec < start_time.tv_nsec) {
+        --elapsed_seconds;
+    }
+
+    return elapsed_seconds < grace_period;
+}
+
 /*
  * Handle key presses. Fixes state, then looks up the key symbol for the
  * given keycode, then looks up the key symbol (as UCS-2), converts it to
@@ -339,6 +372,10 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
+
+    if (check_grace_period()) {
+        exit(0);
+    }
 
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
@@ -784,6 +821,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"grace-period", required_argument, NULL, 'g'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -791,7 +829,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fg:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -852,9 +890,21 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'g': {
+                int time = 0;
+                if (sscanf(optarg, "%d", &time) != 1 || time < 0)
+                    errx(EXIT_FAILURE, "invalid grace period, it must be a positive integer\n");
+                if (clock_gettime(CLOCK_MONOTONIC, &start_time) != 0) {
+                    fprintf(stderr, "i3lock: failed to get monotonic time, disabling grace period");
+                    break;
+                }
+
+                grace_period = time;
+                break;
+            }
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-g grace period]");
         }
     }
 

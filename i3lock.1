@@ -72,6 +72,11 @@ pressing Escape. Only makes sense together with \-d. If omitted, the default is
 30 seconds.
 
 .TP
+.BI \-g\  seconds \fR,\ \fB\-\-grace-period= seconds
+Specifies the number of seconds after startup i3lock will allow unlock without
+password. If omitted, or 0 is provided, i3lock will always require a password.
+
+.TP
 .B \-u, \-\-no-unlock-indicator
 Disable the unlock indicator. i3lock will by default show an unlock indicator
 after pressing keys. This will give feedback for every keypress and it will
