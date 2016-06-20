@@ -134,7 +134,7 @@ use a wrapper script around i3lock like the following:
 \&	revert() {
 \&	  xset dpms 0 0 0
 \&	}
-\&	trap revert SIGHUP SIGINT SIGTERM
+\&	trap revert HUP INT TERM
 \&	xset +dpms dpms 5 5 5
 \&	i3lock -n
 \&	revert
