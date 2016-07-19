@@ -805,7 +805,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
                 break;
             case 'I': {
-                fprintf(stderr, "Inactivity timeout makes only sense with DPMS. Please see the manpage i3lock(1).\n");
+                fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
                 break;
             }
             case 'c': {
