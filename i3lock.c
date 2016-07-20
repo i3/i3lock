@@ -45,7 +45,6 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 
 char color[7] = "ffffff";
-int inactivity_timeout = 30;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -806,10 +805,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
                 break;
             case 'I': {
-                int time = 0;
-                if (sscanf(optarg, "%d", &time) != 1 || time < 0)
-                    errx(EXIT_FAILURE, "invalid timeout, it must be a positive integer\n");
-                inactivity_timeout = time;
+                fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
                 break;
             }
             case 'c': {

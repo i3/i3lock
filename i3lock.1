@@ -27,8 +27,6 @@ i3lock \- improved screen locker
 .IR pointer\|]
 .RB [\|\-u\|]
 .RB [\|\-e\|]
-.RB [\|\-I
-.IR timeout\|]
 .RB [\|\-f\|]
 
 .SH DESCRIPTION
@@ -63,13 +61,6 @@ Don't fork after starting.
 .B \-b, \-\-beep
 Enable beeping. Be sure to not do this when you are about to annoy other people,
 like when opening your laptop in a boring lecture.
-
-.TP
-.BI \-I\  seconds \fR,\ \fB\-\-inactivity-timeout= seconds
-Specifies the number of seconds i3lock will wait for another password before
-turning off the monitors, in case you entered a wrong password or canceled by
-pressing Escape. Only makes sense together with \-d. If omitted, the default is
-30 seconds.
 
 .TP
 .B \-u, \-\-no-unlock-indicator
@@ -139,6 +130,8 @@ use a wrapper script around i3lock like the following:
 \&	i3lock -n
 \&	revert
 .Ve
+
+The \-I (-\-inactivity-timeout=seconds) was removed because it only makes sense with DPMS.
 
 .SH SEE ALSO
 .IR xautolock(1)
