@@ -64,8 +64,6 @@ char separatorcolor[9] = "000000ff";
 int screen_number = -1;
 /* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
 int internal_line_source = 0;
-
-int inactivity_timeout = 30;
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -854,10 +852,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
                 break;
             case 'I': {
-                int time = 0;
-                if (sscanf(optarg, "%d", &time) != 1 || time < 0)
-                    errx(EXIT_FAILURE, "invalid timeout, it must be a positive integer\n");
-                inactivity_timeout = time;
+                fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
                 break;
             }
             case 'c': {
@@ -1036,7 +1031,7 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     /* Initialize PAM */
-    if ((ret = pam_start("i3lock-color", username, &conv, &pam_handle)) != PAM_SUCCESS)
+    if ((ret = pam_start("i3lock", username, &conv, &pam_handle)) != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
 
     if ((ret = pam_set_item(pam_handle, PAM_TTY, getenv("DISPLAY"))) != PAM_SUCCESS)
