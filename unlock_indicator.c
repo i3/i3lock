@@ -324,6 +324,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         char buf[4];
 
         cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255); //this was moved up to here
+        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, 28.0);
         switch (pam_state) {
             case STATE_PAM_VERIFY:
