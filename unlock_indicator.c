@@ -16,6 +16,7 @@
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -70,6 +71,10 @@ extern int failed_attempts;
 
 /* When was the computer locked. */
 extern struct tm *lock_time;
+
+/* tick for timer */
+static struct ev_periodic *time_redraw_tick;
+
 /*******************************************************************************
  * Variables defined in xcb.c.
  ******************************************************************************/
@@ -374,4 +379,22 @@ void redraw_screen(void) {
 void clear_indicator(void) {
     unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
+}
+
+/* Periodic redraw for clock */
+
+static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
+    redraw_screen();
+}
+
+void start_time_redraw_tick(struct ev_loop* main_loop) {
+    if (time_redraw_tick) {
+        ev_periodic_set(time_redraw_tick, 1.0, 60., 0);
+        ev_periodic_again(main_loop, time_redraw_tick);
+    } else {
+        if (!(time_redraw_tick = calloc(sizeof(struct ev_periodic), 1)))
+            return;
+        ev_periodic_init(time_redraw_tick,time_redraw_cb, 1.0, 60., 0);
+        ev_periodic_start(main_loop, time_redraw_tick);
+    }
 }
