@@ -490,11 +490,11 @@ static void handle_key_press(xcb_key_press_event_t *event) {
                 unlock_state = STATE_NOTHING_TO_DELETE;
                 redraw_screen();
                 return;
-            }
-
+            } else {
             /* decrement input_position to point to the previous glyph */
             u8_dec(password, &input_position);
             password[input_position] = '\0';
+            }
 
             /* Hide the unlock indicator after a bit if the password buffer is
              * empty. */
@@ -1167,9 +1167,17 @@ int main(int argc, char *argv[]) {
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
     ev_prepare_start(main_loop, xcb_prepare);
 
+    redraw_screen();
+    unlock_state = STATE_KEY_PRESSED;
+
+    struct ev_timer *timeout = NULL;
+    START_TIMER(timeout, TSTAMP_N_SECS(0.25), redraw_timeout);
+    STOP_TIMER(clear_indicator_timeout);
+
     /* Invoke the event callback once to catch all the events which were
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
+
     ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
 
