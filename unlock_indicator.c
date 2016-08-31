@@ -239,7 +239,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_stroke(ctx);
 
         /* set time display */
-        strftime(text, 100, INFO_TIME_FORMAT, tm);
+        strftime(text, INFO_MAXLENGTH - 1, INFO_TIME_FORMAT, tm);
 
         if (tm->tm_hour >= 1)
             cairo_set_source_rgb(ctx, 255, 255, 255);
