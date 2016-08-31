@@ -71,7 +71,7 @@ extern bool show_failed_attempts;
 extern int failed_attempts;
 
 /* When was the computer locked. */
-extern struct tm lock_time;
+extern time_t lock_time;
 
 /* tick for timer */
 static struct ev_periodic *time_redraw_tick;
@@ -171,25 +171,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         char *text = buf;
 
         time_t curtime = time(NULL);
-        struct tm *tm = localtime(&curtime);
-
-        if (tm->tm_sec >= lock_time.tm_sec)
-            tm->tm_sec -= lock_time.tm_sec;
-        else
-            tm->tm_sec += (60 - lock_time.tm_sec);
-
-        if (tm->tm_hour >= lock_time.tm_hour)
-            tm->tm_hour -= lock_time.tm_hour;
-        else
-            tm->tm_hour += (24 - lock_time.tm_hour);
-
-        if (tm->tm_min >= lock_time.tm_min)
-            tm->tm_min -= lock_time.tm_min;
-        else
-        {
-            tm->tm_hour--;
-            tm->tm_min += (60 - lock_time.tm_min);
-        }
+        time_t locked_time = difftime(curtime, lock_time) / 60;
 
         /* Use the appropriate color for the different PAM states
          * (currently verifying, wrong password, or default) */
@@ -210,7 +192,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 cairo_set_source_rgba(ctx, 0, 0, 0, 0.75);
                 break;
         }
-        if (tm->tm_hour >= 1)
+        if (locked_time >= 60) // more that 1h
             cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
 
         cairo_fill_preserve(ctx);
@@ -233,18 +215,15 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
                 break;
         }
-        if (tm->tm_hour >= 1)
+        if (locked_time >= 60)
             cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
 
         cairo_stroke(ctx);
 
         /* set time display */
-        strftime(text, INFO_MAXLENGTH - 1, INFO_TIME_FORMAT, tm);
+        snprintf(text, INFO_MAXLENGTH - 1, "%.2lu:%.2lu", locked_time / 60, locked_time % 60);
 
-        if (tm->tm_hour >= 1)
-            cairo_set_source_rgb(ctx, 255, 255, 255);
-        else
-            cairo_set_source_rgb(ctx, 255, 255, 255);
+        cairo_set_source_rgb(ctx, 255, 255, 255);
         cairo_set_font_size(ctx, 32.0);
 
         cairo_text_extents_t time_extents;

@@ -102,7 +102,7 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
-struct tm lock_time;
+time_t lock_time;
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -982,8 +982,7 @@ int main(int argc, char *argv[]) {
      * the computer was locked. Since this could lead to our PRNG seed being
      * visible to the user, we should make sure that we're not using rand()
      * for anything important (spoiler: we aren't). */
-    time_t curtime = time(NULL);
-    localtime_r(&curtime, &lock_time);
+    lock_time = time(NULL);
 
 #ifndef __OpenBSD__
     /* Initialize PAM */
