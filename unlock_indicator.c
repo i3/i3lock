@@ -71,7 +71,7 @@ extern bool show_failed_attempts;
 extern int failed_attempts;
 
 /* When was the computer locked. */
-extern struct tm *lock_time;
+extern struct tm lock_time;
 
 /* tick for timer */
 static struct ev_periodic *time_redraw_tick;
@@ -169,22 +169,22 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         time_t curtime = time(NULL);
         struct tm *tm = localtime(&curtime);
 
-        if (tm->tm_sec >= lock_time->tm_sec)
-            tm->tm_sec -= lock_time->tm_sec;
+        if (tm->tm_sec >= lock_time.tm_sec)
+            tm->tm_sec -= lock_time.tm_sec;
         else
-            tm->tm_sec += (60 - lock_time->tm_sec);
+            tm->tm_sec += (60 - lock_time.tm_sec);
 
-        if (tm->tm_hour >= lock_time->tm_hour)
-            tm->tm_hour -= lock_time->tm_hour;
+        if (tm->tm_hour >= lock_time.tm_hour)
+            tm->tm_hour -= lock_time.tm_hour;
         else
-            tm->tm_hour += (24 - lock_time->tm_hour);
+            tm->tm_hour += (24 - lock_time.tm_hour);
 
-        if (tm->tm_min >= lock_time->tm_min)
-            tm->tm_min -= lock_time->tm_min;
+        if (tm->tm_min >= lock_time.tm_min)
+            tm->tm_min -= lock_time.tm_min;
         else
         {
             tm->tm_hour--;
-            tm->tm_min += (60 - lock_time->tm_min);
+            tm->tm_min += (60 - lock_time.tm_min);
         }
 
         /* Use the appropriate color for the different PAM states

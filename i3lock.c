@@ -102,7 +102,7 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
-struct tm *lock_time;
+struct tm lock_time;
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -983,8 +983,8 @@ int main(int argc, char *argv[]) {
      * visible to the user, we should make sure that we're not using rand()
      * for anything important (spoiler: we aren't). */
     time_t curtime = time(NULL);
-    lock_time = malloc(sizeof(struct tm));
-    localtime_r(&curtime, lock_time);
+    localtime_r(&curtime, &lock_time);
+
 #ifndef __OpenBSD__
     /* Initialize PAM */
     if ((ret = pam_start("i3lock", username, &conv, &pam_handle)) != PAM_SUCCESS)
