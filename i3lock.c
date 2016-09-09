@@ -45,6 +45,7 @@
     timer_obj = stop_timer(timer_obj)
 
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
+static void input_done(void);
 
 char color[7] = "ffffff";
 
@@ -84,6 +85,7 @@ extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
+bool retry_verification = false;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -216,6 +218,17 @@ ev_timer *stop_timer(ev_timer *timer_obj) {
 }
 
 /*
+ * Neccessary calls after ending input via enter or others
+ *
+ */
+static void finish_input(void) {
+    password[input_position] = '\0';
+    unlock_state = STATE_KEY_PRESSED;
+    redraw_screen();
+    input_done();
+}
+
+/*
  * Resets pam_state to STATE_PAM_IDLE 2 seconds after an unsuccessful
  * authentication event.
  *
@@ -233,6 +246,12 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
 
     /* Now free this timeout. */
     STOP_TIMER(clear_pam_wrong_timeout);
+
+    /* retry with input done during pam verification */
+    if (retry_verification) {
+        retry_verification = false;
+        finish_input();
+    }
 }
 
 static void clear_indicator_cb(EV_P_ ev_timer *w, int revents) {
@@ -402,17 +421,16 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             if (ksym == XKB_KEY_j && !ctrl)
                 break;
 
-            if (pam_state == STATE_PAM_WRONG)
+            if (pam_state == STATE_PAM_WRONG) {
+                retry_verification = true;
                 return;
+            }
 
             if (skip_without_validation()) {
                 clear_input();
                 return;
             }
-            password[input_position] = '\0';
-            unlock_state = STATE_KEY_PRESSED;
-            redraw_screen();
-            input_done();
+            finish_input();
             skip_repeated_empty_password = true;
             return;
         default:
