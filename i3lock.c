@@ -1014,7 +1014,6 @@ int main(int argc, char *argv[]) {
         xcb_free_pixmap(conn, blur_pixmap);
     }
 
-
     pid_t pid = fork();
     /* The pid == -1 case is intentionally ignored here:
      * While the child process is useful for preventing other windows from

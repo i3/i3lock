@@ -15,7 +15,7 @@
 #define ARRAY_LENGTH(a) (sizeof(a) / sizeof(a)[0])
 
 /* Performs a simple 2D Gaussian blur of radius @radius on surface @surface. */
-void blur_image_surface (cairo_surface_t *surface, int radius) {
+void blur_image_surface(cairo_surface_t *surface, int radius) {
     cairo_surface_t *tmp;
     int width, height;
     int src_stride, dst_stride;
@@ -48,7 +48,7 @@ void blur_image_surface (cairo_surface_t *surface, int radius) {
 
         case CAIRO_FORMAT_RGB24:
         case CAIRO_FORMAT_ARGB32:
-        break;
+            break;
     }
 
     tmp = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
@@ -64,7 +64,7 @@ void blur_image_surface (cairo_surface_t *surface, int radius) {
     a = 0;
     for (i = 0; i < size; i++) {
         double f = i - half;
-        a += kernel[i] = exp (- f * f / 30.0) * 80;
+        a += kernel[i] = exp(- f * f / 30.0) * 80;
     }
 
     /* Horizontally blur from surface -> tmp */
@@ -86,8 +86,8 @@ void blur_image_surface (cairo_surface_t *surface, int radius) {
 
                 x += ((p >> 24) & 0xff) * kernel[k];
                 y += ((p >> 16) & 0xff) * kernel[k];
-                z += ((p >>  8) & 0xff) * kernel[k];
-                w += ((p >>  0) & 0xff) * kernel[k];
+                z += ((p >> 8) & 0xff) * kernel[k];
+                w += ((p >> 0) & 0xff) * kernel[k];
             }
             d[j] = (x / a << 24) | (y / a << 16) | (z / a << 8) | w / a;
         }
@@ -95,8 +95,8 @@ void blur_image_surface (cairo_surface_t *surface, int radius) {
 
     /* Then vertically blur from tmp -> surface */
     for (i = 0; i < height; i++) {
-        s = (uint32_t *) (dst + i * dst_stride);
-        d = (uint32_t *) (src + i * src_stride);
+        s = (uint32_t *)(dst + i * dst_stride);
+        d = (uint32_t *)(src + i * src_stride);
         for (j = 0; j < width; j++) {
             if (radius <= i && i < height - radius) {
                 d[j] = s[j];
@@ -108,13 +108,13 @@ void blur_image_surface (cairo_surface_t *surface, int radius) {
                 if (i - half + k < 0 || i - half + k >= height)
                     continue;
 
-                s = (uint32_t *) (dst + (i - half + k) * dst_stride);
+                s = (uint32_t *)(dst + (i - half + k) * dst_stride);
                 p = s[j];
 
                 x += ((p >> 24) & 0xff) * kernel[k];
                 y += ((p >> 16) & 0xff) * kernel[k];
-                z += ((p >>  8) & 0xff) * kernel[k];
-                w += ((p >>  0) & 0xff) * kernel[k];
+                z += ((p >> 8) & 0xff) * kernel[k];
+                w += ((p >> 0) & 0xff) * kernel[k];
             }
             d[j] = (x / a << 24) | (y / a << 16) | (z / a << 8) | w / a;
         }
