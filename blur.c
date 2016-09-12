@@ -64,13 +64,13 @@ void blur_image_surface(cairo_surface_t *surface, int radius) {
     a = 0;
     for (i = 0; i < size; i++) {
         double f = i - half;
-        a += kernel[i] = exp(- f * f / 30.0) * 80;
+        a += kernel[i] = exp(-f * f / 30.0) * 80;
     }
 
     /* Horizontally blur from surface -> tmp */
     for (i = 0; i < height; i++) {
-        s = (uint32_t *) (src + i * src_stride);
-        d = (uint32_t *) (dst + i * dst_stride);
+        s = (uint32_t *)(src + i * src_stride);
+        d = (uint32_t *)(dst + i * dst_stride);
         for (j = 0; j < width; j++) {
             if (radius < j && j < width - radius) {
                 d[j] = s[j];
