@@ -64,6 +64,7 @@ static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
 extern pam_state_t pam_state;
+bool show_state_messages = true;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
 bool retry_verification = false;
@@ -800,6 +801,7 @@ int main(int argc, char *argv[]) {
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
+        {"no-state-messages", no_argument, NULL, 's'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
         {NULL, no_argument, NULL, 0}};
 
@@ -808,7 +810,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:sf";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -866,9 +868,12 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 's':
+                show_state_messages = false;
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-s] [-f]");
         }
     }
 
