@@ -1145,6 +1145,7 @@ int main(int argc, char *argv[]) {
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
         }
+        free(image_path);
     }
 
     /* Pixmap on which the image is rendered to (if any) */
