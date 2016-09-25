@@ -19,6 +19,7 @@ addons:
     - libev-dev
     - libxcb-xinerama0-dev
     - libxcb-xkb-dev
+    - libxcb-composite0-dev
 before_install:
   - "echo 'APT::Default-Release \"trusty\";' | sudo tee /etc/apt/apt.conf.d/default-release"
   - "echo 'deb http://archive.ubuntu.com/ubuntu/ wily main universe' | sudo tee /etc/apt/sources.list.d/wily.list"
