@@ -18,8 +18,10 @@
 #include <unistd.h>
 #include <assert.h>
 #include <err.h>
+#include <time.h>
 
 #include "cursors.h"
+#include "unlock_indicator.h"
 
 xcb_connection_t *conn;
 xcb_screen_t *screen;
@@ -170,6 +172,10 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
 
     int tries = 10000;
 
+    /* Using few variables to trigger a redraw_screen() if too many tries */
+    bool redrawn = false;
+    time_t start = clock();
+
     while (tries-- > 0) {
         pcookie = xcb_grab_pointer(
             conn,
@@ -190,6 +196,14 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
 
         /* Make this quite a bit slower */
         usleep(50);
+
+        /* Measure elapsed time and trigger a screen redraw if elapsed > 250000 */
+        if (!redrawn &&
+            (tries % 100) == 0 &&
+            (clock() - start) > 250000) {
+            redraw_screen();
+            redrawn = true;
+        }
     }
 
     while (tries-- > 0) {
@@ -209,6 +223,14 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
 
         /* Make this quite a bit slower */
         usleep(50);
+
+        /* Measure elapsed time and trigger a screen redraw if elapsed > 250000 */
+        if (!redrawn &&
+            (tries % 100) == 0 &&
+            (clock() - start) > 250000) {
+            redraw_screen();
+            redrawn = true;
+        }
     }
 
     if (tries <= 0)

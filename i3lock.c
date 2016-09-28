@@ -977,9 +977,15 @@ int main(int argc, char *argv[]) {
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
-    /* open the fullscreen window, already with the correct pixmap in place */
+    /* Open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, screen, color, bg_pixmap);
     xcb_free_pixmap(conn, bg_pixmap);
+
+    cursor = create_cursor(conn, screen, win, curs_choice);
+
+    /* Display the "locking…" message while trying to grab the pointer/keyboard. */
+    pam_state = STATE_PAM_LOCK;
+    grab_pointer_and_keyboard(conn, screen, cursor);
 
     pid_t pid = fork();
     /* The pid == -1 case is intentionally ignored here:
@@ -993,9 +999,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_SUCCESS);
     }
 
-    cursor = create_cursor(conn, screen, win, curs_choice);
-
-    grab_pointer_and_keyboard(conn, screen, cursor);
     /* Load the keymap again to sync the current modifier state. Since we first
      * loaded the keymap, there might have been changes, but starting from now,
      * we should get all key presses/releases due to having grabbed the
@@ -1006,6 +1009,10 @@ int main(int argc, char *argv[]) {
     main_loop = EV_DEFAULT;
     if (main_loop == NULL)
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
+
+    /* Explicitly call the screen redraw in case "locking…" message was displayed */
+    pam_state = STATE_PAM_IDLE;
+    redraw_screen();
 
     struct ev_io *xcb_watcher = calloc(sizeof(struct ev_io), 1);
     struct ev_check *xcb_check = calloc(sizeof(struct ev_check), 1);
