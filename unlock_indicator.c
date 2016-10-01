@@ -274,6 +274,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         switch (pam_state) {
             case STATE_PAM_VERIFY:
+            case STATE_PAM_LOCK:
                 cairo_set_source_rgba(ctx, (double)ringver16[0]/255, (double)ringver16[1]/255, (double)ringver16[2]/255, (double)ringver16[3]/255);
                 if (internal_line_source == 1) {
                   line16[0] = ringver16[0];
@@ -329,6 +330,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (pam_state) {
             case STATE_PAM_VERIFY:
                 text = "verifying…";
+                break;
+            case STATE_PAM_LOCK:
+                text = "locking…";
                 break;
             case STATE_PAM_WRONG:
                 text = "wrong!";
