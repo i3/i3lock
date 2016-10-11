@@ -23,6 +23,8 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 
+extern pam_state_t pam_state;
+
 xcb_connection_t *conn;
 xcb_screen_t *screen;
 
@@ -160,7 +162,7 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
 }
 
 /*
- * Repeatedly tries to grab pointer and keyboard (up to 1000 times).
+ * Repeatedly tries to grab pointer and keyboard (up to 10000 times).
  *
  */
 void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb_cursor_t cursor) {
@@ -233,8 +235,14 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
         }
     }
 
-    if (tries <= 0)
+    /* After trying for 10000 times, i3lock will display an error message
+     * for 2 sec prior to terminate. */
+    if (tries <= 0) {
+        pam_state = STATE_I3LOCK_LOCK_FAILED;
+        redraw_screen();
+        sleep(1);
         errx(EXIT_FAILURE, "Cannot grab pointer/keyboard");
+    }
 }
 
 xcb_cursor_t create_cursor(xcb_connection_t *conn, xcb_screen_t *screen, xcb_window_t win, int choice) {
