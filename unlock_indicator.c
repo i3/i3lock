@@ -21,6 +21,9 @@
 #include "unlock_indicator.h"
 #include "xinerama.h"
 
+/* clock stuff */
+#include <time.h>
+
 #define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
@@ -71,6 +74,8 @@ extern int internal_line_source;
 
 extern int screen_number;
 
+extern bool show_clock;
+
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -86,6 +91,9 @@ extern xcb_screen_t *screen;
 /*******************************************************************************
  * Local variables.
  ******************************************************************************/
+
+/* time stuff */
+static struct ev_periodic *time_redraw_tick;
 
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
@@ -245,8 +253,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                           (strtol(strgroupss[2], NULL, 16)),
                           (strtol(strgroupss[3], NULL, 16))};
 
+    /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
+    time_t rawtime;
+    struct tm* timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
     if (unlock_indicator &&
-        (unlock_state >= STATE_KEY_PRESSED || pam_state > STATE_PAM_IDLE)) {
+        (unlock_state >= STATE_KEY_PRESSED || pam_state > STATE_PAM_IDLE || show_clock)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 10.0);
@@ -324,6 +338,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Display a (centered) text of the current PAM state. */
         char *text = NULL;
+
+        char *date = NULL;
+        char time_text[40] = {0};
+        char date_text[40] = {0};
+
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
@@ -353,6 +372,12 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     }
                     cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
                     cairo_set_font_size(ctx, 32.0);
+                } else if (show_clock) {
+                    // TODO: allow for custom string times
+                    strftime(time_text, 40, "%R", timeinfo);
+                    strftime(date_text, 40, "%a %m. %b", timeinfo);
+                    text = time_text;
+                    date = date_text;
                 }
                 break;
         }
@@ -363,12 +388,34 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             cairo_text_extents(ctx, text, &extents);
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
+            if (date) {
+                y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) - 6;
+            } else {
+                y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
+            }
 
             cairo_move_to(ctx, x, y);
             cairo_show_text(ctx, text);
             cairo_close_path(ctx);
         }
+
+        if (date) {
+            cairo_text_extents_t extents;
+            double x, y;
+
+            // TODO: different date/time colors
+            cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
+            cairo_set_font_size(ctx, 14.0);
+
+            cairo_text_extents(ctx, date, &extents);
+            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 14;
+
+            cairo_move_to(ctx, x, y);
+            cairo_show_text(ctx, date);
+            cairo_close_path(ctx);
+        }
+
 
         if (pam_state == STATE_PAM_WRONG && (modifier_string != NULL)) {
             cairo_text_extents_t extents;
@@ -490,3 +537,21 @@ void clear_indicator(void) {
         unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
 }
+
+static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
+    redraw_screen();
+}
+
+void start_time_redraw_tick(struct ev_loop* main_loop) {
+    if (time_redraw_tick) {
+        ev_periodic_set(time_redraw_tick, 1.0, 60., 0);
+        ev_periodic_again(main_loop, time_redraw_tick);
+    } else {
+        if (!(time_redraw_tick = calloc(sizeof(struct ev_periodic), 1))) {
+           return;
+        }
+        ev_periodic_init(time_redraw_tick, time_redraw_cb, 1.0, 60., 0);
+        ev_periodic_start(main_loop, time_redraw_tick);
+    }
+}
+

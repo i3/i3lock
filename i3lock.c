@@ -62,9 +62,13 @@ char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
 char separatorcolor[9] = "000000ff";
 
+/* int defining which display the lock indicator should be shown on. If -1, then show on all displays.*/
 int screen_number = -1;
 /* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
 int internal_line_source = 0;
+/* bool for showing the clock; why am I commenting this? */
+bool show_clock = false;
+
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -845,6 +849,8 @@ int main(int argc, char *argv[]) {
         {"line-uses-inside", no_argument, NULL, 's'},
         /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh */
         {"screen", required_argument, NULL, 'S'},
+        {"clock", no_argument, NULL, 'k'},
+
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -855,7 +861,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:k";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -920,6 +926,10 @@ int main(int argc, char *argv[]) {
                 break;
             case 'S':
                 screen_number = atoi(optarg);
+                break;
+
+            case 'k':
+                show_clock = true;
                 break;
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
@@ -1040,7 +1050,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock-color [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [--fuckton-of-color-args=rrggbbaa]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [-k] [--fuckton-of-color-args=rrggbbaa]");
         }
     }
 
@@ -1205,5 +1215,8 @@ int main(int argc, char *argv[]) {
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
+    if (show_clock) { 
+        start_time_redraw_tick(main_loop); 
+    }
     ev_loop(main_loop, 0);
 }
