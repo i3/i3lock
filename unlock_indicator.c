@@ -261,9 +261,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
          * (currently verifying, wrong password, or default) */
         switch (pam_state) {
             case STATE_PAM_VERIFY:
+            case STATE_PAM_LOCK:
                 cairo_set_source_rgba(ctx, (double)insidever16[0]/255, (double)insidever16[1]/255, (double)insidever16[2]/255, (double)insidever16[3]/255);
                 break;
             case STATE_PAM_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
                 cairo_set_source_rgba(ctx, (double)insidewrong16[0]/255, (double)insidewrong16[1]/255, (double)insidewrong16[2]/255, (double)insidewrong16[3]/255);
                 break;
             default:
@@ -284,6 +286,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 }
                 break;
             case STATE_PAM_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
                 cairo_set_source_rgba(ctx, (double)ringwrong16[0]/255, (double)ringwrong16[1]/255, (double)ringwrong16[2]/255, (double)ringwrong16[3]/255);
                 if (internal_line_source == 1) {
                   line16[0] = ringwrong16[0];
@@ -336,6 +339,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
             case STATE_PAM_WRONG:
                 text = "wrong!";
+                break;
+            case STATE_I3LOCK_LOCK_FAILED:
+                text = "lock failed!";
                 break;
             default:
                 if (show_failed_attempts && failed_attempts > 0) {
