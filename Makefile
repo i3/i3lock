@@ -39,6 +39,9 @@ CPPFLAGS += -DVERSION=\"${I3LOCK_VERSION}\"
 
 all: i3lock
 
+debug: CFLAGS += -g
+debug: i3lock
+
 i3lock: ${FILES}
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
