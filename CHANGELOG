@@ -1,3 +1,6 @@
+2016-10-14 i3lock-color 2.9
+ • Add in clock display support
+
 2016-06-04 i3lock 2.8
 
  • Remove DPMS support in favor of a wrapper script and xset(1).
