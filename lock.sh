@@ -35,4 +35,6 @@ V='#bb00bbbb'  # verifying
 --screen 0            \
 --clock               \
 --timestr="%H:%M:%S"  \
---datestr="%A, %m %Y" 
+--datestr="%A, %m %Y" \
+-B                    \
+

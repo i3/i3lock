@@ -36,6 +36,7 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 #include "xinerama.h"
+#include "blur.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -75,6 +76,10 @@ bool show_clock = false;
 char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 
+/* opts for blurring */
+bool blur = false;
+bool step_blur = false;
+int blur_radius = 5;
 
 uint32_t last_resolution[2];
 xcb_window_t win;
@@ -861,6 +866,8 @@ int main(int argc, char *argv[]) {
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
 
+        {"blur", no_argument, NULL, 'B'},
+
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -871,7 +878,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:k";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:kB";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -940,6 +947,9 @@ int main(int argc, char *argv[]) {
 
             case 'k':
                 show_clock = true;
+                break;
+            case 'B':
+                blur = true;
                 break;
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
@@ -1182,12 +1192,34 @@ int main(int argc, char *argv[]) {
         free(image_path);
     }
 
+    xcb_pixmap_t blur_pixmap;
+    if (blur) {
+        if(!img) {
+            xcb_visualtype_t *vistype = get_root_visual_type(screen);
+            blur_pixmap = capture_bg_pixmap(conn, screen, last_resolution);
+            cairo_surface_t *xcb_img = cairo_xcb_surface_create(conn, blur_pixmap, vistype, last_resolution[0], last_resolution[1]);
+
+            img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, last_resolution[0], last_resolution[1]);
+            cairo_t *ctx = cairo_create(img);
+            cairo_set_source_surface(ctx, xcb_img, 0, 0);
+            cairo_paint(ctx);
+
+            cairo_destroy(ctx);
+            cairo_surface_destroy(xcb_img);
+        }
+        blur_image_surface(img, 10000);
+    }
+
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
     /* Open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, screen, color, bg_pixmap);
     xcb_free_pixmap(conn, bg_pixmap);
+    if (blur_pixmap) {
+        xcb_free_pixmap(conn, blur_pixmap);
+    }
+
 
     cursor = create_cursor(conn, screen, win, curs_choice);
 
