@@ -72,8 +72,8 @@ bool show_clock = false;
     I picked 32-length char arrays because some people might want really funky time formatters.
     Who am I to judge?
 */
-char time_format[32] = "%R\0";
-char date_format[32] = "%a %m. %b\0";
+char time_format[32] = "%H:%M:%S\0";
+char date_format[32] = "%A, %m %Y\0";
 
 
 uint32_t last_resolution[2];
