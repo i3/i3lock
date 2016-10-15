@@ -68,6 +68,13 @@ int screen_number = -1;
 int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
 bool show_clock = false;
+/* time formatter strings for date/time
+    I picked 32-length char arrays because some people might want really funky time formatters.
+    Who am I to judge?
+*/
+char time_format[32] = "%R\0";
+char date_format[32] = "%a %m. %b\0";
+
 
 uint32_t last_resolution[2];
 xcb_window_t win;
@@ -849,7 +856,10 @@ int main(int argc, char *argv[]) {
         {"line-uses-inside", no_argument, NULL, 's'},
         /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh */
         {"screen", required_argument, NULL, 'S'},
+
         {"clock", no_argument, NULL, 'k'},
+        {"timestr", required_argument, NULL, 0},
+        {"datestr", required_argument, NULL, 0},
 
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -1044,6 +1054,20 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
                         errx(1, "separator is invalid, color must be given in 8-byte format: rrggbb\n");
                 }
+                else if (strcmp(longopts[optind].name, "timestr") == 0) {
+                    //read in to timestr
+                    if (strlen(optarg) > 31) {
+                        errx(1, "time format string can be at most 31 characters");
+                    }
+                    strcpy(time_format,optarg);
+                }
+                else if (strcmp(longopts[optind].name, "datestr") == 0) {
+                    //read in to datestr
+                    if (strlen(optarg) > 31) {
+                        errx(1, "time format string can be at most 31 characters");
+                    }
+                    strcpy(date_format,optarg);
+                }
                 break;
             case 'f':
                 show_failed_attempts = true;
@@ -1215,8 +1239,8 @@ int main(int argc, char *argv[]) {
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
-    if (show_clock) { 
-        start_time_redraw_tick(main_loop); 
+    if (show_clock) {
+        start_time_redraw_tick(main_loop);
     }
     ev_loop(main_loop, 0);
 }

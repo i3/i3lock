@@ -75,7 +75,8 @@ extern int internal_line_source;
 extern int screen_number;
 
 extern bool show_clock;
-
+extern char time_format[32];
+extern char date_format[32];
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -263,7 +264,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         (unlock_state >= STATE_KEY_PRESSED || pam_state > STATE_PAM_IDLE || show_clock)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
-        cairo_set_line_width(ctx, 10.0);
+        cairo_set_line_width(ctx, 7.0);
         cairo_arc(ctx,
                   BUTTON_CENTER /* x */,
                   BUTTON_CENTER /* y */,
@@ -373,9 +374,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
                     cairo_set_font_size(ctx, 32.0);
                 } else if (show_clock) {
-                    // TODO: allow for custom string times
-                    strftime(time_text, 40, "%R", timeinfo);
-                    strftime(date_text, 40, "%a %m. %b", timeinfo);
+                    strftime(time_text, 40, time_format, timeinfo);
+                    strftime(date_text, 40, date_format, timeinfo);
                     text = time_text;
                     date = date_text;
                 }
@@ -452,6 +452,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 /* For backspace, we use red. */ //lol no
                 cairo_set_source_rgba(ctx, (double)bshl16[0]/255, (double)bshl16[1]/255, (double)bshl16[2]/255, (double)bshl16[3]/255);
             }
+
             cairo_stroke(ctx);
 
             /* Draw two little separators for the highlighted part of the
@@ -544,13 +545,13 @@ static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
 
 void start_time_redraw_tick(struct ev_loop* main_loop) {
     if (time_redraw_tick) {
-        ev_periodic_set(time_redraw_tick, 1.0, 60., 0);
+        ev_periodic_set(time_redraw_tick, 0., 1.0, 0);
         ev_periodic_again(main_loop, time_redraw_tick);
     } else {
         if (!(time_redraw_tick = calloc(sizeof(struct ev_periodic), 1))) {
            return;
         }
-        ev_periodic_init(time_redraw_tick, time_redraw_cb, 1.0, 60., 0);
+        ev_periodic_init(time_redraw_tick, time_redraw_cb, 0., 1., 0);
         ev_periodic_start(main_loop, time_redraw_tick);
     }
 }
