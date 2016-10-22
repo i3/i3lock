@@ -22,9 +22,7 @@
  */
 
 #include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <cairo.h>
+#include "blur.h"
 
 #define ARRAY_LENGTH(a) (sizeof (a) / sizeof (a)[0])
 
@@ -35,13 +33,7 @@ blur_image_surface (cairo_surface_t *surface, int radius)
     cairo_surface_t *tmp;
     int width, height;
     int src_stride, dst_stride;
-    int x, y, z, w;
-    uint8_t *src, *dst;
-    uint32_t *s, *d, a, p;
-    int i, j, k;
-    uint8_t kernel[17];
-    const int size = ARRAY_LENGTH (kernel);
-    const int half = size / 2;
+    uint32_t *src, *dst;
 
     if (cairo_surface_status (surface))
     return;
@@ -71,11 +63,30 @@ blur_image_surface (cairo_surface_t *surface, int radius)
     if (cairo_surface_status (tmp))
     return;
 
-    src = cairo_image_surface_get_data (surface);
+    src = (uint32_t*)cairo_image_surface_get_data (surface);
     src_stride = cairo_image_surface_get_stride (surface);
 
-    dst = cairo_image_surface_get_data (tmp);
+    dst = (uint32_t*)cairo_image_surface_get_data (tmp);
     dst_stride = cairo_image_surface_get_stride (tmp);
+
+    blur_impl_naive(src, dst, width, height, src_stride, dst_stride, 10000);
+
+    cairo_surface_destroy (tmp);
+    cairo_surface_flush (surface);
+    cairo_surface_mark_dirty (surface);
+}
+
+void blur_impl_naive(uint32_t* _src, uint32_t* _dst, int width, int height, int src_stride, int dst_stride, int radius)
+{
+    int x, y, z, w;
+    uint32_t *s, *d, a, p;
+    int i, j, k;
+    uint8_t kernel[17];
+    const int size = ARRAY_LENGTH (kernel);
+    const int half = size / 2;
+
+    uint8_t *src = (uint8_t*)_src;
+    uint8_t *dst = (uint8_t*)_dst;
 
     a = 0;
     for (i = 0; i < size; i++) {
@@ -135,9 +146,5 @@ blur_image_surface (cairo_surface_t *surface, int radius)
         d[j] = (x / a << 24) | (y / a << 16) | (z / a << 8) | w / a;
     }
     }
-
-    cairo_surface_destroy (tmp);
-    cairo_surface_flush (surface);
-    cairo_surface_mark_dirty (surface);
 }
 
