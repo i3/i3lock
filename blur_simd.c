@@ -12,8 +12,12 @@
 #include <xmmintrin.h>
 
 #define ALIGN16 __attribute__((aligned(16)))
-#define KERNEL_SIZE 7
+#define KERNEL_SIZE 15 
 #define HALF_KERNEL KERNEL_SIZE / 2
+
+// number of xmm registers needed to store 
+// input pixels for given kernel size
+#define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
 
 void blur_impl_sse2(uint32_t *src, uint32_t *dst, int width, int height, float sigma) {
     // prepare kernel
@@ -46,34 +50,34 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
         uint32_t lastPixel = *(src + width - 1);
 
         for (int column = 0; column < width; column++, src++) {
-            __m128i rgbaIn1, rgbaIn2;
+            __m128i rgbaIn[REGISTERS_CNT];
 
             // handle borders
             int leftBorder = column < HALF_KERNEL;
             int rightBorder = column + HALF_KERNEL >= width;
             if (leftBorder || rightBorder) {
-                uint32_t rgbaIn[KERNEL_SIZE] ALIGN16;
+                uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
                 int i = 0;
                 if (leftBorder) {
                     // for kernel size 7x7 and column == 0, we have:
                     // x x x P0 P1 P2 P3
                     // first loop fills x's with P0, second one loads P{0..3}
                     for (; i < HALF_KERNEL - column; i++)
-                        rgbaIn[i] = firstPixel;
+                        _rgbaIn[i] = firstPixel;
                     for (; i < KERNEL_SIZE; i++)
-                        rgbaIn[i] = *(src + i - HALF_KERNEL);
+                        _rgbaIn[i] = *(src + i - HALF_KERNEL);
                 } else {
                     for (; width < column; i++)
-                        rgbaIn[i] = *(src - i - HALF_KERNEL);
+                        _rgbaIn[i] = *(src - i - HALF_KERNEL);
                     for (; i < KERNEL_SIZE; i++)
-                        rgbaIn[i] = lastPixel;
+                        _rgbaIn[i] = lastPixel;
                 }
 
-                rgbaIn1 = _mm_load_si128((__m128i *)(rgbaIn));
-                rgbaIn2 = _mm_load_si128((__m128i *)(rgbaIn + 4));
+                for (int k = 0; k < REGISTERS_CNT; k++)
+                    rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
             } else {
-                rgbaIn1 = _mm_loadu_si128((__m128i *)(src - 3));
-                rgbaIn2 = _mm_loadu_si128((__m128i *)(src + 1));
+                for (int k = 0; k < REGISTERS_CNT; k++)
+                    rgbaIn[k] = _mm_loadu_si128((__m128i*)(src + 4*k - HALF_KERNEL));
             }
 
             // unpack each pixel, convert to float,
@@ -85,25 +89,28 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
             __m128 acc = _mm_setzero_ps();
             int counter = 0;
 
-            tmp = _mm_unpacklo_epi8(rgbaIn1, zero);
+            for (int i = 0; i < 3; i++)
+            {
+                tmp = _mm_unpacklo_epi8(rgbaIn[i], zero);
+                rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
+                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+                rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
+                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+
+                tmp = _mm_unpackhi_epi8(rgbaIn[i], zero);
+                rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
+                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+                rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
+                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+            }
+
+            tmp = _mm_unpacklo_epi8(rgbaIn[3], zero);
             rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
             acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
             rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
             acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
 
-            tmp = _mm_unpackhi_epi8(rgbaIn1, zero);
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-
-            tmp = _mm_unpacklo_epi8(rgbaIn2, zero);
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-
-            tmp = _mm_unpackhi_epi8(rgbaIn2, zero);
+            tmp = _mm_unpackhi_epi8(rgbaIn[3], zero);
             rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
             acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
 
