@@ -44,33 +44,29 @@ void blur_impl_sse2(uint32_t *src, uint32_t *dst, int width, int height, float s
 
 void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel, int width, int height) {
     for (int row = 0; row < height; row++) {
-        // remember first and last pixel in a row
-        // (used to handle borders)
-        uint32_t firstPixel = *src;
-        uint32_t lastPixel = *(src + width - 1);
-
         for (int column = 0; column < width; column++, src++) {
             __m128i rgbaIn[REGISTERS_CNT];
 
             // handle borders
             int leftBorder = column < HALF_KERNEL;
-            int rightBorder = column + HALF_KERNEL >= width;
+            int rightBorder = column > width - HALF_KERNEL;
             if (leftBorder || rightBorder) {
                 uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
                 int i = 0;
                 if (leftBorder) {
                     // for kernel size 7x7 and column == 0, we have:
                     // x x x P0 P1 P2 P3
-                    // first loop fills x's with P0, second one loads P{0..3}
+                    // first loop mirrors P{0..3} to fill x's,
+                    // second one loads P{0..3}
                     for (; i < HALF_KERNEL - column; i++)
-                        _rgbaIn[i] = firstPixel;
+                        _rgbaIn[i] = *(src + (HALF_KERNEL - i));
                     for (; i < KERNEL_SIZE; i++)
-                        _rgbaIn[i] = *(src + i - HALF_KERNEL);
+                        _rgbaIn[i] = *(src - (HALF_KERNEL - i));
                 } else {
-                    for (; width < column; i++)
-                        _rgbaIn[i] = *(src - i - HALF_KERNEL);
-                    for (; i < KERNEL_SIZE; i++)
-                        _rgbaIn[i] = lastPixel;
+                    for (; i < width - column; i++)
+                        _rgbaIn[i] = *(src + i);
+                    for (int k = 0; i < KERNEL_SIZE; i++, k++)
+                        _rgbaIn[i] = *(src - k);
                 }
 
                 for (int k = 0; k < REGISTERS_CNT; k++)
