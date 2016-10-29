@@ -70,7 +70,8 @@ blur_image_surface (cairo_surface_t *surface, int radius)
     dst_stride = cairo_image_surface_get_stride (tmp);
 
     //blur_impl_naive(src, dst, width, height, src_stride, dst_stride, 10000);
-    blur_impl_sse2(src, dst, width, height, 4.5);
+    //blur_impl_sse2(src, dst, width, height, 4.5);
+    blur_impl_ssse3(src, dst, width, height, 4.5);
 
     cairo_surface_destroy (tmp);
     cairo_surface_flush (surface);

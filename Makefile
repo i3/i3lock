@@ -14,6 +14,7 @@ endif
 CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
+CFLAGS += -mssse3
 CFLAGS += -O2
 CPPFLAGS += -D_GNU_SOURCE
 CPPFLAGS += -DXKBCOMPOSE=$(shell if test -e /usr/include/xkbcommon/xkbcommon-compose.h ; then echo 1 ; else echo 0 ; fi )
