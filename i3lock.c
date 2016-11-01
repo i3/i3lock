@@ -114,6 +114,7 @@ static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
+cairo_surface_t *blur_img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
@@ -1194,20 +1195,18 @@ int main(int argc, char *argv[]) {
 
     xcb_pixmap_t blur_pixmap;
     if (blur) {
-        if(!img) {
-            xcb_visualtype_t *vistype = get_root_visual_type(screen);
-            blur_pixmap = capture_bg_pixmap(conn, screen, last_resolution);
-            cairo_surface_t *xcb_img = cairo_xcb_surface_create(conn, blur_pixmap, vistype, last_resolution[0], last_resolution[1]);
+        xcb_visualtype_t *vistype = get_root_visual_type(screen);
+        blur_pixmap = capture_bg_pixmap(conn, screen, last_resolution);
+        cairo_surface_t *xcb_img = cairo_xcb_surface_create(conn, blur_pixmap, vistype, last_resolution[0], last_resolution[1]);
 
-            img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, last_resolution[0], last_resolution[1]);
-            cairo_t *ctx = cairo_create(img);
-            cairo_set_source_surface(ctx, xcb_img, 0, 0);
-            cairo_paint(ctx);
+        blur_img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, last_resolution[0], last_resolution[1]);
+        cairo_t *ctx = cairo_create(blur_img);
+        cairo_set_source_surface(ctx, xcb_img, 0, 0);
+        cairo_paint(ctx);
 
-            cairo_destroy(ctx);
-            cairo_surface_destroy(xcb_img);
-        }
-        blur_image_surface(img, 10000);
+        cairo_destroy(ctx);
+        cairo_surface_destroy(xcb_img);
+        blur_image_surface(blur_img, 10000);
     }
 
     /* Pixmap on which the image is rendered to (if any) */

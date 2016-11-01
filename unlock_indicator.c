@@ -53,6 +53,7 @@ extern char *modifier_string;
 
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
+extern cairo_surface_t *blur_img;
 
 /* Whether the image should be tiled. */
 extern bool tile;
@@ -138,19 +139,26 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
-    if (img) {
-        if (!tile) {
-            cairo_set_source_surface(xcb_ctx, img, 0, 0);
+    if (img || blur_img) {
+        if (blur_img) {
+            cairo_set_source_surface(xcb_ctx, blur_img, 0, 0);
             cairo_paint(xcb_ctx);
-        } else {
-            /* create a pattern and fill a rectangle as big as the screen */
-            cairo_pattern_t *pattern;
-            pattern = cairo_pattern_create_for_surface(img);
-            cairo_set_source(xcb_ctx, pattern);
-            cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-            cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
-            cairo_fill(xcb_ctx);
-            cairo_pattern_destroy(pattern);
+        }
+        if (img) {
+            if (!tile) {
+                cairo_set_source_surface(xcb_ctx, img, 0, 0);
+                cairo_paint(xcb_ctx);
+            } else {
+                /* create a pattern and fill a rectangle as big as the screen */
+                cairo_pattern_t *pattern;
+                pattern = cairo_pattern_create_for_surface(img);
+                cairo_set_source(xcb_ctx, pattern);
+                cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+                cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+                cairo_fill(xcb_ctx);
+                cairo_pattern_destroy(pattern);
+            }
+
         }
     } else {
         char strgroups[3][3] = {{color[0], color[1], '\0'},
