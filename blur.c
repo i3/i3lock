@@ -32,7 +32,7 @@ blur_image_surface (cairo_surface_t *surface, int radius)
 {
     cairo_surface_t *tmp;
     int width, height;
-    int src_stride, dst_stride;
+//    int src_stride, dst_stride;
     uint32_t *src, *dst;
 
     if (cairo_surface_status (surface))
@@ -64,10 +64,10 @@ blur_image_surface (cairo_surface_t *surface, int radius)
     return;
 
     src = (uint32_t*)cairo_image_surface_get_data (surface);
-    src_stride = cairo_image_surface_get_stride (surface);
+//    src_stride = cairo_image_surface_get_stride (surface);
 
     dst = (uint32_t*)cairo_image_surface_get_data (tmp);
-    dst_stride = cairo_image_surface_get_stride (tmp);
+//    dst_stride = cairo_image_surface_get_stride (tmp);
 
     //blur_impl_naive(src, dst, width, height, src_stride, dst_stride, 10000);
     //blur_impl_sse2(src, dst, width, height, 4.5);
