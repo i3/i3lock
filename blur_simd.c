@@ -23,7 +23,7 @@
 // scaling factor for kernel coefficients.
 // higher values cause desaturation.
 // used in SSSE3 implementation.
-#define SCALE_FACTOR 7
+#define SCALE_FACTOR 14
 
 void blur_impl_sse2(uint32_t *src, uint32_t *dst, int width, int height, float sigma) {
     // prepare kernel
@@ -127,7 +127,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
 void blur_impl_ssse3(uint32_t *src, uint32_t *dst, int width, int height, float sigma) {
     // prepare kernel
     float kernelf[KERNEL_SIZE];
-    int8_t kernel[KERNEL_SIZE + 1];
+    int16_t kernel[KERNEL_SIZE + 1];
     float coeff = 1.0 / sqrtf(2 * M_PI * sigma * sigma), sum = 0;
 
     for (int i = 0; i < KERNEL_SIZE; i++) {
@@ -142,7 +142,7 @@ void blur_impl_ssse3(uint32_t *src, uint32_t *dst, int width, int height, float 
 
     // round to nearest integer and convert to int
     for (int i = 0; i < KERNEL_SIZE; i++)
-        kernel[i] = (int8_t)rintf(kernelf[i] * (1 << SCALE_FACTOR));
+        kernel[i] = (int16_t)lrintf(kernelf[i] * (1 << SCALE_FACTOR));
     kernel[KERNEL_SIZE] = 0;
 
     // horizontal pass includes image transposition:
@@ -154,8 +154,10 @@ void blur_impl_ssse3(uint32_t *src, uint32_t *dst, int width, int height, float 
 }
 
 
-void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int8_t *kernel, int width, int height) {
-    __m128i _kern = _mm_loadu_si128((__m128i*)kernel);
+void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int16_t *kernel, int width, int height) {
+    __m128i _kern[2];
+    _kern[0] = _mm_loadu_si128((__m128i*)kernel);
+    _kern[1] = _mm_loadu_si128((__m128i*)(kernel + 8));
     __m128i rgbaIn[REGISTERS_CNT];
 
     for (int row = 0; row < height; row++) {
@@ -203,9 +205,10 @@ void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int8_t *kerne
             // then we repeat the process for the rest of input pixels,
             // call _mm_hadds_epi16 to add adjacent ints and shift right to scale by SCALE_FACTOR.
 
-            __m128i rgba, kern;
+            __m128i rgba, rg, ba, kern;
             __m128i zero = _mm_setzero_si128();
-            __m128i acc = _mm_setzero_si128();
+            __m128i acc_rg = _mm_setzero_si128();
+            __m128i acc_ba = _mm_setzero_si128();
 
             const __m128i rgba_shuf_mask = _mm_setr_epi8(0, 4, 8,  12,
                                                          1, 5, 9,  13,
@@ -213,28 +216,40 @@ void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int8_t *kerne
                                                          3, 7, 11, 15);
 
             const __m128i kern_shuf_mask = _mm_setr_epi8(0, 1, 2, 3,
+                                                         4, 5, 6, 7,
                                                          0, 1, 2, 3,
-                                                         0, 1, 2, 3,
-                                                         0, 1, 2, 3);
+                                                         4, 5, 6, 7);
 
             rgba = _mm_shuffle_epi8(rgbaIn[0], rgba_shuf_mask);
-            kern = _mm_shuffle_epi8(_kern, kern_shuf_mask);
-            acc = _mm_adds_epi16(acc, _mm_maddubs_epi16(rgba, kern));
+            rg = _mm_unpacklo_epi8(rgba, zero);
+            ba = _mm_unpackhi_epi8(rgba, zero);
+            kern = _mm_shuffle_epi8(_kern[0], kern_shuf_mask);
+            acc_rg = _mm_add_epi32(acc_rg, _mm_madd_epi16(rg, kern));
+            acc_ba = _mm_add_epi32(acc_ba, _mm_madd_epi16(ba, kern));
 
             rgba = _mm_shuffle_epi8(rgbaIn[1], rgba_shuf_mask);
-            kern = _mm_shuffle_epi8(_mm_srli_si128(_kern, 4), kern_shuf_mask);
-            acc = _mm_adds_epi16(acc, _mm_maddubs_epi16(rgba, kern));
-
+            rg = _mm_unpacklo_epi8(rgba, zero);
+            ba = _mm_unpackhi_epi8(rgba, zero);
+            kern = _mm_shuffle_epi8(_mm_srli_si128(_kern[0], 8), kern_shuf_mask);
+            acc_rg = _mm_add_epi32(acc_rg, _mm_madd_epi16(rg, kern));
+            acc_ba = _mm_add_epi32(acc_ba, _mm_madd_epi16(ba, kern));
+    
             rgba = _mm_shuffle_epi8(rgbaIn[2], rgba_shuf_mask);
-            kern = _mm_shuffle_epi8(_mm_srli_si128(_kern, 8), kern_shuf_mask);
-            acc = _mm_adds_epi16(acc, _mm_maddubs_epi16(rgba, kern));
+            rg = _mm_unpacklo_epi8(rgba, zero);
+            ba = _mm_unpackhi_epi8(rgba, zero);
+            kern = _mm_shuffle_epi8(_kern[1], kern_shuf_mask);
+            acc_rg = _mm_add_epi32(acc_rg, _mm_madd_epi16(rg, kern));
+            acc_ba = _mm_add_epi32(acc_ba, _mm_madd_epi16(ba, kern));
 
             rgba = _mm_shuffle_epi8(rgbaIn[3], rgba_shuf_mask);
-            kern = _mm_shuffle_epi8(_mm_srli_si128(_kern, 12), kern_shuf_mask);
-            acc = _mm_adds_epi16(acc, _mm_maddubs_epi16(rgba, kern));
+            rg = _mm_unpacklo_epi8(rgba, zero);
+            ba = _mm_unpackhi_epi8(rgba, zero);
+            kern = _mm_shuffle_epi8(_mm_srli_si128(_kern[1], 8), kern_shuf_mask);
+            acc_rg = _mm_add_epi32(acc_rg, _mm_madd_epi16(rg, kern));
+            acc_ba = _mm_add_epi32(acc_ba, _mm_madd_epi16(ba, kern));
 
-            acc = _mm_hadds_epi16(acc, zero);
-            acc = _mm_srai_epi16(acc, SCALE_FACTOR);
+            rgba = _mm_hadd_epi32(acc_rg, acc_ba);
+            rgba = _mm_srai_epi32(rgba, SCALE_FACTOR);
 
             // Cairo sets alpha channel to 255
             // (or -1, depending how you look at it)
@@ -244,7 +259,7 @@ void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int8_t *kerne
             // lock screen images, so no one will mind if we
             // 'correct it' by setting alpha to 255.
             *(dst + height * column + row) =
-                _mm_cvtsi128_si32(_mm_packus_epi16(acc, zero)) | 0xFF000000;
+                _mm_cvtsi128_si32(_mm_shuffle_epi8(rgba, rgba_shuf_mask));
         }
     }
 }
