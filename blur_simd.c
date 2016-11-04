@@ -63,24 +63,25 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
             // handle borders
             int leftBorder = column < HALF_KERNEL;
             int rightBorder = column > width - HALF_KERNEL;
-            if (leftBorder || rightBorder) {
-                uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
-                int i = 0;
-                if (leftBorder) {
-                    // for kernel size 7x7 and column == 0, we have:
-                    // x x x P0 P1 P2 P3
-                    // first loop mirrors P{0..3} to fill x's,
-                    // second one loads P{0..3}
-                    for (; i < HALF_KERNEL - column; i++)
-                        _rgbaIn[i] = *(src + (HALF_KERNEL - i));
-                    for (; i < KERNEL_SIZE; i++)
-                        _rgbaIn[i] = *(src - (HALF_KERNEL - i));
-                } else {
-                    for (; i < width - column; i++)
-                        _rgbaIn[i] = *(src + i);
-                    for (int k = 0; i < KERNEL_SIZE; i++, k++)
-                        _rgbaIn[i] = *(src - k);
-                }
+            uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
+            int i = 0;
+            if (leftBorder) {
+                // for kernel size 7x7 and column == 0, we have:
+                // x x x P0 P1 P2 P3
+                // first loop mirrors P{0..3} to fill x's,
+                // second one loads P{0..3}
+                for (; i < HALF_KERNEL - column; i++)
+                    _rgbaIn[i] = *(src + (HALF_KERNEL - i));
+                for (; i < KERNEL_SIZE; i++)
+                    _rgbaIn[i] = *(src - (HALF_KERNEL - i));
+
+                for (int k = 0; k < REGISTERS_CNT; k++)
+                    rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
+            } else if (rightBorder) {
+                for (; i < width - column; i++)
+                    _rgbaIn[i] = *(src + i);
+                for (int k = 0; i < KERNEL_SIZE; i++, k++)
+                    _rgbaIn[i] = *(src - k);
 
                 for (int k = 0; k < REGISTERS_CNT; k++)
                     rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
@@ -166,24 +167,25 @@ void blur_impl_horizontal_pass_avx(uint32_t *src, uint32_t *dst, float *kernel, 
             // handle borders
             int leftBorder = column < HALF_KERNEL;
             int rightBorder = column > width - HALF_KERNEL;
-            if (leftBorder || rightBorder) {
-                uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
-                int i = 0;
-                if (leftBorder) {
-                    // for kernel size 7x7 and column == 0, we have:
-                    // x x x P0 P1 P2 P3
-                    // first loop mirrors P{0..3} to fill x's,
-                    // second one loads P{0..3}
-                    for (; i < HALF_KERNEL - column; i++)
-                        _rgbaIn[i] = *(src + (HALF_KERNEL - i));
-                    for (; i < KERNEL_SIZE; i++)
-                        _rgbaIn[i] = *(src - (HALF_KERNEL - i));
-                } else {
-                    for (; i < width - column; i++)
-                        _rgbaIn[i] = *(src + i);
-                    for (int k = 0; i < KERNEL_SIZE; i++, k++)
-                        _rgbaIn[i] = *(src - k);
-                }
+            uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
+            int i = 0;
+            if (leftBorder) {
+                // for kernel size 7x7 and column == 0, we have:
+                // x x x P0 P1 P2 P3
+                // first loop mirrors P{0..3} to fill x's,
+                // second one loads P{0..3}
+                for (; i < HALF_KERNEL - column; i++)
+                    _rgbaIn[i] = *(src + (HALF_KERNEL - i));
+                for (; i < KERNEL_SIZE; i++)
+                    _rgbaIn[i] = *(src - (HALF_KERNEL - i));
+
+                for (int k = 0; k < REGISTERS_CNT; k++)
+                    rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
+            } else if (rightBorder) {
+                for (; i < width - column; i++)
+                    _rgbaIn[i] = *(src + i);
+                for (int k = 0; i < KERNEL_SIZE; i++, k++)
+                    _rgbaIn[i] = *(src - k);
 
                 for (int k = 0; k < REGISTERS_CNT; k++)
                     rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
