@@ -14,9 +14,9 @@ endif
 CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
-CFLAGS += -mssse3
-CFLAGS += -mavx
 CFLAGS += -O2
+SIMD_CFLAGS += -mavx
+SIMD_CFLAGS += -mssse3
 CPPFLAGS += -D_GNU_SOURCE
 CPPFLAGS += -DXKBCOMPOSE=$(shell if test -e /usr/include/xkbcommon/xkbcommon-compose.h ; then echo 1 ; else echo 0 ; fi )
 CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
@@ -45,6 +45,7 @@ all: i3lock
 debug: CFLAGS += -g
 debug: i3lock
 
+blur_simd.o : CFLAGS += $(SIMD_CFLAGS)
 i3lock: ${FILES}
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
