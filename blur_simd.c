@@ -90,44 +90,30 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
                     rgbaIn[k] = _mm_loadu_si128((__m128i*)(src + 4*k - HALF_KERNEL));
             }
 
-            // unpack each pixel, convert to float,
-            // multiply by corresponding kernel value
-            // and add to accumulator
             __m128i tmp;
             __m128i zero = _mm_setzero_si128();
-            __m128 rgba_ps;
-            __m128 acc = _mm_setzero_ps();
-            int counter = 0;
+            __m128i acc = _mm_setzero_si128();
 
             for (int i = 0; i < 3; i++)
             {
-                tmp = _mm_unpacklo_epi8(rgbaIn[i], zero);
-                rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
-                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-                rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
-                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-
-                tmp = _mm_unpackhi_epi8(rgbaIn[i], zero);
-                rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
-                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-                rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
-                acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+                acc = _mm_add_epi16(acc, _mm_unpacklo_epi8(rgbaIn[i], zero));
+                acc = _mm_add_epi16(acc, _mm_unpackhi_epi8(rgbaIn[i], zero));
             }
 
-            tmp = _mm_unpacklo_epi8(rgbaIn[3], zero);
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpackhi_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+            acc = _mm_add_epi16(acc, _mm_unpacklo_epi8(rgbaIn[3], zero));
 
             tmp = _mm_unpackhi_epi8(rgbaIn[3], zero);
-            rgba_ps = _mm_cvtepi32_ps(_mm_unpacklo_epi16(tmp, zero));
-            acc = _mm_add_ps(acc, _mm_mul_ps(rgba_ps, _mm_set1_ps(kernel[counter++])));
+            // set 16th pixel to zeroes
+            tmp = _mm_andnot_si128(_mm_set_epi16(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0,0,0,0), tmp);
+            acc = _mm_add_epi16(acc, tmp);
+            acc = _mm_add_epi32(_mm_unpacklo_epi16(acc, zero), _mm_unpackhi_epi16(acc, zero));
 
-            __m128i rgbaOut = _mm_cvtps_epi32(acc);
-            rgbaOut = _mm_packs_epi32(rgbaOut, zero);
-            rgbaOut = _mm_packus_epi16(rgbaOut, zero);
-            *(dst + height * column + row) = _mm_cvtsi128_si32(rgbaOut);
+            acc = _mm_cvtps_epi32(_mm_mul_ps(_mm_cvtepi32_ps(acc),
+                                             _mm_set1_ps(1/((float)(KERNEL_SIZE)))));
+
+            acc = _mm_packs_epi32(acc, zero);
+            acc = _mm_packus_epi16(acc, zero);
+            *(dst + height * column + row) = _mm_cvtsi128_si32(acc);
         }
     }
 }
