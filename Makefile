@@ -15,8 +15,6 @@ CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
 CFLAGS += -O2
-SIMD_CFLAGS += -mavx
-SIMD_CFLAGS += -mno-sse2avx
 SIMD_CFLAGS += -funroll-loops
 CPPFLAGS += -D_GNU_SOURCE
 CPPFLAGS += -DXKBCOMPOSE=$(shell if test -e /usr/include/xkbcommon/xkbcommon-compose.h ; then echo 1 ; else echo 0 ; fi )
