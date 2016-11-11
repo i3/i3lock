@@ -15,8 +15,5 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
 void blur_impl_avx(uint32_t* src, uint32_t* dst, int width, int height, float sigma);
 void blur_impl_horizontal_pass_avx(uint32_t *src, uint32_t *dst, float *kernel, int width, int height);
 
-void blur_impl_ssse3(uint32_t* src, uint32_t* dst, int width, int height, float sigma);
-void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int16_t *kernel, int width, int height);
-
 #endif
 
