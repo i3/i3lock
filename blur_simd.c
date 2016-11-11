@@ -13,6 +13,7 @@
 
 #define ALIGN16 __attribute__((aligned(16)))
 #define KERNEL_SIZE 7 
+#define SIGMA_AV 2
 #define HALF_KERNEL KERNEL_SIZE / 2
 
 // number of xmm registers needed to store 
@@ -20,29 +21,31 @@
 #define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
 
 void blur_impl_sse2(uint32_t *src, uint32_t *dst, int width, int height, float sigma) {
-    // prepare kernel
-    float kernel[KERNEL_SIZE];
-    float coeff = 1.0 / sqrtf(2 * M_PI * sigma * sigma), sum = 0;
+    // according to a paper by Peter Kovesi [1], box filter of width w, equals to Gaussian blur of following sigma:
+    // σ_av = sqrt((w*w-1)/12)
+    // for our 7x7 filter we have σ_av = 2.0.
+    // applying the same Gaussian filter n times results in σ_n = sqrt(n*σ_av*σ_av) [2]
+    // after some trivial math, we arrive at n = ((σ_d)/(σ_av))^2
+    // since it's a box blur filter, n >= 3
+    //
+    // [1]: http://www.peterkovesi.com/papers/FastGaussianSmoothing.pdf
+    // [2]: https://en.wikipedia.org/wiki/Gaussian_blur#Mathematics
+    
+    int n = lrintf((sigma*sigma)/(SIGMA_AV*SIGMA_AV));
+    if (n < 3) n = 3;
 
-    for (int i = 0; i < KERNEL_SIZE; i++) {
-        float x = HALF_KERNEL - i;
-        kernel[i] = coeff * expf(-x * x / (2.0 * sigma * sigma));
-        sum += kernel[i];
+    for (int i = 0; i < n; i++)
+    {
+        // horizontal pass includes image transposition:
+        // instead of writing pixel src[x] to dst[x],
+        // we write it to transposed location.
+        // (to be exact: dst[height * current_column + current_row])
+        blur_impl_horizontal_pass_sse2(src, dst, width, height);
+        blur_impl_horizontal_pass_sse2(dst, src, height, width);
     }
-
-    // normalize kernel
-    for (int i = 0; i < KERNEL_SIZE; i++)
-        kernel[i] /= sum;
-
-    // horizontal pass includes image transposition:
-    // instead of writing pixel src[x] to dst[x],
-    // we write it to transposed location.
-    // (to be exact: dst[height * current_column + current_row])
-    blur_impl_horizontal_pass_sse2(src, dst, kernel, width, height);
-    blur_impl_horizontal_pass_sse2(dst, src, kernel, height, width);
 }
 
-void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel, int width, int height) {
+void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int height) {
     for (int row = 0; row < height; row++) {
         for (int column = 0; column < width; column++, src++) {
             __m128i rgbaIn[REGISTERS_CNT];
@@ -91,6 +94,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
             acc = _mm_add_epi32(_mm_unpacklo_epi16(acc, zero), 
                                 _mm_unpackhi_epi16(acc, zero));
 
+            // multiplication is significantly faster than division
             acc = _mm_cvtps_epi32(_mm_mul_ps(_mm_cvtepi32_ps(acc),
                                              _mm_set1_ps(1/((float)KERNEL_SIZE))));
 
