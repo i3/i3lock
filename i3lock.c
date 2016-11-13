@@ -426,10 +426,11 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 
     switch (ksym) {
         case XKB_KEY_j:
+        case XKB_KEY_m:
         case XKB_KEY_Return:
         case XKB_KEY_KP_Enter:
         case XKB_KEY_XF86ScreenSaver:
-            if (ksym == XKB_KEY_j && !ctrl)
+            if ((ksym == XKB_KEY_j || ksym == XKB_KEY_m) && !ctrl)
                 break;
 
             if (pam_state == STATE_PAM_WRONG) {
