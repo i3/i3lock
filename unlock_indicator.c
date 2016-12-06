@@ -45,6 +45,9 @@ extern uint32_t last_resolution[2];
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
 
+/* Whether the PAM state text is displayed (defaults to true). */
+extern bool pam_state_text;
+
 /* List of pressed modifiers, or NULL if none are pressed. */
 extern char *modifier_string;
 
@@ -202,62 +205,64 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgb(ctx, 0, 0, 0);
-        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
-        switch (pam_state) {
-            case STATE_PAM_VERIFY:
-                text = "verifying…";
-                break;
-            case STATE_PAM_LOCK:
-                text = "locking…";
-                break;
-            case STATE_PAM_WRONG:
-                text = "wrong!";
-                break;
-            case STATE_I3LOCK_LOCK_FAILED:
-                text = "lock failed!";
-                break;
-            default:
-                if (show_failed_attempts && failed_attempts > 0) {
-                    if (failed_attempts > 999) {
-                        text = "> 999";
-                    } else {
-                        snprintf(buf, sizeof(buf), "%d", failed_attempts);
-                        text = buf;
-                    }
-                    cairo_set_source_rgb(ctx, 1, 0, 0);
-                    cairo_set_font_size(ctx, 32.0);
-                }
-                break;
-        }
+        if (pam_state_text) {
+          cairo_set_source_rgb(ctx, 0, 0, 0);
+          cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+          cairo_set_font_size(ctx, 28.0);
+          switch (pam_state) {
+              case STATE_PAM_VERIFY:
+                  text = "verifying…";
+                  break;
+              case STATE_PAM_LOCK:
+                  text = "locking…";
+                  break;
+              case STATE_PAM_WRONG:
+                  text = "wrong!";
+                  break;
+              case STATE_I3LOCK_LOCK_FAILED:
+                  text = "lock failed!";
+                  break;
+              default:
+                  if (show_failed_attempts && failed_attempts > 0) {
+                      if (failed_attempts > 999) {
+                          text = "> 999";
+                      } else {
+                          snprintf(buf, sizeof(buf), "%d", failed_attempts);
+                          text = buf;
+                      }
+                      cairo_set_source_rgb(ctx, 1, 0, 0);
+                      cairo_set_font_size(ctx, 32.0);
+                  }
+                  break;
+          }
 
-        if (text) {
-            cairo_text_extents_t extents;
-            double x, y;
+          if (text) {
+              cairo_text_extents_t extents;
+              double x, y;
 
-            cairo_text_extents(ctx, text, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
+              cairo_text_extents(ctx, text, &extents);
+              x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+              y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
 
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
-        }
+              cairo_move_to(ctx, x, y);
+              cairo_show_text(ctx, text);
+              cairo_close_path(ctx);
+          }
 
-        if (pam_state == STATE_PAM_WRONG && (modifier_string != NULL)) {
-            cairo_text_extents_t extents;
-            double x, y;
+          if (pam_state == STATE_PAM_WRONG && (modifier_string != NULL)) {
+              cairo_text_extents_t extents;
+              double x, y;
 
-            cairo_set_font_size(ctx, 14.0);
+              cairo_set_font_size(ctx, 14.0);
 
-            cairo_text_extents(ctx, modifier_string, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
+              cairo_text_extents(ctx, modifier_string, &extents);
+              x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+              y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
 
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, modifier_string);
-            cairo_close_path(ctx);
+              cairo_move_to(ctx, x, y);
+              cairo_show_text(ctx, modifier_string);
+              cairo_close_path(ctx);
+          }
         }
 
         /* After the user pressed any valid key or the backspace key, we
