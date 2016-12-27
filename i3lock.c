@@ -102,6 +102,19 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+static bool expected_exit = false;
+
+static void exit_handler() {
+    if (expected_exit) {
+        return;
+    }
+
+    fprintf(stderr, "[i3lock] Unexpected termination!\n");
+
+    /* Exit with a failure code so a wrapper script can capture it */
+    _exit(EXIT_FAILURE);
+}
+
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -288,6 +301,8 @@ static void input_done(void) {
 
     if (auth_userokay(pw->pw_name, NULL, NULL, password) != 0) {
         DEBUG("successfully authenticated\n");
+        expected_exit = true;
+
         clear_password_memory();
 
         ev_break(EV_DEFAULT, EVBREAK_ALL);
@@ -296,6 +311,8 @@ static void input_done(void) {
 #else
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         DEBUG("successfully authenticated\n");
+        expected_exit = true;
+
         clear_password_memory();
 
         /* PAM credentials should be refreshed, this will for example update any kerberos tickets.
@@ -782,8 +799,10 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                     dont_fork = true;
 
                     /* In the parent process, we exit */
-                    if (fork() != 0)
-                        exit(0);
+                    if (fork() != 0) {
+                        expected_exit = true;
+                        exit(EXIT_SUCCESS);
+                    }
 
                     ev_loop_fork(EV_DEFAULT);
                 }
@@ -847,13 +866,17 @@ static void raise_loop(xcb_window_t window) {
                 break;
             case XCB_UNMAP_NOTIFY:
                 DEBUG("UnmapNotify for 0x%08x\n", (((xcb_unmap_notify_event_t *)event)->window));
-                if (((xcb_unmap_notify_event_t *)event)->window == window)
+                if (((xcb_unmap_notify_event_t *)event)->window == window) {
+                    expected_exit = true;
                     exit(EXIT_SUCCESS);
+                }
                 break;
             case XCB_DESTROY_NOTIFY:
                 DEBUG("DestroyNotify for 0x%08x\n", (((xcb_destroy_notify_event_t *)event)->window));
-                if (((xcb_destroy_notify_event_t *)event)->window == window)
+                if (((xcb_destroy_notify_event_t *)event)->window == window) {
+                    expected_exit = true;
                     exit(EXIT_SUCCESS);
+                }
                 break;
             default:
                 DEBUG("Unhandled event type %d\n", type);
@@ -1123,6 +1146,10 @@ int main(int argc, char *argv[]) {
         raise_loop(win);
         exit(EXIT_SUCCESS);
     }
+
+    /* Install a handler that gets called in case of unexpected exit */
+    atexit(exit_handler);
+    at_quick_exit(exit_handler);
 
     /* Load the keymap again to sync the current modifier state. Since we first
      * loaded the keymap, there might have been changes, but starting from now,
