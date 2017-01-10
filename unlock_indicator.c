@@ -296,8 +296,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
                       BUTTON_RADIUS /* radius */,
-                      highlight_start + (M_PI / 3.0) /* start */,
-                      (highlight_start + (M_PI / 3.0)) + (M_PI / 128.0) /* end */);
+                      (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0) /* start */,
+                      highlight_start + (M_PI / 3.0) /* end */);
             cairo_stroke(ctx);
         }
     }
