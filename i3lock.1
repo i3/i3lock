@@ -23,6 +23,7 @@ i3lock \- improved screen locker
 .RB [\|\-c
 .IR color \|]
 .RB [\|\-t\|]
+.RB [\|\-m\|]
 .RB [\|\-p
 .IR pointer\|]
 .RB [\|\-u\|]
@@ -82,6 +83,10 @@ format: rrggbb (i.e. ff0000 is red).
 .B \-t, \-\-tiling
 If an image is specified (via \-i) it will display the image tiled all over the screen
 (if it is a multi-monitor setup, the image is visible on all screens).
+
+.TP
+.B \-m, \-\-middle
+If an image is specified (via \-i) it will display the image centered on every screen.
 
 .TP
 .BI \-p\  win|default \fR,\ \fB\-\-pointer= win|default
