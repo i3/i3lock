@@ -32,6 +32,7 @@ Many little improvements have been made to i3lock over time:
      - `--line-uses-inside`, `-s` -- the line between the inside and outer ring uses the inside color for its color
      - `-S, --screen` -- specifies which display to draw the unlock indicator on
      - `-k, --clock` -- enables the clock display.
+     - `-B, --blur` -- enables Gaussian blur
      - `--timestr="%H:%M:%S"` -- allows custom overriding of the time format string. Accepts `strftime` formatting. Default is `"%H:%M:%S"`.
      - `--datestr="%A, %m %Y"` -- allows custom overriding of the date format string. Accepts `strftime` formatting. Default is `"%A, %m %Y"`.
   - All the colors have an alpha channel now. Please keep in mind that this was not intended when the program was originally written, so making things transparent that weren't before can make it look strange.
