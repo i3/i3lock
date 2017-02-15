@@ -10,7 +10,6 @@
 #include "blur.h"
 #include <xmmintrin.h>
 
-#define ALIGN16 __attribute__((aligned(16)))
 // number of xmm registers needed to store input pixels for given kernel size
 #define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
 
@@ -22,7 +21,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int
             // handle borders
             int leftBorder = column < HALF_KERNEL;
             int rightBorder = column > width - HALF_KERNEL;
-            uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
+            uint32_t _rgbaIn[KERNEL_SIZE] __attribute__((aligned(16)));
             int i = 0;
             if (leftBorder) {
                 // for kernel size 7x7 and column == 0, we have:
@@ -65,7 +64,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int
 
             // multiplication is significantly faster than division
             acc = _mm_cvtps_epi32(_mm_mul_ps(_mm_cvtepi32_ps(acc),
-                                             _mm_set1_ps(1/((float)KERNEL_SIZE))));
+                                             _mm_set1_ps(1.0/KERNEL_SIZE)));
 
             *(dst + height * column + row) = 
                 _mm_cvtsi128_si32(_mm_packus_epi16(_mm_packs_epi32(acc, zero), zero));

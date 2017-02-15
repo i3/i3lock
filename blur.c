@@ -1,6 +1,6 @@
 /*
- * Copyright Â© 2008 Kristian HÃ¸gsberg
- * Copyright Â© 2009 Chris Wilson
+ * Copyright © 2008 Kristian Høgsberg
+ * Copyright © 2009 Chris Wilson
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
