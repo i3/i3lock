@@ -79,7 +79,7 @@ char date_format[32] = "%A, %m %Y\0";
 /* opts for blurring */
 bool blur = false;
 bool step_blur = false;
-int blur_radius = 5;
+int blur_sigma = 5;
 
 uint32_t last_resolution[2];
 xcb_window_t win;
@@ -866,7 +866,7 @@ int main(int argc, char *argv[]) {
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
 
-        {"blur", no_argument, NULL, 'B'},
+        {"blur", required_argument, NULL, 'B'},
 
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -878,7 +878,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:kB";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -950,6 +950,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'B':
                 blur = true;
+                blur_sigma = atoi(optarg);
                 break;
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
@@ -1084,7 +1085,8 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock-color [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [-k] [--fuckton-of-color-args=rrggbbaa]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [-k]"
+                                   " [-B blur_strength] [--fuckton-of-color-args=rrggbbaa]");
         }
     }
 
@@ -1207,7 +1209,7 @@ int main(int argc, char *argv[]) {
             cairo_destroy(ctx);
             cairo_surface_destroy(xcb_img);
         }
-        blur_image_surface(img, 10000);
+        blur_image_surface(img, blur_sigma);
     }
 
     /* Pixmap on which the image is rendered to (if any) */

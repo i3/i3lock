@@ -24,9 +24,9 @@
 #include <math.h>
 #include "blur.h"
 
-/* Performs a simple 2D Gaussian blur of radius @radius on surface @surface. */
+/* Performs a simple 2D Gaussian blur of standard devation @sigma surface @surface. */
 void
-blur_image_surface (cairo_surface_t *surface, int radius)
+blur_image_surface (cairo_surface_t *surface, int sigma)
 {
     cairo_surface_t *tmp;
     int width, height;
@@ -72,8 +72,6 @@ blur_image_surface (cairo_surface_t *surface, int radius)
     //
     // [1]: http://www.peterkovesi.com/papers/FastGaussianSmoothing.pdf
     // [2]: https://en.wikipedia.org/wiki/Gaussian_blur#Mathematics
-    
-    float sigma = 5;
     
     int n = lrintf((sigma*sigma)/(SIGMA_AV*SIGMA_AV));
     if (n < 3) n = 3;
