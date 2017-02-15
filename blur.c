@@ -82,7 +82,7 @@ blur_image_surface (cairo_surface_t *surface, int sigma)
         // instead of writing pixel src[x] to dst[x],
         // we write it to transposed location.
         // (to be exact: dst[height * current_column + current_row])
-#ifdef __x86_64__
+#ifdef __SSE2__
         blur_impl_horizontal_pass_sse2(src, dst, width, height);
         blur_impl_horizontal_pass_sse2(dst, src, height, width);
 #else
