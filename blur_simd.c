@@ -8,42 +8,11 @@
  */
 
 #include "blur.h"
-#include <math.h>
 #include <xmmintrin.h>
 
 #define ALIGN16 __attribute__((aligned(16)))
-#define KERNEL_SIZE 7 
-#define SIGMA_AV 2
-#define HALF_KERNEL KERNEL_SIZE / 2
-
-// number of xmm registers needed to store 
-// input pixels for given kernel size
+// number of xmm registers needed to store input pixels for given kernel size
 #define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
-
-void blur_impl_sse2(uint32_t *src, uint32_t *dst, int width, int height, float sigma) {
-    // according to a paper by Peter Kovesi [1], box filter of width w, equals to Gaussian blur of following sigma:
-    // σ_av = sqrt((w*w-1)/12)
-    // for our 7x7 filter we have σ_av = 2.0.
-    // applying the same Gaussian filter n times results in σ_n = sqrt(n*σ_av*σ_av) [2]
-    // after some trivial math, we arrive at n = ((σ_d)/(σ_av))^2
-    // since it's a box blur filter, n >= 3
-    //
-    // [1]: http://www.peterkovesi.com/papers/FastGaussianSmoothing.pdf
-    // [2]: https://en.wikipedia.org/wiki/Gaussian_blur#Mathematics
-    
-    int n = lrintf((sigma*sigma)/(SIGMA_AV*SIGMA_AV));
-    if (n < 3) n = 3;
-
-    for (int i = 0; i < n; i++)
-    {
-        // horizontal pass includes image transposition:
-        // instead of writing pixel src[x] to dst[x],
-        // we write it to transposed location.
-        // (to be exact: dst[height * current_column + current_row])
-        blur_impl_horizontal_pass_sse2(src, dst, width, height);
-        blur_impl_horizontal_pass_sse2(dst, src, height, width);
-    }
-}
 
 void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int height) {
     for (int row = 0; row < height; row++) {

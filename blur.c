@@ -24,15 +24,12 @@
 #include <math.h>
 #include "blur.h"
 
-#define ARRAY_LENGTH(a) (sizeof (a) / sizeof (a)[0])
-
 /* Performs a simple 2D Gaussian blur of radius @radius on surface @surface. */
 void
 blur_image_surface (cairo_surface_t *surface, int radius)
 {
     cairo_surface_t *tmp;
     int width, height;
-    int src_stride, dst_stride;
     uint32_t *src, *dst;
 
     if (cairo_surface_status (surface))
@@ -64,89 +61,87 @@ blur_image_surface (cairo_surface_t *surface, int radius)
     return;
 
     src = (uint32_t*)cairo_image_surface_get_data (surface);
-    src_stride = cairo_image_surface_get_stride (surface);
-
     dst = (uint32_t*)cairo_image_surface_get_data (tmp);
-    dst_stride = cairo_image_surface_get_stride (tmp);
 
-    //blur_impl_naive(src, dst, width, height, src_stride, dst_stride, 10000);
-    //blur_impl_sse2(src, dst, width, height, 4.5);
-    blur_impl_ssse3(src, dst, width, height, 4.5);
+    // according to a paper by Peter Kovesi [1], box filter of width w, equals to Gaussian blur of following sigma:
+    // σ_av = sqrt((w*w-1)/12)
+    // for our 7x7 filter we have σ_av = 2.0.
+    // applying the same Gaussian filter n times results in σ_n = sqrt(n*σ_av*σ_av) [2]
+    // after some trivial math, we arrive at n = ((σ_d)/(σ_av))^2
+    // since it's a box blur filter, n >= 3
+    //
+    // [1]: http://www.peterkovesi.com/papers/FastGaussianSmoothing.pdf
+    // [2]: https://en.wikipedia.org/wiki/Gaussian_blur#Mathematics
+    
+    float sigma = 5;
+    
+    int n = lrintf((sigma*sigma)/(SIGMA_AV*SIGMA_AV));
+    if (n < 3) n = 3;
 
+    for (int i = 0; i < n; i++)
+    {
+        // horizontal pass includes image transposition:
+        // instead of writing pixel src[x] to dst[x],
+        // we write it to transposed location.
+        // (to be exact: dst[height * current_column + current_row])
+#ifdef __x86_64__
+        blur_impl_horizontal_pass_sse2(src, dst, width, height);
+        blur_impl_horizontal_pass_sse2(dst, src, height, width);
+#else
+        blur_impl_horizontal_pass_generic(src, dst, width, height);
+        blur_impl_horizontal_pass_generic(dst, src, height, width);
+#endif
+    }
+ 
     cairo_surface_destroy (tmp);
     cairo_surface_flush (surface);
     cairo_surface_mark_dirty (surface);
 }
 
-void blur_impl_naive(uint32_t* _src, uint32_t* _dst, int width, int height, int src_stride, int dst_stride, int radius)
-{
-    int x, y, z, w;
-    uint32_t *s, *d, a, p;
-    int i, j, k;
-    uint8_t kernel[17];
-    const int size = ARRAY_LENGTH (kernel);
-    const int half = size / 2;
+void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, int height) {
+    for (int row = 0; row < height; row++) {
+        for (int column = 0; column < width; column++, src++) {
+            uint32_t rgbaIn[KERNEL_SIZE];
 
-    uint8_t *src = (uint8_t*)_src;
-    uint8_t *dst = (uint8_t*)_dst;
+            // handle borders
+            int leftBorder = column < HALF_KERNEL;
+            int rightBorder = column > width - HALF_KERNEL;
+            int i = 0;
+            if (leftBorder) {
+                // for kernel size 7x7 and column == 0, we have:
+                // x x x P0 P1 P2 P3
+                // first loop mirrors P{0..3} to fill x's,
+                // second one loads P{0..3}
+                for (; i < HALF_KERNEL - column; i++)
+                    rgbaIn[i] = *(src + (HALF_KERNEL - i));
+                for (; i < KERNEL_SIZE; i++)
+                    rgbaIn[i] = *(src - (HALF_KERNEL - i));
+            } else if (rightBorder) {
+                for (; i < width - column; i++)
+                    rgbaIn[i] = *(src + i);
+                for (int k = 0; i < KERNEL_SIZE; i++, k++)
+                    rgbaIn[i] = *(src - k);
+            } else {
+                for (; i < KERNEL_SIZE; i++)
+                    rgbaIn[i] = *(src + i - HALF_KERNEL);
+            }
 
-    a = 0;
-    for (i = 0; i < size; i++) {
-    double f = i - half;
-    a += kernel[i] = exp (- f * f / 30.0) * 80;
-    }
+            uint32_t acc[4] = {0};
 
-    /* Horizontally blur from surface -> tmp */
-    for (i = 0; i < height; i++) {
-    s = (uint32_t *) (src + i * src_stride);
-    d = (uint32_t *) (dst + i * dst_stride);
-    for (j = 0; j < width; j++) {
-        if (radius < j && j < width - radius) {
-        d[j] = s[j];
-        continue;
+            for (i = 0; i < KERNEL_SIZE; i++) {
+                acc[0] += (rgbaIn[i] & 0xFF000000) >> 24;
+                acc[1] += (rgbaIn[i] & 0x00FF0000) >> 16;
+                acc[2] += (rgbaIn[i] & 0x0000FF00) >> 8;
+                acc[3] += (rgbaIn[i] & 0x000000FF) >> 0;
+            }
+
+            for(i = 0; i < 4; i++)
+                acc[i] *= 1.0/KERNEL_SIZE;
+
+            *(dst + height * column + row) = (acc[0] << 24) |
+                                             (acc[1] << 16) |
+                                             (acc[2] << 8 ) |
+                                             (acc[3] << 0);
         }
-
-        x = y = z = w = 0;
-        for (k = 0; k < size; k++) {
-        if (j - half + k < 0 || j - half + k >= width)
-            continue;
-
-        p = s[j - half + k];
-
-        x += ((p >> 24) & 0xff) * kernel[k];
-        y += ((p >> 16) & 0xff) * kernel[k];
-        z += ((p >>  8) & 0xff) * kernel[k];
-        w += ((p >>  0) & 0xff) * kernel[k];
-        }
-        d[j] = (x / a << 24) | (y / a << 16) | (z / a << 8) | w / a;
-    }
-    }
-
-    /* Then vertically blur from tmp -> surface */
-    for (i = 0; i < height; i++) {
-    s = (uint32_t *) (dst + i * dst_stride);
-    d = (uint32_t *) (src + i * src_stride);
-    for (j = 0; j < width; j++) {
-        if (radius <= i && i < height - radius) {
-        d[j] = s[j];
-        continue;
-        }
-
-        x = y = z = w = 0;
-        for (k = 0; k < size; k++) {
-        if (i - half + k < 0 || i - half + k >= height)
-            continue;
-
-        s = (uint32_t *) (dst + (i - half + k) * dst_stride);
-        p = s[j];
-
-        x += ((p >> 24) & 0xff) * kernel[k];
-        y += ((p >> 16) & 0xff) * kernel[k];
-        z += ((p >>  8) & 0xff) * kernel[k];
-        w += ((p >>  0) & 0xff) * kernel[k];
-        }
-        d[j] = (x / a << 24) | (y / a << 16) | (z / a << 8) | w / a;
-    }
     }
 }
-
