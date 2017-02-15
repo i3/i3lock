@@ -36,5 +36,5 @@ V='#bb00bbbb'  # verifying
 --clock               \
 --timestr="%H:%M:%S"  \
 --datestr="%A, %m %Y" \
--B                    \
+--blur 5              \
 
