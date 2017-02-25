@@ -57,6 +57,7 @@ static bool beep = false;
 bool debug_mode = false;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
+char *shell_command = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_pam_wrong_timeout;
@@ -67,6 +68,7 @@ extern pam_state_t pam_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
 bool retry_verification = false;
+int system(const char *command);
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -269,7 +271,9 @@ static void input_done(void) {
 
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
-
+    if (shell_command) {
+        system(shell_command);
+    }
     /* Get state of Caps and Num lock modifiers, to be displayed in
      * STATE_PAM_WRONG state */
     xkb_mod_index_t idx, num_mods;
@@ -802,6 +806,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"shell_command", required_argument, NULL, 's'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -809,7 +814,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fs:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -867,9 +872,12 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 's':
+                shell_command = strdup(optarg);
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-s shell_command]");
         }
     }
 
