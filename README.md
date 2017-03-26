@@ -25,6 +25,7 @@ Requirements
 - libxcb-util
 - libpam-dev
 - libcairo-dev
+- libxcb-composite0
 - libxcb-xinerama
 - libxcb-randr
 - libev

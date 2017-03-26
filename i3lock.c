@@ -87,6 +87,7 @@ extern auth_state_t auth_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
 bool retry_verification = false;
+bool use_composite_overlay = false;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -895,6 +896,7 @@ int main(int argc, char *argv[]) {
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
         {"lock-console", no_argument, NULL, 'l'},
+        {"use-composite-overlay", no_argument, NULL, 'o'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -967,9 +969,12 @@ int main(int argc, char *argv[]) {
                 errx(EXIT_FAILURE, "TTY switch locking is only supported on Linux.");
 #endif
                 break;
+            case 'o':
+                use_composite_overlay = true;
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l] [-o]");
         }
     }
 

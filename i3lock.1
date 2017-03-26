@@ -115,6 +115,11 @@ Lock the console to disable TTY switching (Linux only).
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
 
+.TP
+.B \-o, \-\-use-composite-overlay
+Use the composite overlay window. For some compositors it might fix windows
+appearing on top of the lock screen, for other compositors it might break.
+
 .SH DPMS
 
 The \-d (\-\-dpms) option was removed from i3lock in version 2.8. There were
