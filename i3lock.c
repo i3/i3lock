@@ -56,6 +56,7 @@ static char password[512];
 static bool beep = false;
 bool debug_mode = false;
 bool unlock_indicator = true;
+bool pam_state_text = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
@@ -797,6 +798,7 @@ int main(int argc, char *argv[]) {
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
+        {"no-text", no_argument, NULL, 'x'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
@@ -809,7 +811,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:uxi:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -842,6 +844,9 @@ int main(int argc, char *argv[]) {
             case 'u':
                 unlock_indicator = false;
                 break;
+            case 'x':
+                pam_state_text = false;
+                break;
             case 'i':
                 image_path = strdup(optarg);
                 break;
@@ -868,7 +873,7 @@ int main(int argc, char *argv[]) {
                 show_failed_attempts = true;
                 break;
             default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-x] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
