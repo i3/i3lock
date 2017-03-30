@@ -56,6 +56,9 @@ extern bool tile;
 /* The background color to use (in hex). */
 extern char color[7];
 
+/* Whether textual PAM state representations should be shown. */
+extern bool show_state_messages;
+
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -207,13 +210,15 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_set_font_size(ctx, 28.0);
         switch (pam_state) {
             case STATE_PAM_VERIFY:
-                text = "verifying…";
+                if (show_state_messages)
+                    text = "verifying…";
                 break;
             case STATE_PAM_LOCK:
                 text = "locking…";
                 break;
             case STATE_PAM_WRONG:
-                text = "wrong!";
+                if (show_state_messages)
+                    text = "wrong!";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 text = "lock failed!";
