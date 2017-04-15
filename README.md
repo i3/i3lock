@@ -16,6 +16,7 @@ Many little improvements have been made to i3lock over time:
 - You can specify whether i3lock should bell upon a wrong password.
 
 - i3lock uses PAM and therefore is compatible with LDAP etc.
+  On OpenBSD i3lock uses the bsd_auth(3) framework.
 
 Requirements
 ------------
@@ -36,6 +37,9 @@ Running i3lock
 -------------
 Simply invoke the 'i3lock' command. To get out of it, enter your password and
 press enter.
+
+On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
+authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
 Upstream
 --------

@@ -18,7 +18,9 @@
 #include <xcb/xkb.h>
 #include <err.h>
 #include <assert.h>
-#ifdef USE_PAM
+#ifdef __OpenBSD__
+#include <bsd_auth.h>
+#else
 #include <security/pam_appl.h>
 #endif
 #include <getopt.h>
@@ -30,6 +32,9 @@
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#ifdef __OpenBSD__
+#include <strings.h> /* explicit_bzero(3) */
+#endif
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -51,7 +56,7 @@ char color[7] = "ffffff";
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
-#ifdef USE_PAM
+#ifndef __OpenBSD__
 static pam_handle_t *pam_handle;
 #endif
 int input_position = 0;
@@ -162,6 +167,11 @@ static bool load_compose_table(const char *locale) {
  *
  */
 static void clear_password_memory(void) {
+#ifdef __OpenBSD__
+    /* Use explicit_bzero(3) which was explicitly designed not to be
+     * optimized out by the compiler. */
+    explicit_bzero(password, strlen(password));
+#else
     /* A volatile pointer to the password buffer to prevent the compiler from
      * optimizing this out. */
     volatile char *vpassword = password;
@@ -171,6 +181,7 @@ static void clear_password_memory(void) {
          * compiler from optimizing the calls away, since the value of 'beep'
          * is not known at compile-time. */
         vpassword[c] = c + (int)beep;
+#endif
 }
 
 ev_timer *start_timer(ev_timer *timer_obj, ev_tstamp timeout, ev_callback_t callback) {
@@ -257,7 +268,19 @@ static void input_done(void) {
     unlock_state = STATE_STARTED;
     redraw_screen();
 
-#ifdef USE_PAM
+#ifdef __OpenBSD__
+    struct passwd *pw;
+
+    if (!(pw = getpwuid(getuid())))
+        errx(1, "unknown uid %u.", getuid());
+
+    if (auth_userokay(pw->pw_name, NULL, NULL, password) != 0) {
+        DEBUG("successfully authenticated\n");
+        clear_password_memory();
+
+        exit(0);
+    }
+#else
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
@@ -603,7 +626,7 @@ void handle_screen_resize(void) {
     redraw_screen();
 }
 
-#ifdef USE_PAM
+#ifndef __OpenBSD__
 /*
  * Callback function for PAM. We only react on password request callbacks.
  *
@@ -790,7 +813,7 @@ int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
-#ifdef USE_PAM
+#ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
 #endif
@@ -887,7 +910,7 @@ int main(int argc, char *argv[]) {
      * the unlock indicator upon keypresses. */
     srand(time(NULL));
 
-#ifdef USE_PAM
+#ifndef __OpenBSD__
     /* Initialize PAM */
     if ((ret = pam_start("i3lock", username, &conv, &pam_handle)) != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
@@ -896,10 +919,12 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
 #endif
 
-/* Using mlock() as non-super-user seems only possible in Linux. Users of other
- * operating systems should use encrypted swap/no swap (or remove the ifdef and
- * run i3lock as super-user). */
-#if defined(__linux__)
+/* Using mlock() as non-super-user seems only possible in Linux and OpenBSD.
+ * Users of other operating systems should use encrypted swap/no swap
+ * (or remove the ifdef and run i3lock as super-user).
+ * NB: Alas, swap is encrypted by default on OpenBSD so swapping out
+ * is not necessarily an issue. */
+#if defined(__linux__) || defined(__OpenBSD__)
     /* Lock the area where we store the password in memory, we don’t want it to
      * be swapped to disk. Since Linux 2.6.9, this does not require any
      * privileges, just enough bytes in the RLIMIT_MEMLOCK limit. */
