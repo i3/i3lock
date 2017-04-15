@@ -18,7 +18,9 @@
 #include <xcb/xkb.h>
 #include <err.h>
 #include <assert.h>
+#ifdef USE_PAM
 #include <security/pam_appl.h>
+#endif
 #include <getopt.h>
 #include <string.h>
 #include <ev.h>
@@ -49,7 +51,9 @@ char color[7] = "ffffff";
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
+#ifdef USE_PAM
 static pam_handle_t *pam_handle;
+#endif
 int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
 static char password[512];
@@ -253,6 +257,7 @@ static void input_done(void) {
     unlock_state = STATE_STARTED;
     redraw_screen();
 
+#ifdef USE_PAM
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
@@ -266,6 +271,7 @@ static void input_done(void) {
 
         exit(0);
     }
+#endif
 
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
@@ -597,6 +603,7 @@ void handle_screen_resize(void) {
     redraw_screen();
 }
 
+#ifdef USE_PAM
 /*
  * Callback function for PAM. We only react on password request callbacks.
  *
@@ -627,6 +634,7 @@ static int conv_callback(int num_msg, const struct pam_message **msg,
 
     return 0;
 }
+#endif
 
 /*
  * This callback is only a dummy, see xcb_prepare_cb and xcb_check_cb.
@@ -782,8 +790,10 @@ int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
+#ifdef USE_PAM
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
+#endif
     int curs_choice = CURS_NONE;
     int o;
     int optind = 0;
@@ -877,12 +887,14 @@ int main(int argc, char *argv[]) {
      * the unlock indicator upon keypresses. */
     srand(time(NULL));
 
+#ifdef USE_PAM
     /* Initialize PAM */
     if ((ret = pam_start("i3lock", username, &conv, &pam_handle)) != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
 
     if ((ret = pam_set_item(pam_handle, PAM_TTY, getenv("DISPLAY"))) != PAM_SUCCESS)
         errx(EXIT_FAILURE, "PAM: %s", pam_strerror(pam_handle, ret));
+#endif
 
 /* Using mlock() as non-super-user seems only possible in Linux. Users of other
  * operating systems should use encrypted swap/no swap (or remove the ifdef and
