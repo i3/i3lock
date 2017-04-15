@@ -59,11 +59,11 @@ bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
-static struct ev_timer *clear_pam_wrong_timeout;
+static struct ev_timer *clear_auth_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
-extern pam_state_t pam_state;
+extern auth_state_t auth_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
 bool retry_verification = false;
@@ -206,13 +206,13 @@ static void finish_input(void) {
 }
 
 /*
- * Resets pam_state to STATE_PAM_IDLE 2 seconds after an unsuccessful
+ * Resets auth_state to STATE_AUTH_IDLE 2 seconds after an unsuccessful
  * authentication event.
  *
  */
-static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
-    DEBUG("clearing pam wrong\n");
-    pam_state = STATE_PAM_IDLE;
+static void clear_auth_wrong(EV_P_ ev_timer *w, int revents) {
+    DEBUG("clearing auth wrong\n");
+    auth_state = STATE_AUTH_IDLE;
     redraw_screen();
 
     /* Clear modifier string. */
@@ -222,9 +222,9 @@ static void clear_pam_wrong(EV_P_ ev_timer *w, int revents) {
     }
 
     /* Now free this timeout. */
-    STOP_TIMER(clear_pam_wrong_timeout);
+    STOP_TIMER(clear_auth_wrong_timeout);
 
-    /* retry with input done during pam verification */
+    /* retry with input done during auth verification */
     if (retry_verification) {
         retry_verification = false;
         finish_input();
@@ -248,8 +248,8 @@ static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
 }
 
 static void input_done(void) {
-    STOP_TIMER(clear_pam_wrong_timeout);
-    pam_state = STATE_PAM_VERIFY;
+    STOP_TIMER(clear_auth_wrong_timeout);
+    auth_state = STATE_AUTH_VERIFY;
     unlock_state = STATE_STARTED;
     redraw_screen();
 
@@ -271,7 +271,7 @@ static void input_done(void) {
         fprintf(stderr, "Authentication failure\n");
 
     /* Get state of Caps and Num lock modifiers, to be displayed in
-     * STATE_PAM_WRONG state */
+     * STATE_AUTH_WRONG state */
     xkb_mod_index_t idx, num_mods;
     const char *mod_name;
 
@@ -305,7 +305,7 @@ static void input_done(void) {
         }
     }
 
-    pam_state = STATE_PAM_WRONG;
+    auth_state = STATE_AUTH_WRONG;
     failed_attempts += 1;
     clear_input();
     if (unlock_indicator)
@@ -314,7 +314,7 @@ static void input_done(void) {
     /* Clear this state after 2 seconds (unless the user enters another
      * password during that time). */
     ev_now_update(main_loop);
-    START_TIMER(clear_pam_wrong_timeout, TSTAMP_N_SECS(2), clear_pam_wrong);
+    START_TIMER(clear_auth_wrong_timeout, TSTAMP_N_SECS(2), clear_auth_wrong);
 
     /* Cancel the clear_indicator_timeout, it would hide the unlock indicator
      * too early. */
@@ -393,7 +393,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             if ((ksym == XKB_KEY_j || ksym == XKB_KEY_m) && !ctrl)
                 break;
 
-            if (pam_state == STATE_PAM_WRONG) {
+            if (auth_state == STATE_AUTH_WRONG) {
                 retry_verification = true;
                 return;
             }
@@ -725,7 +725,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
 /*
  * This function is called from a fork()ed child and will raise the i3lock
  * window when the window is obscured, even when the main i3lock process is
- * blocked due to PAM.
+ * blocked due to the authentication backend.
  *
  */
 static void raise_loop(xcb_window_t window) {
@@ -985,7 +985,7 @@ int main(int argc, char *argv[]) {
     cursor = create_cursor(conn, screen, win, curs_choice);
 
     /* Display the "locking…" message while trying to grab the pointer/keyboard. */
-    pam_state = STATE_PAM_LOCK;
+    auth_state = STATE_AUTH_LOCK;
     grab_pointer_and_keyboard(conn, screen, cursor);
 
     pid_t pid = fork();
@@ -1012,7 +1012,7 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
 
     /* Explicitly call the screen redraw in case "locking…" message was displayed */
-    pam_state = STATE_PAM_IDLE;
+    auth_state = STATE_AUTH_IDLE;
     redraw_screen();
 
     struct ev_io *xcb_watcher = calloc(sizeof(struct ev_io), 1);

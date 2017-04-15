@@ -24,7 +24,7 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 
-extern pam_state_t pam_state;
+extern auth_state_t auth_state;
 
 xcb_connection_t *conn;
 xcb_screen_t *screen;
@@ -262,7 +262,7 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
     /* After trying for 10000 times, i3lock will display an error message
      * for 2 sec prior to terminate. */
     if (tries <= 0) {
-        pam_state = STATE_I3LOCK_LOCK_FAILED;
+        auth_state = STATE_I3LOCK_LOCK_FAILED;
         redraw_screen();
         sleep(1);
         errx(EXIT_FAILURE, "Cannot grab pointer/keyboard");
