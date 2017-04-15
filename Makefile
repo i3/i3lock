@@ -19,6 +19,7 @@ LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-composite xcb-xinerama xcb-atom x
 LIBS += -lpam
 LIBS += -lev
 LIBS += -lm
+LIBS += -lmagic
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)

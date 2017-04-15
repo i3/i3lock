@@ -28,6 +28,7 @@
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <magic.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -778,6 +779,31 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+/*
+ * Return true if the image at PATH can be displayed on the lock screen, false
+ * otherwise.
+ */
+static bool image_supported_format(const char *path) {
+    magic_t cookie;
+    const char *mime_type;
+    bool retval;
+
+    cookie = magic_open(MAGIC_MIME_TYPE);
+    if (!cookie) {
+        fprintf(stderr, "Could not determine mime type for %s\n", path);
+        return false;
+    }
+    magic_load(cookie, NULL);
+    mime_type = magic_file(cookie, path);
+    if (!mime_type) {
+        fprintf(stderr, "Could not determine mime type for %s\n", path);
+        return false;
+    }
+    retval = strcmp(mime_type, "image/png") == 0;
+    magic_close(cookie);
+    return retval;
+}
+
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
@@ -964,12 +990,22 @@ int main(int argc, char *argv[]) {
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
     if (image_path) {
-        /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
+        if (access(image_path, R_OK) < 0) {
+            fprintf(stderr, "%s does not exist or is not readable\n", image_path);
+            img = NULL;
+        } else if (image_supported_format(image_path)) {
+            /* Create a pixmap to render on, fill it with the background color */
+            img = cairo_image_surface_create_from_png(image_path);
+            /* In case loading failed, we just pretend no -i was specified. */
+            if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+                fprintf(stderr, "Could not load image \"%s\": %s\n",
+                        image_path, cairo_status_to_string(cairo_surface_status(img)));
+                img = NULL;
+            }
+        } else {
+            /* In case the image is not supported, we just pretent no -i was specified */
+            fprintf(stderr, "Could not use image \"%s\" since only PNG is supported\n",
+                    image_path);
             img = NULL;
         }
         free(image_path);
