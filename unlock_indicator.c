@@ -539,3 +539,20 @@ void clear_indicator(void) {
         unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
 }
+
+static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
+    redraw_screen();
+}
+
+void start_time_redraw_tick(struct ev_loop* main_loop) {
+    if (time_redraw_tick) {
+        ev_periodic_set(time_redraw_tick, 0., 1.0, 0);
+        ev_periodic_again(main_loop, time_redraw_tick);
+    } else {
+        if (!(time_redraw_tick = calloc(sizeof(struct ev_periodic), 1))) {
+           return;
+        }
+        ev_periodic_init(time_redraw_tick, time_redraw_cb, 0., 1., 0);
+        ev_periodic_start(main_loop, time_redraw_tick);
+    }
+}
