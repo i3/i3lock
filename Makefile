@@ -19,11 +19,16 @@ SIMD_CFLAGS += -funroll-loops
 SIMD_CFLAGS += -msse2
 CPPFLAGS += -D_GNU_SOURCE
 CPPFLAGS += -DXKBCOMPOSE=$(shell if test -e /usr/include/xkbcommon/xkbcommon-compose.h ; then echo 1 ; else echo 0 ; fi )
-CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-composite xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
-LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-composite xcb-dpms xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
+CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-composite xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
+LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-composite xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += -lpam
 LIBS += -lev
 LIBS += -lm
+
+# OpenBSD lacks PAM, use bsd_auth(3) instead.
+ifneq ($(UNAME),OpenBSD)
+  LIBS += -lpam
+endif
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)

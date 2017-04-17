@@ -102,7 +102,7 @@ static xcb_visualtype_t *vistype;
 /* Maintain the current unlock/PAM state to draw the appropriate unlock
  * indicator. */
 unlock_state_t unlock_state;
-pam_state_t pam_state;
+auth_state_t auth_state;
 
 /*
  * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
@@ -261,7 +261,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     timeinfo = localtime(&rawtime);
 
     if (unlock_indicator &&
-        (unlock_state >= STATE_KEY_PRESSED || pam_state > STATE_PAM_IDLE || show_clock)) {
+        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 7.0);
@@ -274,12 +274,12 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Use the appropriate color for the different PAM states
          * (currently verifying, wrong password, or default) */
-        switch (pam_state) {
-            case STATE_PAM_VERIFY:
-            case STATE_PAM_LOCK:
-                cairo_set_source_rgba(ctx, (double)insidever16[0]/255, (double)insidever16[1]/255, (double)insidever16[2]/255, (double)insidever16[3]/255);
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
+                cairo_set_source_rgba(ctx, 0, 114.0 / 255, 255.0 / 255, 0.75);
                 break;
-            case STATE_PAM_WRONG:
+            case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
                 cairo_set_source_rgba(ctx, (double)insidewrong16[0]/255, (double)insidewrong16[1]/255, (double)insidewrong16[2]/255, (double)insidewrong16[3]/255);
                 break;
@@ -289,9 +289,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
         cairo_fill_preserve(ctx);
 
-        switch (pam_state) {
-            case STATE_PAM_VERIFY:
-            case STATE_PAM_LOCK:
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
                 cairo_set_source_rgba(ctx, (double)ringver16[0]/255, (double)ringver16[1]/255, (double)ringver16[2]/255, (double)ringver16[3]/255);
                 if (internal_line_source == 1) {
                   line16[0] = ringver16[0];
@@ -300,7 +300,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                   line16[3] = ringver16[3];
                 }
                 break;
-            case STATE_PAM_WRONG:
+            case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
                 cairo_set_source_rgba(ctx, (double)ringwrong16[0]/255, (double)ringwrong16[1]/255, (double)ringwrong16[2]/255, (double)ringwrong16[3]/255);
                 if (internal_line_source == 1) {
@@ -310,7 +310,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                   line16[3] = ringwrong16[3];
                 }
                 break;
-            case STATE_PAM_IDLE:
+            case STATE_AUTH_IDLE:
                 cairo_set_source_rgba(ctx, (double)ring16[0]/255, (double)ring16[1]/255, (double)ring16[2]/255, (double)ring16[3]/255);
                 if (internal_line_source == 1) {
                   line16[0] = ring16[0];
@@ -347,17 +347,17 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255); //this was moved up to here
+        cairo_set_source_rgb(ctx, 0, 0, 0);
         cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, 28.0);
-        switch (pam_state) {
-            case STATE_PAM_VERIFY:
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
                 text = "verifying…";
                 break;
-            case STATE_PAM_LOCK:
+            case STATE_AUTH_LOCK:
                 text = "locking…";
                 break;
-            case STATE_PAM_WRONG:
+            case STATE_AUTH_WRONG:
                 text = "wrong!";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
@@ -417,7 +417,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
 
 
-        if (pam_state == STATE_PAM_WRONG && (modifier_string != NULL)) {
+        if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
             cairo_text_extents_t extents;
             double x, y;
 
@@ -517,7 +517,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  *
  */
 void redraw_screen(void) {
-    DEBUG("redraw_screen(unlock_state = %d, pam_state = %d)\n", unlock_state, pam_state);
+    DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
@@ -539,21 +539,3 @@ void clear_indicator(void) {
         unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
 }
-
-static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
-    redraw_screen();
-}
-
-void start_time_redraw_tick(struct ev_loop* main_loop) {
-    if (time_redraw_tick) {
-        ev_periodic_set(time_redraw_tick, 0., 1.0, 0);
-        ev_periodic_again(main_loop, time_redraw_tick);
-    } else {
-        if (!(time_redraw_tick = calloc(sizeof(struct ev_periodic), 1))) {
-           return;
-        }
-        ev_periodic_init(time_redraw_tick, time_redraw_cb, 0., 1., 0);
-        ev_periodic_start(main_loop, time_redraw_tick);
-    }
-}
-
