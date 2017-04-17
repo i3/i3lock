@@ -116,8 +116,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (img) {
         if (!tile) {
+            cairo_set_operator(xcb_ctx, CAIRO_OPERATOR_SOURCE);
             cairo_set_source_surface(xcb_ctx, img, 0, 0);
             cairo_paint(xcb_ctx);
+            cairo_set_operator(xcb_ctx, CAIRO_OPERATOR_OVER);
         } else {
             /* create a pattern and fill a rectangle as big as the screen */
             cairo_pattern_t *pattern;
