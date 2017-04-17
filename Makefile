@@ -1,4 +1,5 @@
 TOPDIR=$(shell pwd)
+UNAME=$(shell uname)
 
 INSTALL=install
 PREFIX=/usr
@@ -16,9 +17,13 @@ CFLAGS += -Wall
 CPPFLAGS += -D_GNU_SOURCE
 CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-composite xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-composite xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
-LIBS += -lpam
 LIBS += -lev
 LIBS += -lm
+
+# OpenBSD lacks PAM, use bsd_auth(3) instead.
+ifneq ($(UNAME),OpenBSD)
+  LIBS += -lpam
+endif
 
 FILES:=$(wildcard *.c)
 FILES:=$(FILES:.c=.o)
