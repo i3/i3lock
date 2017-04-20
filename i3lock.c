@@ -1120,7 +1120,7 @@ int main(int argc, char *argv[]) {
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock-color [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [-k]"
-                                   " [-B blur_strength] [--fuckton-of-color-args=rrggbbaa]");
+                                   " [-B blur_strength] [--variety-of-color-args=rrggbbaa]");
         }
     }
 
