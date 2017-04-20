@@ -261,7 +261,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     timeinfo = localtime(&rawtime);
 
     if (unlock_indicator &&
-        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE)) {
+        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_clock)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 7.0);
@@ -277,7 +277,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, 0, 114.0 / 255, 255.0 / 255, 0.75);
+                cairo_set_source_rgba(ctx, (double)insidever16[0]/255, (double)insidever16[1]/255, (double)insidever16[2]/255, (double)insidever16[3]/255);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
@@ -347,7 +347,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgb(ctx, 0, 0, 0);
+        cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
         cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, 28.0);
         switch (auth_state) {
@@ -371,7 +371,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                         snprintf(buf, sizeof(buf), "%d", failed_attempts);
                         text = buf;
                     }
-                    cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
                     cairo_set_font_size(ctx, 32.0);
                 } else if (show_clock) {
                     strftime(time_text, 40, time_format, timeinfo);
