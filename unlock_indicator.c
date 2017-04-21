@@ -303,10 +303,29 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     }
 
     if (xr_screens > 0) {
+        /* This keeps track of the screens drawn to */
+        bool drawn_to[xr_screens];
+        memset(drawn_to, false, sizeof(bool) * xr_screens);
+
         /* Composite the unlock indicator in the middle of each screen. */
         for (int screen = 0; screen < xr_screens; screen++) {
+            bool draw_indicator = true;
+
             int x = (xr_resolutions[screen].x + ((xr_resolutions[screen].width / 2) - (button_diameter_physical / 2)));
             int y = (xr_resolutions[screen].y + ((xr_resolutions[screen].height / 2) - (button_diameter_physical / 2)));
+
+            for (int other = 0; other < screen; other++) {
+                if (drawn_to[other]) {
+                    if ((x > xr_resolutions[other].x) && (x < (xr_resolutions[other].x + xr_resolutions[other].width)) && (y > xr_resolutions[other].y) && (y < (xr_resolutions[other].y + xr_resolutions[other].height))) {
+                        draw_indicator = false;
+                    }
+                }
+            }
+
+            if (!draw_indicator)
+                continue;
+
+            drawn_to[screen] = true;
             cairo_set_source_surface(xcb_ctx, output, x, y);
             cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
             cairo_fill(xcb_ctx);
