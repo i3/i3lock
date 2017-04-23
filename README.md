@@ -80,4 +80,4 @@ i3lock-color --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor
 
 Upstream
 --------
-Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for color things to me at https://github.com/Arcaena/i3lock-color.
+Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for color things to me at https://github.com/chrjguill/i3lock-color.
