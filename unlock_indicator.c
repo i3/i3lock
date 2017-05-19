@@ -85,6 +85,9 @@ extern char time_font[32];
 extern char date_font[32];
 extern char clock_x_expr[32];
 extern char clock_y_expr[32];
+
+extern double time_size;
+extern double date_size;
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -469,12 +472,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (text) {
             double x, y;
             cairo_text_extents_t extents;
-            cairo_set_font_size(clock_ctx, 32.0);
+
+            cairo_set_font_size(clock_ctx, time_size);
             cairo_select_font_face(clock_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
             cairo_set_source_rgba(clock_ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
+            
             cairo_text_extents(clock_ctx, text, &extents);
             x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-            y = CLOCK_HEIGHT/2 - extents.height;
+            y = CLOCK_HEIGHT/2 - 10;
 
             cairo_move_to(clock_ctx, x, y);
             cairo_show_text(clock_ctx, text);
@@ -487,11 +492,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             cairo_select_font_face(clock_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
             cairo_set_source_rgba(clock_ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
-            cairo_set_font_size(clock_ctx, 14.0);
+            cairo_set_font_size(clock_ctx, date_size);
 
             cairo_text_extents(clock_ctx, date, &extents);
             x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-            y = CLOCK_HEIGHT/2;
+            y = CLOCK_HEIGHT/2 - extents.y_bearing;
 
             cairo_move_to(clock_ctx, x, y);
             cairo_show_text(clock_ctx, date);

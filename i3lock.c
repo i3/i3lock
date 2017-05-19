@@ -88,6 +88,9 @@ char date_font[32] = "sans-serif\0";
 char clock_x_expr[32] = "ix\0";
 char clock_y_expr[32] = "iy+20\0";
 
+double time_size = 32;
+double date_size = 14;
+
 /* opts for blurring */
 bool blur = false;
 bool step_blur = false;
@@ -907,6 +910,8 @@ int main(int argc, char *argv[]) {
         {"datestr", required_argument, NULL, 0},
         {"timefont", required_argument, NULL, 0},
         {"datefont", required_argument, NULL, 0},
+        {"timesize", required_argument, NULL, 0},
+        {"datesize", required_argument, NULL, 0},
         {"clockpos", required_argument, NULL, 0},
 
         {"blur", required_argument, NULL, 'B'},
@@ -1121,40 +1126,56 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[optind].name, "timestr") == 0) {
                     //read in to timestr
                     if (strlen(optarg) > 31) {
-                        errx(1, "time format string can be at most 31 characters");
+                        errx(1, "time format string can be at most 31 characters\n");
                     }
                     strcpy(time_format,optarg);
                 }
                 else if (strcmp(longopts[optind].name, "datestr") == 0) {
                     //read in to datestr
                     if (strlen(optarg) > 31) {
-                        errx(1, "time format string can be at most 31 characters");
+                        errx(1, "time format string can be at most 31 characters\n");
                     }
                     strcpy(date_format,optarg);
                 }
                 else if (strcmp(longopts[optind].name, "timefont") == 0) {
                     //read in to time_font
                     if (strlen(optarg) > 31) {
-                        errx(1, "time font string can be at most 31 characters");
+                        errx(1, "time font string can be at most 31 characters\n");
                     }
                     strcpy(time_font,optarg);
                 }
                 else if (strcmp(longopts[optind].name, "datefont") == 0) {
                     //read in to date_font
                     if (strlen(optarg) > 31) {
-                        errx(1, "date font string can be at most 31 characters");
+                        errx(1, "date font string can be at most 31 characters\n");
                     }
                     strcpy(date_font,optarg);
+                }
+                else if (strcmp(longopts[optind].name, "timesize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &time_size) != 1)
+                        errx(1, "timesize must be a number\n");
+                    if (time_size < 1)
+                        errx(1, "timesize must be larger than 0\n");
+                }
+                else if (strcmp(longopts[optind].name, "datesize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &date_size) != 1)
+                        errx(1, "datesize must be a number\n");
+                    if (date_size < 1)
+                        errx(1, "datesize must be larger than 0\n");
                 }
                 else if (strcmp(longopts[optind].name, "clockpos") == 0) {
                     //read in to clock_x_expr and clock_y_expr
                     if (strlen(optarg) > 31) {
                         // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "date position string can be at most 31 characters");
+                        errx(1, "date position string can be at most 31 characters\n");
                     }
                     char* arg = optarg;
                     if (sscanf(arg, "%30[^:]:%30[^:]", &clock_x_expr, &clock_y_expr) != 2) {
-                        errx(1, "clockpos must be of the form x:y");
+                        errx(1, "clockpos must be of the form x:y\n");
                     }
                 }
                 break;
