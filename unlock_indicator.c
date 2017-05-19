@@ -67,6 +67,7 @@ extern char ringwrongcolor[9];
 extern char ringcolor[9];
 extern char linecolor[9];
 extern char textcolor[9];
+extern char clockcolor[9];
 extern char keyhlcolor[9];
 extern char bshlcolor[9];
 extern char separatorcolor[9];
@@ -77,6 +78,8 @@ extern int screen_number;
 extern bool show_clock;
 extern char time_format[32];
 extern char date_format[32];
+extern char time_font[32];
+extern char date_font[32];
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -229,6 +232,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                           (strtol(strgroupst[1], NULL, 16)),
                           (strtol(strgroupst[2], NULL, 16)),
                           (strtol(strgroupst[3], NULL, 16))};
+    char strgroupsc[4][3] = {{clockcolor[0], clockcolor[1], '\0'},
+                             {clockcolor[2], clockcolor[3], '\0'},
+                             {clockcolor[4], clockcolor[5], '\0'},
+                             {clockcolor[6], clockcolor[7], '\0'}};
+    uint32_t clock16[4] = {(strtol(strgroupsc[0], NULL, 16)),
+                          (strtol(strgroupsc[1], NULL, 16)),
+                          (strtol(strgroupsc[2], NULL, 16)),
+                          (strtol(strgroupsc[3], NULL, 16))};
     char strgroupsk[4][3] = {{keyhlcolor[0], keyhlcolor[1], '\0'},
                              {keyhlcolor[2], keyhlcolor[3], '\0'},
                              {keyhlcolor[4], keyhlcolor[5], '\0'},
@@ -385,6 +396,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_text_extents_t extents;
             double x, y;
 
+            cairo_select_font_face(ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
             cairo_text_extents(ctx, text, &extents);
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
             if (date) {
@@ -402,8 +415,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_text_extents_t extents;
             double x, y;
 
-            // TODO: different date/time colors
-            cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
+            cairo_select_font_face(ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
             cairo_set_font_size(ctx, 14.0);
 
             cairo_text_extents(ctx, date, &extents);

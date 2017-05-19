@@ -66,6 +66,7 @@ char ringwrongcolor[9] = "7d3300ff";
 char ringcolor[9] = "337d00ff";
 char linecolor[9] = "000000ff";
 char textcolor[9] = "000000ff";
+char clockcolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
 char separatorcolor[9] = "000000ff";
@@ -82,6 +83,8 @@ bool show_clock = false;
 */
 char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
+char time_font[32] = "sans-serif\0";
+char date_font[32] = "sans-serif\0";
 
 /* opts for blurring */
 bool blur = false;
@@ -888,6 +891,7 @@ int main(int argc, char *argv[]) {
         {"ringcolor", required_argument, NULL, 0},        // --r-c
         {"linecolor", required_argument, NULL, 0},        // --l-c
         {"textcolor", required_argument, NULL, 0},        // --t-c
+        {"clockcolor", required_argument, NULL, 0},       // --c-c
         {"keyhlcolor", required_argument, NULL, 0},       // --k-c
         {"bshlcolor", required_argument, NULL, 0},        // --b-c
         {"separatorcolor", required_argument, NULL, 0},
@@ -899,6 +903,8 @@ int main(int argc, char *argv[]) {
         {"clock", no_argument, NULL, 'k'},
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
+        {"timefont", required_argument, NULL, 0},
+        {"datefont", required_argument, NULL, 0},
 
         {"blur", required_argument, NULL, 'B'},
 
@@ -1069,6 +1075,16 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
                         errx(1, "textcolor is invalid, color must be given in 8-byte format: rrggbb\n");
                 }
+                else if (strcmp(longopts[optind].name, "clockcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", clockcolor) != 1)
+                        errx(1, "clockcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
                 else if (strcmp(longopts[optind].name, "keyhlcolor") == 0) {
                     char *arg = optarg;
 
@@ -1112,6 +1128,20 @@ int main(int argc, char *argv[]) {
                         errx(1, "time format string can be at most 31 characters");
                     }
                     strcpy(date_format,optarg);
+                }
+                else if (strcmp(longopts[optind].name, "timefont") == 0) {
+                    //read in to time_font
+                    if (strlen(optarg) > 31) {
+                        errx(1, "time font string can be at most 31 characters");
+                    }
+                    strcpy(time_font,optarg);
+                }
+                else if (strcmp(longopts[optind].name, "datefont") == 0) {
+                    //read in to date_font
+                    if (strlen(optarg) > 31) {
+                        errx(1, "date font string can be at most 31 characters");
+                    }
+                    strcpy(date_font,optarg);
                 }
                 break;
             case 'f':
