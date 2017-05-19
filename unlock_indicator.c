@@ -20,6 +20,7 @@
 #include "xcb.h"
 #include "unlock_indicator.h"
 #include "xinerama.h"
+#include "tinyexpr.h"
 
 /* clock stuff */
 #include <time.h>
@@ -28,6 +29,8 @@
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
+#define CLOCK_WIDTH 400 
+#define CLOCK_HEIGHT 200 
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -80,6 +83,8 @@ extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
 extern char date_font[32];
+extern char clock_x_expr[32];
+extern char clock_y_expr[32];
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -126,6 +131,8 @@ static double scaling_factor(void) {
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
     int button_diameter_physical = ceil(scaling_factor() * BUTTON_DIAMETER);
+    int clock_width_physical = ceil(scaling_factor() * CLOCK_WIDTH);
+    int clock_height_physical = ceil(scaling_factor() * CLOCK_HEIGHT);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor(), button_diameter_physical);
 
@@ -134,9 +141,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     bg_pixmap = create_bg_pixmap(conn, screen, resolution, color);
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
-     * depending on the amount of screens) unlock indicators on. */
+     * depending on the amount of screens) unlock indicators on. 
+     * A third surface for the clock display is created as well
+     */
     cairo_surface_t *output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, button_diameter_physical, button_diameter_physical);
     cairo_t *ctx = cairo_create(output);
+
+    cairo_surface_t *clock_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
+    cairo_t *clock_ctx = cairo_create(clock_output);
 
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
@@ -272,7 +284,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     timeinfo = localtime(&rawtime);
 
     if (unlock_indicator &&
-        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_clock)) {
+        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 7.0);
@@ -348,12 +360,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         cairo_set_line_width(ctx, 10.0);
 
-        /* Display a (centered) text of the current PAM state. */
         char *text = NULL;
-
-        char *date = NULL;
-        char time_text[40] = {0};
-        char date_text[40] = {0};
 
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
@@ -383,51 +390,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                         text = buf;
                     }
                     cairo_set_font_size(ctx, 32.0);
-                } else if (show_clock) {
-                    strftime(time_text, 40, time_format, timeinfo);
-                    strftime(date_text, 40, date_format, timeinfo);
-                    text = time_text;
-                    date = date_text;
-                }
+                } 
                 break;
         }
-
-        if (text) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_select_font_face(ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
-            cairo_text_extents(ctx, text, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            if (date) {
-                y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) - 6;
-            } else {
-                y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
-            }
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
-        }
-
-        if (date) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_select_font_face(ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
-            cairo_set_font_size(ctx, 14.0);
-
-            cairo_text_extents(ctx, date, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 14;
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, date);
-            cairo_close_path(ctx);
-        }
-
 
         if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
             cairo_text_extents_t extents;
@@ -487,39 +452,141 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_stroke(ctx);
         }
     }
+    if (show_clock) {
+        char *text = NULL;
+        char *date = NULL;
+        char time_text[40] = {0};
+        char date_text[40] = {0};
+
+        strftime(time_text, 40, time_format, timeinfo);
+        strftime(date_text, 40, date_format, timeinfo);
+        text = time_text;
+        date = date_text;
+
+        double width = 0;
+        double height = 0;
+
+        if (text) {
+            double x, y;
+            cairo_text_extents_t extents;
+            cairo_set_font_size(clock_ctx, 32.0);
+            cairo_select_font_face(clock_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(clock_ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
+            cairo_text_extents(clock_ctx, text, &extents);
+            x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+            y = CLOCK_HEIGHT/2 - extents.height;
+
+            cairo_move_to(clock_ctx, x, y);
+            cairo_show_text(clock_ctx, text);
+            cairo_close_path(clock_ctx);
+        }
+
+        if (date) {
+            double x, y;
+            cairo_text_extents_t extents;
+
+            cairo_select_font_face(clock_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(clock_ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
+            cairo_set_font_size(clock_ctx, 14.0);
+
+            cairo_text_extents(clock_ctx, date, &extents);
+            x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+            y = CLOCK_HEIGHT/2;
+
+            cairo_move_to(clock_ctx, x, y);
+            cairo_show_text(clock_ctx, date);
+            cairo_close_path(clock_ctx);
+        }
+    }
+
+    double ix, iy;
+    double x, y;
+    double w, h;
+
+    int te_x_err;
+    int te_y_err;
+    // variable mapping for evaluating the clock position expression
+    te_variable vars[] = {{"ix", &ix}, {"iy", &iy}, {"w", &w}, {"h", &h}}; 
+
+    te_expr *x_expr = te_compile(clock_x_expr, vars, 4, &te_x_err);
+    te_expr *y_expr = te_compile(clock_y_expr, vars, 4, &te_y_err);
+
+
 
     if (xr_screens > 0) {
         /* Composite the unlock indicator in the middle of each screen. */
         // excuse me, just gonna hack something in right here
         if (screen_number != -1 && screen_number < xr_screens) {
-          int x = (xr_resolutions[screen_number].x + ((xr_resolutions[screen_number].width / 2) - (button_diameter_physical / 2)));
-          int y = (xr_resolutions[screen_number].y + ((xr_resolutions[screen_number].height / 2) - (button_diameter_physical / 2)));
+          w = xr_resolutions[screen_number].width;
+          h = xr_resolutions[screen_number].height;
+          ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
+          iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
+          x = ix - (button_diameter_physical / 2);
+          y = iy - (button_diameter_physical / 2);
           cairo_set_source_surface(xcb_ctx, output, x, y);
           cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-          cairo_fill(xcb_ctx);        }
+          cairo_fill(xcb_ctx);        
+
+          if (x_expr && y_expr) {
+              double clock_x = xr_resolutions[screen_number].x + te_eval(x_expr) - CLOCK_WIDTH / 2;
+              double clock_y = xr_resolutions[screen_number].y + te_eval(y_expr) - CLOCK_HEIGHT / 2;
+              cairo_set_source_surface(xcb_ctx, clock_output, clock_x, clock_y);
+              cairo_rectangle(xcb_ctx, clock_x, clock_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+              cairo_fill(xcb_ctx);
+          }
+        }
         else {
           for (int screen = 0; screen < xr_screens; screen++) {
-              int x = (xr_resolutions[screen].x + ((xr_resolutions[screen].width / 2) - (button_diameter_physical / 2)));
-              int y = (xr_resolutions[screen].y + ((xr_resolutions[screen].height / 2) - (button_diameter_physical / 2)));
+              w = xr_resolutions[screen].width;
+              h = xr_resolutions[screen].height;
+              ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
+              iy = xr_resolutions[screen].y + (xr_resolutions[screen].height / 2);
+              x = ix - (button_diameter_physical / 2);
+              y = iy - (button_diameter_physical / 2);
               cairo_set_source_surface(xcb_ctx, output, x, y);
               cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
               cairo_fill(xcb_ctx);
+              if (x_expr && y_expr) {
+                  double clock_x = xr_resolutions[screen].x + te_eval(x_expr) - CLOCK_WIDTH / 2;
+                  double clock_y = xr_resolutions[screen].y + te_eval(y_expr) - CLOCK_HEIGHT / 2;
+                  cairo_set_source_surface(xcb_ctx, clock_output, clock_x, clock_y);
+                  cairo_rectangle(xcb_ctx, clock_x, clock_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                  cairo_fill(xcb_ctx);
+              }
+          else {
+              DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
+              DEBUG("exprs: %s, %s\n", clock_x_expr, clock_y_expr);
+          }
           }
         }
     } else {
         /* We have no information about the screen sizes/positions, so we just
          * place the unlock indicator in the middle of the X root window and
          * hope for the best. */
-        int x = (last_resolution[0] / 2) - (button_diameter_physical / 2);
-        int y = (last_resolution[1] / 2) - (button_diameter_physical / 2);
+        w = last_resolution[0];
+        h = last_resolution[1];
+        ix = last_resolution[0] / 2;
+        iy = last_resolution[1] / 2;
+        x = ix - (button_diameter_physical / 2);
+        y = iy - (button_diameter_physical / 2);
         cairo_set_source_surface(xcb_ctx, output, x, y);
         cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
         cairo_fill(xcb_ctx);
+        if (x_expr && y_expr) {
+            double clock_x = te_eval(x_expr) - CLOCK_WIDTH / 2;
+            double clock_y = te_eval(y_expr) - CLOCK_HEIGHT / 2;
+            DEBUG("Placing clock at %f, %f\n", clock_x, clock_y);
+            cairo_set_source_surface(xcb_ctx, clock_output, clock_x, clock_y);
+            cairo_rectangle(xcb_ctx, clock_x, clock_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+            cairo_fill(xcb_ctx);
+        }
     }
 
     cairo_surface_destroy(xcb_output);
+    cairo_surface_destroy(clock_output);
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
+    cairo_destroy(clock_ctx);
     cairo_destroy(xcb_ctx);
     return bg_pixmap;
 }

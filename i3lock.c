@@ -85,6 +85,8 @@ char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 char time_font[32] = "sans-serif\0";
 char date_font[32] = "sans-serif\0";
+char clock_x_expr[32] = "ix\0";
+char clock_y_expr[32] = "iy+20\0";
 
 /* opts for blurring */
 bool blur = false;
@@ -905,6 +907,7 @@ int main(int argc, char *argv[]) {
         {"datestr", required_argument, NULL, 0},
         {"timefont", required_argument, NULL, 0},
         {"datefont", required_argument, NULL, 0},
+        {"clockpos", required_argument, NULL, 0},
 
         {"blur", required_argument, NULL, 'B'},
 
@@ -1142,6 +1145,17 @@ int main(int argc, char *argv[]) {
                         errx(1, "date font string can be at most 31 characters");
                     }
                     strcpy(date_font,optarg);
+                }
+                else if (strcmp(longopts[optind].name, "clockpos") == 0) {
+                    //read in to clock_x_expr and clock_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "date position string can be at most 31 characters");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", &clock_x_expr, &clock_y_expr) != 2) {
+                        errx(1, "clockpos must be of the form x:y");
+                    }
                 }
                 break;
             case 'f':
