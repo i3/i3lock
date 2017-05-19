@@ -66,7 +66,8 @@ char ringwrongcolor[9] = "7d3300ff";
 char ringcolor[9] = "337d00ff";
 char linecolor[9] = "000000ff";
 char textcolor[9] = "000000ff";
-char clockcolor[9] = "000000ff";
+char timecolor[9] = "000000ff";
+char datecolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
 char separatorcolor[9] = "000000ff";
@@ -85,8 +86,10 @@ char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 char time_font[32] = "sans-serif\0";
 char date_font[32] = "sans-serif\0";
-char clock_x_expr[32] = "ix\0";
-char clock_y_expr[32] = "iy+20\0";
+char time_x_expr[32] = "ix\0";
+char time_y_expr[32] = "iy\0";
+char date_x_expr[32] = "tx\0";
+char date_y_expr[32] = "ty+30\0";
 
 double time_size = 32;
 double date_size = 14;
@@ -896,7 +899,8 @@ int main(int argc, char *argv[]) {
         {"ringcolor", required_argument, NULL, 0},        // --r-c
         {"linecolor", required_argument, NULL, 0},        // --l-c
         {"textcolor", required_argument, NULL, 0},        // --t-c
-        {"clockcolor", required_argument, NULL, 0},       // --c-c
+        {"timecolor", required_argument, NULL, 0},       
+        {"datecolor", required_argument, NULL, 0},       
         {"keyhlcolor", required_argument, NULL, 0},       // --k-c
         {"bshlcolor", required_argument, NULL, 0},        // --b-c
         {"separatorcolor", required_argument, NULL, 0},
@@ -912,7 +916,8 @@ int main(int argc, char *argv[]) {
         {"datefont", required_argument, NULL, 0},
         {"timesize", required_argument, NULL, 0},
         {"datesize", required_argument, NULL, 0},
-        {"clockpos", required_argument, NULL, 0},
+        {"timepos", required_argument, NULL, 0},
+        {"datepos", required_argument, NULL, 0},
 
         {"blur", required_argument, NULL, 'B'},
 
@@ -1083,15 +1088,25 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
                         errx(1, "textcolor is invalid, color must be given in 8-byte format: rrggbb\n");
                 }
-                else if (strcmp(longopts[optind].name, "clockcolor") == 0) {
+                else if (strcmp(longopts[optind].name, "timecolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
                     if (arg[0] == '#')
                         arg++;
 
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", clockcolor) != 1)
-                        errx(1, "clockcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", timecolor) != 1)
+                        errx(1, "timecolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[optind].name, "datecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", datecolor) != 1)
+                        errx(1, "datecolor is invalid, color must be given in 8-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[optind].name, "keyhlcolor") == 0) {
                     char *arg = optarg;
@@ -1167,15 +1182,26 @@ int main(int argc, char *argv[]) {
                     if (date_size < 1)
                         errx(1, "datesize must be larger than 0\n");
                 }
-                else if (strcmp(longopts[optind].name, "clockpos") == 0) {
-                    //read in to clock_x_expr and clock_y_expr
+                else if (strcmp(longopts[optind].name, "timepos") == 0) {
+                    //read in to time_x_expr and time_y_expr
                     if (strlen(optarg) > 31) {
                         // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                         errx(1, "date position string can be at most 31 characters\n");
                     }
                     char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", &clock_x_expr, &clock_y_expr) != 2) {
-                        errx(1, "clockpos must be of the form x:y\n");
+                    if (sscanf(arg, "%30[^:]:%30[^:]", &time_x_expr, &time_y_expr) != 2) {
+                        errx(1, "timepos must be of the form x:y\n");
+                    }
+                }
+                else if (strcmp(longopts[optind].name, "datepos") == 0) {
+                    //read in to date_x_expr and date_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "date position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", &date_x_expr, &date_y_expr) != 2) {
+                        errx(1, "datepos must be of the form x:y\n");
                     }
                 }
                 break;

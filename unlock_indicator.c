@@ -70,7 +70,8 @@ extern char ringwrongcolor[9];
 extern char ringcolor[9];
 extern char linecolor[9];
 extern char textcolor[9];
-extern char clockcolor[9];
+extern char timecolor[9];
+extern char datecolor[9];
 extern char keyhlcolor[9];
 extern char bshlcolor[9];
 extern char separatorcolor[9];
@@ -83,8 +84,10 @@ extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
 extern char date_font[32];
-extern char clock_x_expr[32];
-extern char clock_y_expr[32];
+extern char time_x_expr[32];
+extern char time_y_expr[32];
+extern char date_x_expr[32];
+extern char date_y_expr[32];
 
 extern double time_size;
 extern double date_size;
@@ -145,13 +148,16 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
      * depending on the amount of screens) unlock indicators on. 
-     * A third surface for the clock display is created as well
+     * create two more surfaces for time and date display
      */
     cairo_surface_t *output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, button_diameter_physical, button_diameter_physical);
     cairo_t *ctx = cairo_create(output);
 
-    cairo_surface_t *clock_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
-    cairo_t *clock_ctx = cairo_create(clock_output);
+    cairo_surface_t *time_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
+    cairo_t *time_ctx = cairo_create(time_output);
+
+    cairo_surface_t *date_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
+    cairo_t *date_ctx = cairo_create(date_output);
 
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
@@ -247,11 +253,19 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                           (strtol(strgroupst[1], NULL, 16)),
                           (strtol(strgroupst[2], NULL, 16)),
                           (strtol(strgroupst[3], NULL, 16))};
-    char strgroupsc[4][3] = {{clockcolor[0], clockcolor[1], '\0'},
-                             {clockcolor[2], clockcolor[3], '\0'},
-                             {clockcolor[4], clockcolor[5], '\0'},
-                             {clockcolor[6], clockcolor[7], '\0'}};
-    uint32_t clock16[4] = {(strtol(strgroupsc[0], NULL, 16)),
+    char strgroupsc[4][3] = {{timecolor[0], timecolor[1], '\0'},
+                             {timecolor[2], timecolor[3], '\0'},
+                             {timecolor[4], timecolor[5], '\0'},
+                             {timecolor[6], timecolor[7], '\0'}};
+    uint32_t time16[4] = {(strtol(strgroupsc[0], NULL, 16)),
+                          (strtol(strgroupsc[1], NULL, 16)),
+                          (strtol(strgroupsc[2], NULL, 16)),
+                          (strtol(strgroupsc[3], NULL, 16))};
+    char strgroupsd[4][3] = {{timecolor[0], timecolor[1], '\0'},
+                             {timecolor[2], timecolor[3], '\0'},
+                             {timecolor[4], timecolor[5], '\0'},
+                             {timecolor[6], timecolor[7], '\0'}};
+    uint32_t date16[4] = {(strtol(strgroupsc[0], NULL, 16)),
                           (strtol(strgroupsc[1], NULL, 16)),
                           (strtol(strgroupsc[2], NULL, 16)),
                           (strtol(strgroupsc[3], NULL, 16))};
@@ -473,48 +487,52 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             double x, y;
             cairo_text_extents_t extents;
 
-            cairo_set_font_size(clock_ctx, time_size);
-            cairo_select_font_face(clock_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(clock_ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
+            cairo_set_font_size(time_ctx, time_size);
+            cairo_select_font_face(time_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(time_ctx, (double)time16[0]/255, (double)time16[1]/255, (double)time16[2]/255, (double)time16[3]/255);
             
-            cairo_text_extents(clock_ctx, text, &extents);
+            cairo_text_extents(time_ctx, text, &extents);
             x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-            y = CLOCK_HEIGHT/2 - 10;
+            y = CLOCK_HEIGHT/2;
 
-            cairo_move_to(clock_ctx, x, y);
-            cairo_show_text(clock_ctx, text);
-            cairo_close_path(clock_ctx);
+            cairo_move_to(time_ctx, x, y);
+            cairo_show_text(time_ctx, text);
+            cairo_close_path(time_ctx);
         }
 
         if (date) {
             double x, y;
             cairo_text_extents_t extents;
 
-            cairo_select_font_face(clock_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(clock_ctx, (double)clock16[0]/255, (double)clock16[1]/255, (double)clock16[2]/255, (double)clock16[3]/255);
-            cairo_set_font_size(clock_ctx, date_size);
+            cairo_select_font_face(date_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(date_ctx, (double)date16[0]/255, (double)date16[1]/255, (double)date16[2]/255, (double)date16[3]/255);
+            cairo_set_font_size(date_ctx, date_size);
 
-            cairo_text_extents(clock_ctx, date, &extents);
+            cairo_text_extents(date_ctx, date, &extents);
             x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-            y = CLOCK_HEIGHT/2 - extents.y_bearing;
+            y = CLOCK_HEIGHT/2;
 
-            cairo_move_to(clock_ctx, x, y);
-            cairo_show_text(clock_ctx, date);
-            cairo_close_path(clock_ctx);
+            cairo_move_to(date_ctx, x, y);
+            cairo_show_text(date_ctx, date);
+            cairo_close_path(date_ctx);
         }
     }
 
     double ix, iy;
     double x, y;
     double w, h;
+    double tx = 0;
+    double ty = 0;
 
     int te_x_err;
     int te_y_err;
     // variable mapping for evaluating the clock position expression
-    te_variable vars[] = {{"ix", &ix}, {"iy", &iy}, {"w", &w}, {"h", &h}}; 
+    te_variable vars[] = {{"ix", &ix}, {"iy", &iy}, {"w", &w}, {"h", &h}, {"tx", &tx}, {"ty", &ty}}; 
 
-    te_expr *x_expr = te_compile(clock_x_expr, vars, 4, &te_x_err);
-    te_expr *y_expr = te_compile(clock_y_expr, vars, 4, &te_y_err);
+    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 6, &te_x_err);
+    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 6, &te_y_err);
+    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, 6, &te_x_err);
+    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, 6, &te_y_err);
 
 
 
@@ -532,11 +550,18 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
           cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
           cairo_fill(xcb_ctx);        
 
-          if (x_expr && y_expr) {
-              double clock_x = xr_resolutions[screen_number].x + te_eval(x_expr) - CLOCK_WIDTH / 2;
-              double clock_y = xr_resolutions[screen_number].y + te_eval(y_expr) - CLOCK_HEIGHT / 2;
-              cairo_set_source_surface(xcb_ctx, clock_output, clock_x, clock_y);
-              cairo_rectangle(xcb_ctx, clock_x, clock_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+          if (te_time_x_expr && te_time_y_expr) {
+              tx = te_eval(te_time_x_expr);
+              ty = te_eval(te_time_y_expr);
+              double time_x = xr_resolutions[screen_number].x + tx - CLOCK_WIDTH / 2;
+              double time_y = xr_resolutions[screen_number].y + ty - CLOCK_HEIGHT / 2;
+              double date_x = xr_resolutions[screen_number].x + te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
+              double date_y = xr_resolutions[screen_number].y + te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
+              cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+              cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+              cairo_fill(xcb_ctx);
+              cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+              cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
               cairo_fill(xcb_ctx);
           }
         }
@@ -551,16 +576,23 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
               cairo_set_source_surface(xcb_ctx, output, x, y);
               cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
               cairo_fill(xcb_ctx);
-              if (x_expr && y_expr) {
-                  double clock_x = xr_resolutions[screen].x + te_eval(x_expr) - CLOCK_WIDTH / 2;
-                  double clock_y = xr_resolutions[screen].y + te_eval(y_expr) - CLOCK_HEIGHT / 2;
-                  cairo_set_source_surface(xcb_ctx, clock_output, clock_x, clock_y);
-                  cairo_rectangle(xcb_ctx, clock_x, clock_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+              if (te_time_x_expr && te_time_y_expr) {
+                  tx = te_eval(te_time_x_expr);
+                  ty = te_eval(te_time_y_expr);
+                  double time_x = xr_resolutions[screen].x + tx - CLOCK_WIDTH / 2;
+                  double time_y = xr_resolutions[screen].y + ty - CLOCK_HEIGHT / 2;
+                  double date_x = xr_resolutions[screen].x + te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
+                  double date_y = xr_resolutions[screen].y + te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
+                  cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+                  cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                  cairo_fill(xcb_ctx);
+                  cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+                  cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                   cairo_fill(xcb_ctx);
               }
           else {
               DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
-              DEBUG("exprs: %s, %s\n", clock_x_expr, clock_y_expr);
+              DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
           }
           }
         }
@@ -577,21 +609,30 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_set_source_surface(xcb_ctx, output, x, y);
         cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
         cairo_fill(xcb_ctx);
-        if (x_expr && y_expr) {
-            double clock_x = te_eval(x_expr) - CLOCK_WIDTH / 2;
-            double clock_y = te_eval(y_expr) - CLOCK_HEIGHT / 2;
-            DEBUG("Placing clock at %f, %f\n", clock_x, clock_y);
-            cairo_set_source_surface(xcb_ctx, clock_output, clock_x, clock_y);
-            cairo_rectangle(xcb_ctx, clock_x, clock_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+        if (te_time_x_expr && te_time_y_expr) {
+            tx = te_eval(te_time_x_expr);
+            ty = te_eval(te_time_y_expr);
+            double time_x = tx - CLOCK_WIDTH / 2;
+            double time_y = tx - CLOCK_HEIGHT / 2;
+            double date_x = te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
+            double date_y = te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
+            DEBUG("Placing time at %f, %f\n", time_x, time_y);
+            cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+            cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+            cairo_fill(xcb_ctx);
+            cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+            cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
             cairo_fill(xcb_ctx);
         }
     }
 
     cairo_surface_destroy(xcb_output);
-    cairo_surface_destroy(clock_output);
+    cairo_surface_destroy(time_output);
+    cairo_surface_destroy(date_output);
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
-    cairo_destroy(clock_ctx);
+    cairo_destroy(time_ctx);
+    cairo_destroy(date_ctx);
     cairo_destroy(xcb_ctx);
     return bg_pixmap;
 }
