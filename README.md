@@ -35,6 +35,12 @@ Many little improvements have been made to i3lock over time:
      - `-B, --blur` -- enables Gaussian blur
      - `--timestr="%H:%M:%S"` -- allows custom overriding of the time format string. Accepts `strftime` formatting. Default is `"%H:%M:%S"`.
      - `--datestr="%A, %m %Y"` -- allows custom overriding of the date format string. Accepts `strftime` formatting. Default is `"%A, %m %Y"`.
+     - `--clockpos="ix:iy-20"` -- position of the clock. Expressions using the variables w (screen width), h (screen height), ix (indicator x position) and iy (indicator y position) can be used.
+     - `--clockcolor=rrggbbaa` -- color of the clock
+     - `--timefont="sans-serif"` -- font used for the time display
+     - `--datefont="sans-serif"` -- font used for the date display
+     - `--timesize=32` -- font size for the time display
+     - `--datesize=14` -- font size for the date display
   - All the colors have an alpha channel now. Please keep in mind that this was not intended when the program was originally written, so making things transparent that weren't before can make it look strange.
 
 - You can specify whether i3lock should bell upon a wrong password.
