@@ -1,3 +1,40 @@
+*** 
+NOTE: a simple i3lock fork that allows you to execute whatever you want in case of wrong password. 
+***
+
+_Examples_:     
+
+**take a photo from webcam on each incorrect password input:**
+
+```bash
+i3lock -E ./wrong.sh
+```
+
+_wrong.sh_
+
+```bash
+#!/usr/bin/env bash
+ffmpeg -f video4linux2 -i /dev/video0 -s 1280x720 -vframes 1 ~/auth`date +%Y_%m_%d_%H-%M-%S`.jpeg &>/dev/null
+```
+**send email about wrong password**
+```bash
+i3lock -E "bash -c 'echo \"Someone typed wrong password\" | mail -s ok cve@example.org'"
+```
+_How to build:_
+
+```
+git clone https://github.com/loadaverage/i3lock.git
+git checkout wrong_pass_exec
+make && make install
+```
+Patches are located in ./patches diretory   
+Apply patch to original and build:
+
+```
+patch < wrong_pass_exec_v{$version}.patch
+make && make install
+```
+
 i3lock - improved screen locker
 ===============================
 i3lock is a simple screen locker like slock. After starting it, you will

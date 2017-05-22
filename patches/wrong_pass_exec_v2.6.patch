@@ -1,0 +1,53 @@
+reverted:
+--- i3lock.c	2014-07-18 21:25:02.000000000 +0300
++++ i3lock.c	2016-02-22 16:11:57.820596109 +0200
+@@ -75,6 +75,7 @@
+ bool tile = false;
+ bool ignore_empty_password = false;
+ bool skip_repeated_empty_password = false;
++char *ext_exec = NULL;
+ 
+ /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
+ #define isutf(c) (((c) & 0xC0) != 0x80)
+@@ -238,6 +239,11 @@
+     if (debug_mode)
+         fprintf(stderr, "Authentication failure\n");
+ 
++    /* execute external stuff in case of wrong password
++     * using system() as more simpler than fork() */
++    if (ext_exec) {
++      system(ext_exec);
++    }
+     pam_state = STATE_PAM_WRONG;
+     clear_input();
+     redraw_screen();
+@@ -671,13 +677,14 @@
+         {"tiling", no_argument, NULL, 't'},
+         {"ignore-empty-password", no_argument, NULL, 'e'},
+         {"inactivity-timeout", required_argument, NULL, 'I'},
++        {"execute-failed", required_argument, NULL, 'E'},
+         {NULL, no_argument, NULL, 0}
+     };
+ 
+     if ((username = getenv("USER")) == NULL)
+         errx(EXIT_FAILURE, "USER environment variable not set, please set it.\n");
+ 
++    char *optstring = "hvnbdc:p:ui:teI:E:";
+-    char *optstring = "hvnbdc:p:ui:teI:";
+     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
+         switch (o) {
+         case 'v':
+@@ -735,9 +742,12 @@
+             if (strcmp(longopts[optind].name, "debug") == 0)
+                 debug_mode = true;
+             break;
++        case 'E':
++            ext_exec = strdup(optarg);
++            break;
+         default:
+             errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
++            " [-i image.png] [-t] [-e] [-I] [-E echo 'wrong pass' > ~/wrong.log]"
+-            " [-i image.png] [-t] [-e] [-I]"
+             );
+         }
+     }

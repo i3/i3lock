@@ -89,6 +89,7 @@ cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+char *ext_exec = NULL;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -298,6 +299,12 @@ static void input_done(void) {
 
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
+
+    /* execute external stuff in case of wrong password
+     * using system() as more simpler than fork() */
+    if (ext_exec) {
+      system(ext_exec);
+    }
 
     /* Get state of Caps and Num lock modifiers, to be displayed in
      * STATE_AUTH_WRONG state */
@@ -835,6 +842,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"execute-failed", required_argument, NULL, 'E'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -842,7 +850,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fE:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -900,9 +908,12 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'E':
+                ext_exec = strdup(optarg);
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-E echo 'wrong pass' > ~/wrong.log]");
         }
     }
 
