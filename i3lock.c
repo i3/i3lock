@@ -340,6 +340,16 @@ static void input_done(void) {
     if (unlock_indicator)
         redraw_screen();
 
+    /* Skip all the events during the pam verification to avoid bad people
+     * spamming keys and locking pam in an endless validation loop */
+    xcb_generic_event_t *ev = xcb_poll_for_event(conn);
+    free(ev);
+    while (ev != NULL)
+    {
+        ev = xcb_poll_for_queued_event(conn);
+        free(ev);
+    }
+
     /* Clear this state after 2 seconds (unless the user enters another
      * password during that time). */
     ev_now_update(main_loop);
