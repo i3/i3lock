@@ -78,6 +78,7 @@ int screen_number = -1;
 int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
 bool show_clock = false;
+bool show_indicator = false;
 /* time formatter strings for date/time
     I picked 32-length char arrays because some people might want really funky time formatters.
     Who am I to judge?
@@ -910,6 +911,7 @@ int main(int argc, char *argv[]) {
         {"screen", required_argument, NULL, 'S'},
 
         {"clock", no_argument, NULL, 'k'},
+        {"indicator", no_argument, NULL, 0},
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
         {"timefont", required_argument, NULL, 0},
@@ -1008,6 +1010,9 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
                     debug_mode = true;
+                else if (strcmp(longopts[optind].name, "indicator") == 0) {
+                    show_indicator = true;
+                }
                 else if (strcmp(longopts[optind].name, "insidevercolor") == 0) {
                     char *arg = optarg;
 

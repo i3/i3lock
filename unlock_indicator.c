@@ -80,6 +80,7 @@ extern int internal_line_source;
 extern int screen_number;
 
 extern bool show_clock;
+extern bool show_indicator;
 extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
@@ -301,7 +302,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     timeinfo = localtime(&rawtime);
 
     if (unlock_indicator &&
-        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE)) {
+        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 7.0);
