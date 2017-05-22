@@ -79,6 +79,7 @@ int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
 bool show_clock = false;
 bool show_indicator = false;
+float refresh_rate = 1.0;
 /* time formatter strings for date/time
     I picked 32-length char arrays because some people might want really funky time formatters.
     Who am I to judge?
@@ -912,6 +913,8 @@ int main(int argc, char *argv[]) {
 
         {"clock", no_argument, NULL, 'k'},
         {"indicator", no_argument, NULL, 0},
+        {"refresh-rate", required_argument, NULL, 0},
+        
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
         {"timefont", required_argument, NULL, 0},
@@ -1209,14 +1212,24 @@ int main(int argc, char *argv[]) {
                         errx(1, "datepos must be of the form x:y\n");
                     }
                 }
+                else if (strcmp(longopts[optind].name, "refresh-rate") == 0) {
+                    //read in to date_x_expr and date_y_expr
+                    char* arg = optarg;
+                    refresh_rate = strtof(arg, NULL);
+                    if (refresh_rate < 1.0) {
+                        fprintf(stderr, "The given refresh rate of %fs is less than one second and was ignored.\n", refresh_rate);
+                        refresh_rate = 1.0;
+                    }
+                }
                 break;
             case 'f':
                 show_failed_attempts = true;
                 break;
             default:
+                // TODO: clean this up, use newlines
                 errx(EXIT_FAILURE, "Syntax: i3lock-color [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [-k]"
-                                   " [-B blur_strength] [--variety-of-color-args=rrggbbaa]");
+                                   " [-B blur_strength] [--indicator] [--refresh-rate rate] [--variety-of-color-args=rrggbbaa] [--[time|date][pos|color|font|size]=[arg]]\n");
         }
     }
 
