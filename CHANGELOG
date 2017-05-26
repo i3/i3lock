@@ -1,5 +1,20 @@
-2016-10-14 i3lock-color 2.9
- • Add in clock display support
+2017-05-26 i3lock 2.9
+
+ • i3lock.1: use signal names without SIG prefix
+ • Removed obsolete inactivity timeout
+ • Added version files for release tarball.
+ • Set font face
+ • Automatically unlock (without having to press <Enter>) one attempt which was
+   entered while authenticating
+ • Stop leaking the image_path dup
+ • Displaying locking message when grabbing the pointer/keyboard
+ • Display error message when locking failed
+ • Add Enter on C-m
+ • Change input slices to be exactly pi/3 in size instead of slightly more
+ • Fix covering of composited notifications using the XComposite extension
+ • Remove last traces of DPMS
+ • Use bsd_auth(3) instead of PAM on OpenBSD
+ • Restore intended behaviour and don't use mlock(2) on OpenBSD.
 
 2016-06-04 i3lock 2.8
 
