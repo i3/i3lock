@@ -1197,7 +1197,7 @@ int main(int argc, char *argv[]) {
                         errx(1, "date position string can be at most 31 characters\n");
                     }
                     char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", &time_x_expr, &time_y_expr) != 2) {
+                    if (sscanf(arg, "%30[^:]:%30[^:]", time_x_expr, time_y_expr) != 2) {
                         errx(1, "timepos must be of the form x:y\n");
                     }
                 }
@@ -1208,7 +1208,7 @@ int main(int argc, char *argv[]) {
                         errx(1, "date position string can be at most 31 characters\n");
                     }
                     char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", &date_x_expr, &date_y_expr) != 2) {
+                    if (sscanf(arg, "%30[^:]:%30[^:]", date_x_expr, date_y_expr) != 2) {
                         errx(1, "datepos must be of the form x:y\n");
                     }
                 }

@@ -495,9 +495,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         strftime(time_text, 40, time_format, timeinfo);
         strftime(date_text, 40, date_format, timeinfo);
-        if (text ==  NULL) {
-            text = time_text;
-        }
+        text = time_text;
         date = date_text;
 
         if (text) {
@@ -537,81 +535,101 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     double ix, iy;
     double x, y;
+    double screen_x, screen_y;
     double w, h;
     double tx = 0;
     double ty = 0;
 
+    double clock_width = CLOCK_WIDTH;
+    double clock_height = CLOCK_HEIGHT;
+
     int te_x_err;
     int te_y_err;
     // variable mapping for evaluating the clock position expression
-    te_variable vars[] = {{"ix", &ix}, {"iy", &iy}, {"w", &w}, {"h", &h}, {"tx", &tx}, {"ty", &ty}};
+    te_variable vars[] = {
+        {"w", &w}, {"h", &h},
+        {"x", &screen_x}, {"y", &screen_y},
+        {"ix", &ix}, {"iy", &iy},
+        {"tx", &tx}, {"ty", &ty},
+        {"cw", &clock_width}, {"ch", &clock_height} // pretty sure this is fine.
+    };
 
-    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 6, &te_x_err);
-    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 6, &te_y_err);
-    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, 6, &te_x_err);
-    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, 6, &te_y_err);
-
-
+    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 10, &te_x_err);
+    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 10, &te_y_err);
+    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, 10, &te_x_err);
+    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, 10, &te_y_err);
 
     if (xr_screens > 0) {
         /* Composite the unlock indicator in the middle of each screen. */
         // excuse me, just gonna hack something in right here
         if (screen_number != -1 && screen_number < xr_screens) {
-          w = xr_resolutions[screen_number].width;
-          h = xr_resolutions[screen_number].height;
-          ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
-          iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
-          x = ix - (button_diameter_physical / 2);
-          y = iy - (button_diameter_physical / 2);
-          cairo_set_source_surface(xcb_ctx, output, x, y);
-          cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-          cairo_fill(xcb_ctx);
+            w = xr_resolutions[screen_number].width;
+            h = xr_resolutions[screen_number].height;
+            screen_x = xr_resolutions[screen_number].x;
+            screen_y = xr_resolutions[screen_number].y;
+            ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
+            iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
+            x = ix - (button_diameter_physical / 2);
+            y = iy - (button_diameter_physical / 2);
+            cairo_set_source_surface(xcb_ctx, output, x, y);
+            cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
+            cairo_fill(xcb_ctx);
 
-          if (te_time_x_expr && te_time_y_expr) {
-              tx = te_eval(te_time_x_expr);
-              ty = te_eval(te_time_y_expr);
-              double time_x = xr_resolutions[screen_number].x + tx - CLOCK_WIDTH / 2;
-              double time_y = xr_resolutions[screen_number].y + ty - CLOCK_HEIGHT / 2;
-              double date_x = xr_resolutions[screen_number].x + te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
-              double date_y = xr_resolutions[screen_number].y + te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
-              cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-              cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-              cairo_fill(xcb_ctx);
-              cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-              cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-              cairo_fill(xcb_ctx);
-          }
-        }
-        else {
-          for (int screen = 0; screen < xr_screens; screen++) {
-              w = xr_resolutions[screen].width;
-              h = xr_resolutions[screen].height;
-              ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
-              iy = xr_resolutions[screen].y + (xr_resolutions[screen].height / 2);
-              x = ix - (button_diameter_physical / 2);
-              y = iy - (button_diameter_physical / 2);
-              cairo_set_source_surface(xcb_ctx, output, x, y);
-              cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-              cairo_fill(xcb_ctx);
-              if (te_time_x_expr && te_time_y_expr) {
-                  tx = te_eval(te_time_x_expr);
-                  ty = te_eval(te_time_y_expr);
-                  double time_x = xr_resolutions[screen].x + tx - CLOCK_WIDTH / 2;
-                  double time_y = xr_resolutions[screen].y + ty - CLOCK_HEIGHT / 2;
-                  double date_x = xr_resolutions[screen].x + te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
-                  double date_y = xr_resolutions[screen].y + te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
-                  cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-                  cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                  cairo_fill(xcb_ctx);
-                  cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-                  cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                  cairo_fill(xcb_ctx);
-              }
-              else {
-                  DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
-                  DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
-              }
-          }
+            if (te_time_x_expr && te_time_y_expr) {
+                tx = 0;
+                ty = 0;
+                tx = te_eval(te_time_x_expr);
+                ty = te_eval(te_time_y_expr);
+                double time_x = tx - CLOCK_WIDTH / 2;
+                double time_y = ty - CLOCK_HEIGHT / 2;
+                double date_x = te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
+                double date_y = te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
+                DEBUG("tx: %f ty: %f ix: %f, iy: %f\n", tx, ty, ix, iy);
+                DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, screen_number);
+                DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f\n", xr_resolutions[screen_number].x, xr_resolutions[screen_number].y, w, h);
+                cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+                cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                cairo_fill(xcb_ctx);
+                cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+                cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                cairo_fill(xcb_ctx);
+            }
+        } else {
+            for (int screen = 0; screen < xr_screens; screen++) {
+                w = xr_resolutions[screen].width;
+                h = xr_resolutions[screen].height;
+                screen_x = xr_resolutions[screen].x;
+                screen_y = xr_resolutions[screen].y;
+                ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
+                iy = xr_resolutions[screen].y + (xr_resolutions[screen].height / 2);
+                x = ix - (button_diameter_physical / 2);
+                y = iy - (button_diameter_physical / 2);
+                cairo_set_source_surface(xcb_ctx, output, x, y);
+                cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
+                cairo_fill(xcb_ctx);
+                if (te_time_x_expr && te_time_y_expr) {
+                    tx = 0;
+                    ty = 0;
+                    tx = te_eval(te_time_x_expr);
+                    ty = te_eval(te_time_y_expr);
+                    double time_x = tx - CLOCK_WIDTH / 2;
+                    double time_y = ty - CLOCK_HEIGHT / 2;
+                    double date_x = te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
+                    double date_y = te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
+                    DEBUG("tx: %f ty: %f f ix: %f iy: %f\n", tx, ty, ix, iy);
+                    DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, screen);
+                    DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f\n", xr_resolutions[screen].x, xr_resolutions[screen].y, w, h);
+                    cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+                    cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                    cairo_fill(xcb_ctx);
+                    cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+                    cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                    cairo_fill(xcb_ctx);
+                } else {
+                    DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
+                    DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
+                }
+            }
         }
     } else {
         /* We have no information about the screen sizes/positions, so we just
