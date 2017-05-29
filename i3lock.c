@@ -1024,7 +1024,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidevercolor) != 1)
-                        errx(1, "insidevercolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                        errx(1, "insidevercolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "insidewrongcolor") == 0) {
                     char *arg = optarg;
@@ -1034,7 +1034,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidewrongcolor) != 1)
-                        errx(1, "insidewrongcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                        errx(1, "insidewrongcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "insidecolor") == 0) {
                     char *arg = optarg;
@@ -1044,7 +1044,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidecolor) != 1)
-                        errx(1, "insidecolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                        errx(1, "insidecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "ringvercolor") == 0) {
                     char *arg = optarg;
@@ -1054,7 +1054,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringvercolor) != 1)
-                        errx(1, "ringvercolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "ringvercolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[optind].name, "ringwrongcolor") == 0) {
                     char *arg = optarg;
@@ -1064,7 +1064,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
-                        errx(1, "ringwrongcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "ringwrongcolor is invalid, color must be given in r-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[optind].name, "ringcolor") == 0) {
                     char *arg = optarg;
@@ -1074,7 +1074,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringcolor) != 1)
-                        errx(1, "ringcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "ringcolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[optind].name, "linecolor") == 0) {
                     char *arg = optarg;
@@ -1084,7 +1084,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", linecolor) != 1)
-                        errx(1, "linecolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "linecolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[optind].name, "textcolor") == 0) {
                     char *arg = optarg;
@@ -1094,7 +1094,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
-                        errx(1, "textcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "textcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "timecolor") == 0) {
                     char *arg = optarg;
@@ -1104,7 +1104,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", timecolor) != 1)
-                        errx(1, "timecolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "timecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "datecolor") == 0) {
                     char *arg = optarg;
@@ -1114,7 +1114,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", datecolor) != 1)
-                        errx(1, "datecolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "datecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "keyhlcolor") == 0) {
                     char *arg = optarg;
@@ -1124,7 +1124,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", keyhlcolor) != 1)
-                        errx(1, "keyhlcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "keyhlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "bshlcolor") == 0) {
                     char *arg = optarg;
@@ -1134,7 +1134,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bshlcolor) != 1)
-                        errx(1, "bshlcolor is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "bshlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "separatorcolor") == 0) {
                     char *arg = optarg;
@@ -1144,7 +1144,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
-                        errx(1, "separator is invalid, color must be given in 8-byte format: rrggbb\n");
+                        errx(1, "separator is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[optind].name, "timestr") == 0) {
                     //read in to timestr

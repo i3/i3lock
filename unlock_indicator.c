@@ -267,10 +267,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                              {timecolor[2], timecolor[3], '\0'},
                              {timecolor[4], timecolor[5], '\0'},
                              {timecolor[6], timecolor[7], '\0'}};
-    uint32_t date16[4] = {(strtol(strgroupsc[0], NULL, 16)),
-                          (strtol(strgroupsc[1], NULL, 16)),
-                          (strtol(strgroupsc[2], NULL, 16)),
-                          (strtol(strgroupsc[3], NULL, 16))};
+    uint32_t date16[4] = {(strtol(strgroupsd[0], NULL, 16)),
+                          (strtol(strgroupsd[1], NULL, 16)),
+                          (strtol(strgroupsd[2], NULL, 16)),
+                          (strtol(strgroupsd[3], NULL, 16))};
     char strgroupsk[4][3] = {{keyhlcolor[0], keyhlcolor[1], '\0'},
                              {keyhlcolor[2], keyhlcolor[3], '\0'},
                              {keyhlcolor[4], keyhlcolor[5], '\0'},
@@ -299,6 +299,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
     time_t rawtime;
     struct tm* timeinfo;
+    bool unlock_indic_text = false;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
 
@@ -413,6 +414,20 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
         }
 
+        if (text) {
+            unlock_indic_text = true;
+            cairo_text_extents_t extents;
+            double x, y;
+
+            cairo_text_extents(ctx, text, &extents);
+            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
+
+            cairo_move_to(ctx, x, y);
+            cairo_show_text(ctx, text);
+            cairo_close_path(ctx);
+        }
+
         if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
             cairo_text_extents_t extents;
             double x, y;
@@ -471,19 +486,19 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_stroke(ctx);
         }
     }
-    if (show_clock) {
-        char *text = NULL;
+
+    if (show_clock && !unlock_indic_text) {
+        char *text = NULL; 
         char *date = NULL;
         char time_text[40] = {0};
         char date_text[40] = {0};
 
         strftime(time_text, 40, time_format, timeinfo);
         strftime(date_text, 40, date_format, timeinfo);
-        text = time_text;
+        if (text ==  NULL) {
+            text = time_text;
+        }
         date = date_text;
-
-        double width = 0;
-        double height = 0;
 
         if (text) {
             double x, y;
