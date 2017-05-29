@@ -88,8 +88,8 @@ char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 char time_font[32] = "sans-serif\0";
 char date_font[32] = "sans-serif\0";
-char time_x_expr[32] = "ix\0";
-char time_y_expr[32] = "iy\0";
+char time_x_expr[32] = "ix - (cw / 2)\0";
+char time_y_expr[32] = "iy - (ch / 2)\0";
 char date_x_expr[32] = "tx\0";
 char date_y_expr[32] = "ty+30\0";
 
