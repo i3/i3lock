@@ -29,8 +29,8 @@
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
-#define CLOCK_WIDTH 400 
-#define CLOCK_HEIGHT 200 
+#define CLOCK_WIDTH 400
+#define CLOCK_HEIGHT 200
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -149,7 +149,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     bg_pixmap = create_bg_pixmap(conn, screen, resolution, color);
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
-     * depending on the amount of screens) unlock indicators on. 
+     * depending on the amount of screens) unlock indicators on.
      * create two more surfaces for time and date display
      */
     cairo_surface_t *output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, button_diameter_physical, button_diameter_physical);
@@ -410,7 +410,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                         text = buf;
                     }
                     cairo_set_font_size(ctx, 32.0);
-                } 
+                }
                 break;
         }
 
@@ -488,7 +488,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     }
 
     if (show_clock && !unlock_indic_text) {
-        char *text = NULL; 
+        char *text = NULL;
         char *date = NULL;
         char time_text[40] = {0};
         char date_text[40] = {0};
@@ -507,7 +507,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_set_font_size(time_ctx, time_size);
             cairo_select_font_face(time_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
             cairo_set_source_rgba(time_ctx, (double)time16[0]/255, (double)time16[1]/255, (double)time16[2]/255, (double)time16[3]/255);
-            
+
             cairo_text_extents(time_ctx, text, &extents);
             x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
             y = CLOCK_HEIGHT/2;
@@ -544,7 +544,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     int te_x_err;
     int te_y_err;
     // variable mapping for evaluating the clock position expression
-    te_variable vars[] = {{"ix", &ix}, {"iy", &iy}, {"w", &w}, {"h", &h}, {"tx", &tx}, {"ty", &ty}}; 
+    te_variable vars[] = {{"ix", &ix}, {"iy", &iy}, {"w", &w}, {"h", &h}, {"tx", &tx}, {"ty", &ty}};
 
     te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 6, &te_x_err);
     te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 6, &te_y_err);
@@ -565,7 +565,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
           y = iy - (button_diameter_physical / 2);
           cairo_set_source_surface(xcb_ctx, output, x, y);
           cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-          cairo_fill(xcb_ctx);        
+          cairo_fill(xcb_ctx);
 
           if (te_time_x_expr && te_time_y_expr) {
               tx = te_eval(te_time_x_expr);
@@ -607,10 +607,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                   cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                   cairo_fill(xcb_ctx);
               }
-          else {
-              DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
-              DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
-          }
+              else {
+                  DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
+                  DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
+              }
           }
         }
     } else {
@@ -687,7 +687,6 @@ static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
 }
 
 void start_time_redraw_tick(struct ev_loop* main_loop) {
-    fprintf(stderr, "redraw rate: %f\n", refresh_rate);
     if (time_redraw_tick) {
         ev_periodic_set(time_redraw_tick, 0., refresh_rate, 0);
         ev_periodic_again(main_loop, time_redraw_tick);
