@@ -204,7 +204,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         cairo_set_source_rgb(ctx, 0, 0, 0);
         cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
+        cairo_set_font_size(ctx, 20.0);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
                 text = "verifying…";
@@ -213,7 +213,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 text = "locking…";
                 break;
             case STATE_AUTH_WRONG:
-                text = "wrong!";
+                text = "Access Denied!";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 text = "lock failed!";
