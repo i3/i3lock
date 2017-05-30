@@ -28,6 +28,8 @@ i3lock \- improved screen locker
 .RB [\|\-u\|]
 .RB [\|\-e\|]
 .RB [\|\-f\|]
+.RB [\|\--command-on-crash=
+.IR crash-handler.sh \|]
 
 .SH DESCRIPTION
 .B i3lock
@@ -109,6 +111,25 @@ Show the number of failed attempts, if any.
 .B \-\-debug
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
+
+.TP
+.BI \fB\-\-command-on-crash= path
+Runs the specified command on unexpected process termination (e.g. crash).
+
+For example to shut down the machine:
+
+.Vb 6
+\& i3lock --command-on-crash=/usr/bin/poweroff
+
+To make logind terminate the session to log you out, put this in
+/usr/local/bin/i3lock-crash.sh and make it executable, then use
+--command-on-crash=/usr/local/bin/i3lock-crash.sh:
+
+.Vb 6
+\& #!/bin/sh
+\& dbus-send --system --print-reply --dest=org.freedesktop.login1 \\
+\&   /org/freedesktop/login1 'org.freedesktop.login1.Manager.TerminateSession' \\
+\&   string:c2
 
 .SH DPMS
 

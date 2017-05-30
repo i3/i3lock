@@ -90,6 +90,35 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+static bool expected_exit = false;
+static char *crash_handler = NULL;
+
+static void exit_handler() {
+    if (expected_exit) {
+        return;
+    }
+
+    fprintf(stderr, "[i3lock] Unexpected termination!\n");
+
+    /* Ensure we don't call it several times */
+    expected_exit = true;
+
+    system(crash_handler);
+}
+
+static void signal_handler(int sig) {
+    /* Reset to default signal handler */
+    signal(sig, SIG_DFL);
+    exit_handler();
+    /* Re-raise signal to be handled by default signal handler */
+    raise(sig);
+}
+
+static void set_signal_handler(sigset_t *sigset, int sig) {
+    signal(sig, &signal_handler);
+    sigaddset(sigset, sig);
+}
+
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -292,6 +321,7 @@ static void input_done(void) {
         pam_setcred(pam_handle, PAM_REFRESH_CRED);
         pam_end(pam_handle, PAM_SUCCESS);
 
+        expected_exit = true;
         exit(0);
     }
 #endif
@@ -733,8 +763,10 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                     dont_fork = true;
 
                     /* In the parent process, we exit */
-                    if (fork() != 0)
+                    if (fork() != 0) {
+                        expected_exit = true;
                         exit(0);
+                    }
 
                     ev_loop_fork(EV_DEFAULT);
                 }
@@ -835,6 +867,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"command-on-crash", required_argument, NULL, 0},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -896,13 +929,15 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[optind].name, "debug") == 0)
                     debug_mode = true;
+                else if (strcmp(longopts[optind].name, "command-on-crash") == 0)
+                    crash_handler = optarg;
                 break;
             case 'f':
                 show_failed_attempts = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [--command-on-crash=/usr/bin/foo]");
         }
     }
 
@@ -1035,6 +1070,23 @@ int main(int argc, char *argv[]) {
         maybe_close_sleep_lock_fd();
         raise_loop(win);
         exit(EXIT_SUCCESS);
+    }
+
+    /* Install a handler that gets called in case of unexpected exit */
+    if (crash_handler) {
+        atexit(exit_handler);
+        sigset_t signal_mask;
+        sigemptyset(&signal_mask);
+        set_signal_handler(&signal_mask, SIGILL);
+        set_signal_handler(&signal_mask, SIGABRT);
+        set_signal_handler(&signal_mask, SIGFPE);
+        set_signal_handler(&signal_mask, SIGSEGV);
+        set_signal_handler(&signal_mask, SIGPIPE);
+        set_signal_handler(&signal_mask, SIGBUS);
+        set_signal_handler(&signal_mask, SIGSYS);
+        set_signal_handler(&signal_mask, SIGXCPU);
+        set_signal_handler(&signal_mask, SIGXFSZ);
+        sigprocmask(SIG_UNBLOCK, &signal_mask, 0);
     }
 
     /* Load the keymap again to sync the current modifier state. Since we first
