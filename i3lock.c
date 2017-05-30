@@ -80,6 +80,9 @@ int internal_line_source = 0;
 bool show_clock = false;
 bool show_indicator = false;
 float refresh_rate = 1.0;
+
+/* there's some issues with compositing currently. Let's supply an arg to disable it. */
+bool composite = true;
 /* time formatter strings for date/time
     I picked 32-length char arrays because some people might want really funky time formatters.
     Who am I to judge?
@@ -916,6 +919,7 @@ int main(int argc, char *argv[]) {
         {"clock", no_argument, NULL, 'k'},
         {"indicator", no_argument, NULL, 0},
         {"refresh-rate", required_argument, NULL, 0},
+        {"no-composite", no_argument, NULL, 0},
         
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
@@ -1222,6 +1226,9 @@ int main(int argc, char *argv[]) {
                         fprintf(stderr, "The given refresh rate of %fs is less than one second and was ignored.\n", refresh_rate);
                         refresh_rate = 1.0;
                     }
+                }
+                else if (strcmp(longopts[optind].name, "no-composite") == 0) {
+                    composite = false;
                 }
                 break;
             case 'f':

@@ -25,6 +25,7 @@
 #include "unlock_indicator.h"
 
 extern auth_state_t auth_state;
+extern bool composite;
 
 xcb_connection_t *conn;
 xcb_screen_t *screen;
@@ -109,26 +110,28 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
     xcb_window_t win = xcb_generate_id(conn);
     xcb_window_t parent_win = scr->root;
 
-    /* Check whether the composite extension is available */
-    const xcb_query_extension_reply_t *extension_query = NULL;
-    xcb_generic_error_t *error = NULL;
-    xcb_composite_get_overlay_window_cookie_t cookie;
-    xcb_composite_get_overlay_window_reply_t *composite_reply = NULL;
+    if (composite) {
+        /* Check whether the composite extension is available */
+        const xcb_query_extension_reply_t *extension_query = NULL;
+        xcb_generic_error_t *error = NULL;
+        xcb_composite_get_overlay_window_cookie_t cookie;
+        xcb_composite_get_overlay_window_reply_t *composite_reply = NULL;
 
-    extension_query = xcb_get_extension_data(conn, &xcb_composite_id);
-    if (extension_query && extension_query->present) {
-        /* When composition is used, we need to use the composite overlay
-         * window instead of the normal root window to be able to cover
-         * composited windows */
-        cookie = xcb_composite_get_overlay_window(conn, scr->root);
-        composite_reply = xcb_composite_get_overlay_window_reply(conn, cookie, &error);
+        extension_query = xcb_get_extension_data(conn, &xcb_composite_id);
+        if (extension_query && extension_query->present) {
+            /* When composition is used, we need to use the composite overlay
+             * window instead of the normal root window to be able to cover
+             * composited windows */
+            cookie = xcb_composite_get_overlay_window(conn, scr->root);
+            composite_reply = xcb_composite_get_overlay_window_reply(conn, cookie, &error);
 
-        if (!error && composite_reply) {
-            parent_win = composite_reply->overlay_win;
+            if (!error && composite_reply) {
+                parent_win = composite_reply->overlay_win;
+            }
+
+            free(composite_reply);
+            free(error);
         }
-
-        free(composite_reply);
-        free(error);
     }
 
     if (pixmap == XCB_NONE) {
