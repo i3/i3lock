@@ -87,6 +87,7 @@ static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
+bool img_centered = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
@@ -832,6 +833,7 @@ int main(int argc, char *argv[]) {
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
+        {"middle", no_argument, NULL, 'm'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -842,7 +844,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:tmeI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -881,6 +883,9 @@ int main(int argc, char *argv[]) {
             case 't':
                 tile = true;
                 break;
+            case 'm':
+                img_centered = true;
+                break;
             case 'p':
                 if (!strcmp(optarg, "win")) {
                     curs_choice = CURS_WIN;
@@ -902,7 +907,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-m] [-e] [-I timeout] [-f]");
         }
     }
 
