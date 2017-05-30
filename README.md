@@ -30,25 +30,28 @@ Many little improvements have been made to i3lock over time:
      - `--bshlcolor=rrggbbaa` -- Backspace highlight segments
      - `--line-uses-ring`, `-r` -- the line between the inside and outer ring uses the ring color for its color
      - `--line-uses-inside`, `-s` -- the line between the inside and outer ring uses the inside color for its color
+	- The following additional options have been added:
      - `-S, --screen` -- specifies which display to draw the unlock indicator on
      - `-k, --clock` -- enables the clock display.
-     - `-B, --blur` -- enables Gaussian blur
+		 - `--indicator` -- forces the indicator to always show, even if there's no activity.
+     - `-B=sigma, --blur` -- enables Gaussian blur. Sigma is the blur radius.
+	      - Note: You can still composite images over the blur (but still under the indicator) with -i.
+				- Eventually there might be an `imagepos` arg, similar to `time` and `datepos`. 
      - `--timestr="%H:%M:%S"` -- allows custom overriding of the time format string. Accepts `strftime` formatting. Default is `"%H:%M:%S"`.
-     - `--timepos="ix:iy-20"` -- position of the time. Expressions using the variables w (screen width), h (screen height), ix (indicator x position) and iy (indicator y position) can be used.
+     - `--timepos="ix:iy-20"` -- position of the time. Expressions using the variables x (current screen's x value), y (current screen's y value), w (screen width), h (screen height), ix (indicator x position), iy (indicator y position) cw (clock width), and ch (clock height) can be used..
      - `--timecolor=rrggbbaa` -- color of the time string
      - `--timefont="sans-serif"` -- font used for the time display
      - `--timesize=32` -- font size for the time display
      - `--datestr="%A, %m %Y"` -- allows custom overriding of the date format string. Accepts `strftime` formatting. Default is `"%A, %m %Y"`.
-     - `--datepos="ix:iy-20"` -- position of the date. Expressions using the variables w (screen width), h (screen height), ix (indicator x position), iy (indicator y position), tx (time x) and ty (time y) can be used.
+     - `--datepos="ix:iy-20"` -- position of the date. All the variables in `timepos` can be used here, as well as the additional values tx (time x) and ty (time y).
      - `--datecolor=rrggbbaa` -- color of the date string
      - `--datefont="sans-serif"` -- font used for the date display
      - `--datesize=14` -- font size for the date display
-  - All the colors have an alpha channel now. Please keep in mind that this was not intended when the program was originally written, so making things transparent that weren't before can make it look strange.
 
 - You can specify whether i3lock should bell upon a wrong password.
 
 - i3lock uses PAM and therefore is compatible with LDAP etc.
-  On OpenBSD i3lock uses the bsd_auth(3) framework.
+  On OpenBSD i3lock uses the bsd\_auth(3) framework.
 
 Requirements
 ------------
@@ -80,11 +83,6 @@ press enter.
 
 On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
 authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
-
-Example usage for colors:
-
-i3lock-color --insidevercolor=0000a0bf --insidewrongcolor=ff8000bf --insidecolor=ffffffbf --ringvercolor=0020ffff --ringwrongcolor=4040ffff --ringcolor=404090ff --textcolor=ffffffff  --separatorcolor=aaaaaaff --keyhlcolor=30ccccff --bshlcolor=ff8000ff -r
-
 
 Upstream
 --------

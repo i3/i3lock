@@ -14,7 +14,7 @@
 i3lock-color \- improved screen locker
 
 .SH SYNOPSIS
-.B i3lock-color
+.B i3lock
 .RB [\|\-v\|]
 .RB [\|\-n\|]
 .RB [\|\-b\|]
@@ -109,6 +109,146 @@ Show the number of failed attempts, if any.
 .B \-\-debug
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
+
+.SH i3lock-color options
+.TP
+.B \-S=number, \-\-screen=number
+Specifies which display to draw the unlock indicator and clock on. By default, they'll be placed on every screen.
+Note that this number is zero indexed. The ordering is dependent on libxinerama.
+
+.TP
+.B \-B=sigma, \-\-blur=sigma
+Captures the screen and blurs it using the given sigma (radius).
+Images may still be overlaid over the blurred screenshot.
+
+.TP
+.B \-\-indicator
+Forces the indicator to always be visible, instead of only showing on activity.
+
+.TP
+.B \-\-insidevercolor=rrggbbaa
+Sets the interior circle color while the password is being verified.
+
+.TP
+.B \-\-insidewrongcolor=rrggbbaa
+Sets the interior circle color for during flash for an incorrect password.
+
+.TP
+.B \-\-insidecolor=rrggbbaa
+Sets the default "resting" color for the interior circle.
+
+.TP
+.B \-\-ringvercolor=rrggbbaa
+Sets the ring color while the password is being verified.
+
+.TP
+.B \-\-ringwrongcolor=rrggbbaa
+Sets the ring color during the flash for an incorrect password.
+
+.TP
+.B \-\-ringcolor=rrggbbaa
+Sets the default ring color.
+
+.TP
+.B \-\-linecolor=rrggbbaa
+Sets the color for the line separating the inside circle, and the outer ring.
+
+.TP
+.B \-\-line\-uses\-ring
+Conflicts with \-\-line\-uses\-inside. Overrides \-\-linecolor. The line will match the ring color.
+
+.TP
+.B \-\-line\-uses\-inside
+Conflicts with \-\-line\-uses\-ring. Overrides \-\-linecolor; the line will match the inside color.
+
+.TP
+.B \-\-keyhlcolor=rrggbbaa
+Sets the color of the ring 'highlight' strokes that appear upon keypress.
+
+.TP
+.B \-\-bshlcolor=rrggbbaa
+Sets the color of the ring 'highlight' strokes that appear upon backspace.
+
+.TP
+.B \-\-separatorcolor=rrggbbaa
+Sets the color of the 'separtor', which is at both ends of the ring highlights.
+
+.TP
+.B \-\-textcolor=rrggbbaa
+Sets the color of the status text ("verifying...", "wrong!", etc).
+
+.TP
+.B \-\-timecolor=rrggbbaa
+Sets the color of the time in the clock.
+
+.TP
+.B \-\-timestr="%H:%M:%S"
+Sets the format used for generating the time string. See strftime(3) for a full list of format specifiers.
+
+.TP
+.B \-\-timefont=sans-serif
+Sets the font used to render the time string.
+
+.TP
+.B \-\-timesize=32
+Sets the font size for rendering the time string.
+
+.TP
+.B \-\-timepos="x position:y position"
+Sets the position for the time string. Valid variables include:
+
+.RS
+.RS
+x - x position of the current display. Corresponds to the leftmost row of pixels on that display.
+
+y - y position of the current display. Corresponds to the topmost row of pixels on that display.
+
+w - width of the current display.
+
+h - height of the current display.
+
+ix - the x value of the indicator on the current display.
+
+iy - the y value of the indicator on the current display.
+
+cw - the clock width.
+
+ch - the clock height.
+
+.RE
+.RE
+
+.TP
+.B \-\-datecolor=rrggbbaa
+Sets the color of the date in the clock.
+
+.TP
+.B \-\-datestr="%A, %m %Y
+Sets the format used for generating the date string. See strftime(3) for a full list of format specifiers.
+.TP
+.B \-\-datefont=sans-serif
+Sets the font used to render the date string.
+
+.TP
+.B \-\-datesize=14
+Sets the font size for rendering the date string.
+
+.TP
+.B \-\-datepos="x position:y position"
+Sets the position for the date string. All the variables from \-\-timepos may be used, in addition to:
+
+.RS
+.RS
+tx - the computed x value of the timestring, for the current display.
+
+ty - the computed y value of the timestring, for the current display.
+
+.RE
+.RE
+
+.TP
+.B \-\-refresh\-rate=seconds
+The refresh rate of the indicator, given in seconds. This should automatically align itself, but is somewhat buggy currently.
 
 .SH DPMS
 

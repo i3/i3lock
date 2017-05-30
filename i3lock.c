@@ -908,7 +908,8 @@ int main(int argc, char *argv[]) {
         {"separatorcolor", required_argument, NULL, 0},
         {"line-uses-ring", no_argument, NULL, 'r'},
         {"line-uses-inside", no_argument, NULL, 's'},
-        /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh */
+        /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh 
+         * note: `I` has been deprecated for a while, so I might just remove that and reshuffle that? */
         {"screen", required_argument, NULL, 'S'},
 
         {"clock", no_argument, NULL, 'k'},
@@ -1227,9 +1228,9 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 // TODO: clean this up, use newlines
-                errx(EXIT_FAILURE, "Syntax: i3lock-color [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-r|s] [-S screen_number] [-k]"
-                                   " [-B blur_strength] [--indicator] [--refresh-rate rate] [--variety-of-color-args=rrggbbaa] [--[time|date][pos|color|font|size]=[arg]]\n");
+                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+                                   " [-i image.png] [-t] [-e] [-f]\n"
+                                   "Please see the manpage for a full list of arguments.");
         }
     }
 
