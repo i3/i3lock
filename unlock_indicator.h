@@ -1,6 +1,8 @@
 #ifndef _UNLOCK_INDICATOR_H
 #define _UNLOCK_INDICATOR_H
 
+#include <ev.h>
+
 typedef enum {
     STATE_STARTED = 0,         /* default state */
     STATE_KEY_PRESSED = 1,     /* key was pressed, show unlock indicator */
