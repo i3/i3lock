@@ -809,6 +809,13 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+cairo_status_t img_read(void *closure, unsigned char *data,
+                        unsigned int length) {
+    return fread(data, 1, length, stdin) == length ? CAIRO_STATUS_SUCCESS
+                                                   : CAIRO_STATUS_READ_ERROR;
+    (void)closure;
+}
+
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
@@ -830,7 +837,7 @@ int main(int argc, char *argv[]) {
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
-        {"image", required_argument, NULL, 'i'},
+        {"image", optional_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -842,7 +849,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui::teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -876,7 +883,10 @@ int main(int argc, char *argv[]) {
                 unlock_indicator = false;
                 break;
             case 'i':
-                image_path = strdup(optarg);
+                if (optarg == NULL)
+                    image_path = strdup("");
+                else
+                    image_path = strdup(optarg);
                 break;
             case 't':
                 tile = true;
@@ -902,7 +912,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i [image.png]] [-t] [-e] [-I timeout] [-f]");
         }
     }
 
@@ -1002,7 +1012,11 @@ int main(int argc, char *argv[]) {
 
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
+        if (strlen(image_path) == 0)
+            img = cairo_image_surface_create_from_png_stream(img_read, NULL);
+        else
+            img = cairo_image_surface_create_from_png(image_path);
+
         /* In case loading failed, we just pretend no -i was specified. */
         if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",

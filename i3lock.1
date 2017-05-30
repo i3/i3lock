@@ -19,7 +19,7 @@ i3lock \- improved screen locker
 .RB [\|\-n\|]
 .RB [\|\-b\|]
 .RB [\|\-i
-.IR image.png \|]
+.IR [image.png \|]]
 .RB [\|\-c
 .IR color \|]
 .RB [\|\-t\|]
@@ -70,8 +70,9 @@ show you the current PAM state (whether your password is currently being
 verified or whether it is wrong).
 
 .TP
-.BI \-i\  path \fR,\ \fB\-\-image= path
-Display the given PNG image instead of a blank screen.
+.BI \-i\  [path] \fR,\ \fB\-\-image[= path]
+Display the given PNG image instead of a blank screen. When no image is
+specified, read from stdin.
 
 .TP
 .BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
