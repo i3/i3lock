@@ -41,6 +41,7 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 #include "xinerama.h"
+#include "blur.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -89,6 +90,8 @@ cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+
+bool blur = false;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -835,6 +838,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"blur", no_argument, NULL, 'g'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -842,7 +846,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbgdc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
         switch (o) {
             case 'v':
@@ -900,9 +904,12 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'g':
+                blur = true;
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-g]");
         }
     }
 
@@ -1012,12 +1019,39 @@ int main(int argc, char *argv[]) {
         free(image_path);
     }
 
+    xcb_pixmap_t blur_pixmap = 0;
+    if (blur) {
+        if (img == NULL) {
+            xcb_visualtype_t *vistype = get_root_visual_type(screen);
+            /* Capture the current screen contents into an XCB surface buffer */
+            blur_pixmap = capture_bg_pixmap(conn, screen, last_resolution);
+            cairo_surface_t *xcb_img = cairo_xcb_surface_create(conn,
+                                                                blur_pixmap, vistype, last_resolution[0], last_resolution[1]);
+
+            /* The placeholder blur function currently needs a cairo image
+             * surface, so we have to copy our screen onto that first */
+            img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                             last_resolution[0], last_resolution[1]);
+            cairo_t *ctx = cairo_create(img);
+            cairo_set_source_surface(ctx, xcb_img, 0, 0);
+            cairo_paint(ctx);
+
+            cairo_destroy(ctx);
+            cairo_surface_destroy(xcb_img);
+        }
+
+        blur_image_surface(img, 10000);
+    }
+
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
     /* Open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, screen, color, bg_pixmap);
     xcb_free_pixmap(conn, bg_pixmap);
+    if (blur_pixmap) {
+        xcb_free_pixmap(conn, blur_pixmap);
+    }
 
     cursor = create_cursor(conn, screen, win, curs_choice);
 
