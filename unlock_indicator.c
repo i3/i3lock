@@ -56,6 +56,7 @@ extern char *modifier_string;
 
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
+extern cairo_surface_t *blur_img;
 
 /* Whether the image should be tiled. */
 extern bool tile;
@@ -164,6 +165,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
+    if (blur_img) {
+        cairo_set_source_surface(xcb_ctx, blur_img, 0, 0);
+        cairo_paint(xcb_ctx);
+    }
     if (img) {
         if (!tile) {
             cairo_set_source_surface(xcb_ctx, img, 0, 0);
