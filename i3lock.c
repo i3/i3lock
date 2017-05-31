@@ -96,8 +96,14 @@ char time_y_expr[32] = "iy - (ch / 2)\0";
 char date_x_expr[32] = "tx\0";
 char date_y_expr[32] = "ty+30\0";
 
-double time_size = 32;
-double date_size = 14;
+double time_size = 32.0;
+double date_size = 14.0;
+double text_size = 28.0;
+double modifier_size = 14.0;
+double circle_radius = 90.0;
+
+char* verif_text = "verifying…";
+char* wrong_text = "wrong!";
 
 /* opts for blurring */
 bool blur = false;
@@ -894,7 +900,9 @@ int main(int argc, char *argv[]) {
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
-
+        {"ignore-empty-password", no_argument, NULL, 'e'},
+        {"inactivity-timeout", required_argument, NULL, 'I'},
+        {"show-failed-attempts", no_argument, NULL, 'f'},
         /* options for unlock indicator colors */
         // defining a lot of different chars here for the options -- TODO find a nicer way for this, maybe not offering single character options at all
         {"insidevercolor", required_argument, NULL, 0},   // --i-v
@@ -915,7 +923,7 @@ int main(int argc, char *argv[]) {
         /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh 
          * note: `I` has been deprecated for a while, so I might just remove that and reshuffle that? */
         {"screen", required_argument, NULL, 'S'},
-
+        {"blur", required_argument, NULL, 'B'},
         {"clock", no_argument, NULL, 'k'},
         {"indicator", no_argument, NULL, 0},
         {"refresh-rate", required_argument, NULL, 0},
@@ -930,11 +938,12 @@ int main(int argc, char *argv[]) {
         {"timepos", required_argument, NULL, 0},
         {"datepos", required_argument, NULL, 0},
 
-        {"blur", required_argument, NULL, 'B'},
+        {"veriftext", required_argument, NULL, 0},
+        {"wrongtext", required_argument, NULL, 0},
+        {"textsize", required_argument, NULL, 0},
+        {"modsize", required_argument, NULL, 0},
+        {"radius", required_argument, NULL, 0},
 
-        {"ignore-empty-password", no_argument, NULL, 'e'},
-        {"inactivity-timeout", required_argument, NULL, 'I'},
-        {"show-failed-attempts", no_argument, NULL, 'f'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -1230,12 +1239,47 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[optind].name, "no-composite") == 0) {
                     composite = false;
                 }
+                else if (strcmp(longopts[optind].name, "veriftext") == 0) {
+                    verif_text = optarg;
+                }
+                else if (strcmp(longopts[optind].name, "wrongtext") == 0) {
+                    wrong_text = optarg;
+                }
+                else if (strcmp(longopts[optind].name, "textsize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &text_size) != 1)
+                        errx(1, "textsize must be a number\n");
+                    if (time_size < 1) {
+                        fprintf(stderr, "textsize must be a positive integer; ignoring...\n");
+                        text_size = 28.0;
+                    }
+                }
+                else if (strcmp(longopts[optind].name, "modsize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &modifier_size) != 1)
+                        errx(1, "modsize must be a number\n");
+                    if (modifier_size < 1) {
+                        fprintf(stderr, "modsize must be a positive integer; ignoring...\n");
+                        modifier_size = 14.0;
+                    }
+                }
+                else if (strcmp(longopts[optind].name, "radius") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &circle_radius) != 1)
+                        errx(1, "radius must be a number\n");
+                    if (circle_radius < 1) {
+                        fprintf(stderr, "radius must be a positive integer; ignoring...\n");
+                        text_size = 90.0;
+                    }
+                }
                 break;
             case 'f':
                 show_failed_attempts = true;
                 break;
             default:
-                // TODO: clean this up, use newlines
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-f]\n"
                                    "Please see the manpage for a full list of arguments.");

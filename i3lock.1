@@ -194,8 +194,8 @@ Sets the format used for generating the time string. See strftime(3) for a full 
 Sets the font used to render the time string.
 
 .TP
-.B \-\-timesize=32
-Sets the font size for rendering the time string.
+.B \-\-timesize=number
+Sets the font size for rendering the time string. Defaults to 32.
 
 .TP
 .B \-\-timepos="x position:y position"
@@ -234,8 +234,8 @@ Sets the format used for generating the date string. See strftime(3) for a full 
 Sets the font used to render the date string.
 
 .TP
-.B \-\-datesize=14
-Sets the font size for rendering the date string.
+.B \-\-datesize=number
+Sets the font size for rendering the date string. Defaults to 14.
 
 .TP
 .B \-\-datepos="x position:y position"
@@ -253,6 +253,26 @@ ty - the computed y value of the timestring, for the current display.
 .TP
 .B \-\-refresh\-rate=seconds
 The refresh rate of the indicator, given in seconds. This should automatically align itself, but is somewhat buggy currently.
+
+.TP
+.B \-\-veriftext="text"
+Sets the string to be shown while verifying the password/input/key/etc. Defaults to "verifying…".
+
+.TP
+.B \-\-wrongtext="text"
+Sets the string to be shown upon entering an incorrect password. Defaults to "wrong!".
+
+.TP
+.B \-\-textsize=number
+The fontsize of the status text. Defaults to 28.
+
+.TP
+.B \-\-modsize=number
+The fontsize of the text listing all the active modifiers (caps lock, num lock, etc). Defaults to 14.
+
+.TP
+.B \-\-radius
+The radius of the circle. Defaults to 90.
 
 .SH DPMS
 

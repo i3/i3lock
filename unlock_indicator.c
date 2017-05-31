@@ -25,7 +25,9 @@
 /* clock stuff */
 #include <time.h>
 
-#define BUTTON_RADIUS 90
+extern double circle_radius;
+
+#define BUTTON_RADIUS (circle_radius)
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
@@ -94,6 +96,12 @@ extern char date_y_expr[32];
 
 extern double time_size;
 extern double date_size;
+extern double text_size;
+extern double modifier_size;
+
+extern char* verif_text;
+extern char* wrong_text;
+
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
@@ -394,16 +402,16 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
         cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
+        cairo_set_font_size(ctx, text_size);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-                text = "verifying…";
+                text = verif_text;
                 break;
             case STATE_AUTH_LOCK:
                 text = "locking…";
                 break;
             case STATE_AUTH_WRONG:
-                text = "wrong!";
+                text = wrong_text;
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 text = "lock failed!";
@@ -439,7 +447,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_text_extents_t extents;
             double x, y;
 
-            cairo_set_font_size(ctx, 14.0);
+            cairo_set_font_size(ctx, modifier_size);
 
             cairo_text_extents(ctx, modifier_string, &extents);
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);

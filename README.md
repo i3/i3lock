@@ -49,6 +49,11 @@ Many little improvements have been made to i3lock over time:
      - `--datecolor=rrggbbaa` -- color of the date string
      - `--datefont="sans-serif"` -- font used for the date display
      - `--datesize=14` -- font size for the date display
+		 - `--veriftext="verifying…" -- text to be shown while verifying
+		 - `--wrongtext="wrong!" -- text to be shown upon an incorrect password being entered
+		 - `--textsize=28` -- font size for the status text
+		 - `--modsize=14` -- font size for the modifier keys listing
+		 - `--radius=90` -- the radius of the circle indicator
 
 - You can specify whether i3lock should bell upon a wrong password.
 
