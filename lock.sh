@@ -1,9 +1,4 @@
-#!/bin/zsh
-#scrot /tmp/screenshot.png
-#i3lock
-#convert /tmp/screenshot.png -blur 0x5 /tmp/screenshot.png
-#convert /tmp/screenshot.png -scale 10% -scale 1000% /tmp/screenshot.png
-#pkill i3lock && i3lock -i /tmp/screenshot.png
+#!/bin/sh
 
 B='#00000000'  # blank
 C='#ffffff22'  # clear ish
@@ -33,6 +28,14 @@ V='#bb00bbbb'  # verifying
 --screen 0            \
 --blur 5              \
 --clock               \
+--indicator           \
 --timestr="%H:%M:%S"  \
 --datestr="%A, %m %Y" \
 
+# --veriftext="Drinking verification can..."
+# --wrongtext="Nope!"
+# --textsize=20
+# --modsize=10
+# --timefont=comic-sans
+# --datefont=monofur
+# etc
