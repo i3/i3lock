@@ -3,6 +3,8 @@ i3lock - improved screen locker
 
 _This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to [eBrnd](https://github.com/eBrnd/) !_
 
+![i3lock-color in action. Why are you reading this?](https://github.com/chrjguill/i3lock-color/raw/master/screenshot.png "Screenshot sample")
+
 i3lock is a simple screen locker like slock. After starting it, you will
 see a white screen (you can configure the color/an image). You can return
 to your screen by entering your password.
@@ -89,8 +91,6 @@ Simply invoke the 'i3lock' command. To get out of it, enter your password and
 press enter.
 
 A [sample script](https://github.com/chrjguill/i3lock-color/blob/master/lock.sh) is included in this repository. [Here](https://streamable.com/fpl46) is a short clip of that script in action!
-
-![i3lock-color in action. Why are you reading this?](https://github.com/chrjguill/i3lock-color/raw/master/screenshot.png "Screenshot sample")
 
 On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
 authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
