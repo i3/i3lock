@@ -1,4 +1,5 @@
 TOPDIR=$(shell pwd)
+UNAME=$(shell uname)
 
 INSTALL=install
 PREFIX=/usr
@@ -36,7 +37,7 @@ FILES:=$(FILES:.c=.o)
 ifeq ($(wildcard .git),)
   # not in git repository
   VERSION := $(shell [ -f $(TOPDIR)/I3LOCK_VERSION ] && cat $(TOPDIR)/I3LOCK_VERSION | cut -d '-' -f 1)
-  I3LOCK_VERSION := '$(shell [ -f $(TOPDIR)/I3LOCK_VERSION ] && cat $(TOPDIR)/I3LOCK_VERSION)'
+  I3LOCK_VERSION:='$(shell [ -f $(TOPDIR)/I3LOCK_VERSION ] && cat $(TOPDIR)/I3LOCK_VERSION)'
 else
   VERSION:=$(shell git describe --tags --abbrev=0)
   I3LOCK_VERSION:="$(shell git describe --tags --always) ($(shell git log --pretty=format:%cd --date=short -n1))"
@@ -75,6 +76,6 @@ dist: clean
 	[ ! -e i3lock-${VERSION}.tar.bz2 ] || rm i3lock-${VERSION}.tar.bz2
 	mkdir i3lock-${VERSION}
 	cp *.c *.h i3lock.1 i3lock.pam Makefile LICENSE README.md CHANGELOG i3lock-${VERSION}
-	sed -e 's/^I3LOCK_VERSION:=\(.*\)/I3LOCK_VERSION:=$(shell /bin/echo '${I3LOCK_VERSION}' | sed 's/\\/\\\\/g')/g;s/^VERSION:=\(.*\)/VERSION:=${VERSION}/g' Makefile > i3lock-${VERSION}/Makefile
+	sed -e 's/^\s*I3LOCK_VERSION:=\(.*\)/I3LOCK_VERSION:=$(shell /bin/echo '${I3LOCK_VERSION}' | sed 's/\\/\\\\/g')/g;s/^VERSION:=\(.*\)/VERSION:=${VERSION}/g' Makefile > i3lock-${VERSION}/Makefile
 	tar cfj i3lock-${VERSION}.tar.bz2 i3lock-${VERSION}
 	rm -rf i3lock-${VERSION}

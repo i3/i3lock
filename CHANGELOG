@@ -1,3 +1,11 @@
+2017-06-21 i3lock 2.9.1
+
+ • Fix version number mechanism (for --version)
+ • Revert the fix for composited notifications, as it causes more issues than
+   it solves:
+   https://github.com/i3/i3lock/issues/130
+   https://github.com/i3/i3lock/issues/128
+
 2017-05-26 i3lock 2.9
 
  • i3lock.1: use signal names without SIG prefix

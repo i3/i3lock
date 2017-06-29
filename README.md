@@ -36,7 +36,7 @@ Many little improvements have been made to i3lock over time:
      - `-S, --screen` -- specifies which display to draw the unlock indicator on
      - `-k, --clock` -- enables the clock display.
 		 - `--indicator` -- forces the indicator to always show, even if there's no activity.
-		 - `--no-composite` -- disables checking for compositors and trying to grab the compositor window, since that causes issues with some compositors.
+		 - `--composite` -- enables checking for compositors and trying to grab the compositor window, since that causes issues with some compositors.
 		    - **NOTE**: This can potentially allow sensitive information to display over the screen locker, so take care when you use this option.
      - `-B=sigma, --blur` -- enables Gaussian blur. Sigma is the blur radius.
 	      - Note: You can still composite images over the blur (but still under the indicator) with -i.
