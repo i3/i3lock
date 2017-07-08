@@ -89,6 +89,8 @@ extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
 extern char date_font[32];
+extern char ind_x_expr[32];
+extern char ind_y_expr[32];
 extern char time_x_expr[32];
 extern char time_y_expr[32];
 extern char date_x_expr[32];
@@ -558,6 +560,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     double clock_width = CLOCK_WIDTH;
     double clock_height = CLOCK_HEIGHT;
 
+    double radius = BUTTON_RADIUS;
+
     int te_x_err;
     int te_y_err;
     // variable mapping for evaluating the clock position expression
@@ -566,13 +570,16 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         {"x", &screen_x}, {"y", &screen_y},
         {"ix", &ix}, {"iy", &iy},
         {"tx", &tx}, {"ty", &ty},
-        {"cw", &clock_width}, {"ch", &clock_height} // pretty sure this is fine.
+        {"cw", &clock_width}, {"ch", &clock_height}, // pretty sure this is fine.
+        {"r", &radius}
     };
 
-    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 10, &te_x_err);
-    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 10, &te_y_err);
-    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, 10, &te_x_err);
-    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, 10, &te_y_err);
+    te_expr *te_ind_x_expr = te_compile(ind_x_expr, vars, 11, &te_x_err);
+    te_expr *te_ind_y_expr = te_compile(ind_y_expr, vars, 11, &te_y_err);
+    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 11, &te_x_err);
+    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 11, &te_y_err);
+    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, 11, &te_x_err);
+    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, 11, &te_y_err);
 
     if (xr_screens > 0) {
         /* Composite the unlock indicator in the middle of each screen. */
@@ -582,8 +589,18 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             h = xr_resolutions[screen_number].height;
             screen_x = xr_resolutions[screen_number].x;
             screen_y = xr_resolutions[screen_number].y;
-            ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
-            iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
+            if (te_ind_x_expr && te_ind_y_expr) {
+                ix = 0;
+                iy = 0;
+                ix = te_eval(te_ind_x_expr);
+                iy = te_eval(te_ind_y_expr);
+                DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f ix: %f iy: %f\n", xr_resolutions[screen_number].x, xr_resolutions[screen_number].y, w, h, ix, iy);
+            }
+            else {
+                ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
+                iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
+            }
+
             x = ix - (button_diameter_physical / 2);
             y = iy - (button_diameter_physical / 2);
             cairo_set_source_surface(xcb_ctx, output, x, y);
@@ -615,8 +632,17 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 h = xr_resolutions[screen].height;
                 screen_x = xr_resolutions[screen].x;
                 screen_y = xr_resolutions[screen].y;
-                ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
-                iy = xr_resolutions[screen].y + (xr_resolutions[screen].height / 2);
+                if (te_ind_x_expr && te_ind_y_expr) {
+                    ix = 0;
+                    iy = 0;
+                    ix = te_eval(te_ind_x_expr);
+                    iy = te_eval(te_ind_y_expr);
+                    DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f ix: %f iy: %f\n", xr_resolutions[screen].x, xr_resolutions[screen].y, w, h, ix, iy);
+                }
+                else {
+                    ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
+                    iy = xr_resolutions[screen].y + (xr_resolutions[screen].height / 2);
+                }
                 x = ix - (button_diameter_physical / 2);
                 y = iy - (button_diameter_physical / 2);
                 cairo_set_source_surface(xcb_ctx, output, x, y);

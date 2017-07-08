@@ -91,6 +91,8 @@ char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 char time_font[32] = "sans-serif\0";
 char date_font[32] = "sans-serif\0";
+char ind_x_expr[32] = "x + (w / 2)\0";
+char ind_y_expr[32] = "y + (h / 2)\0";
 char time_x_expr[32] = "ix - (cw / 2)\0";
 char time_y_expr[32] = "iy - (ch / 2)\0";
 char date_x_expr[32] = "tx\0";
@@ -937,6 +939,7 @@ int main(int argc, char *argv[]) {
         {"datesize", required_argument, NULL, 0},
         {"timepos", required_argument, NULL, 0},
         {"datepos", required_argument, NULL, 0},
+        {"indpos", required_argument, NULL, 0},
 
         {"veriftext", required_argument, NULL, 0},
         {"wrongtext", required_argument, NULL, 0},
@@ -1204,6 +1207,17 @@ int main(int argc, char *argv[]) {
                         errx(1, "datesize must be a number\n");
                     if (date_size < 1)
                         errx(1, "datesize must be larger than 0\n");
+                }
+                else if (strcmp(longopts[optind].name, "indpos") == 0) {
+                    //read in to ind_x_expr and ind_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "indicator position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", ind_x_expr, ind_y_expr) != 2) {
+                        errx(1, "indpos must be of the form x:y\n");
+                    }
                 }
                 else if (strcmp(longopts[optind].name, "timepos") == 0) {
                     //read in to time_x_expr and time_y_expr
