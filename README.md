@@ -41,13 +41,14 @@ Many little improvements have been made to i3lock over time:
      - `-B=sigma, --blur` -- enables Gaussian blur. Sigma is the blur radius.
 	      - Note: You can still composite images over the blur (but still under the indicator) with -i.
 				- Eventually there might be an `imagepos` arg, similar to `time` and `datepos`. 
+     - `--indpos="x+(w/2):y+(h/2)"` -- position of the unlock indicator. Expressions using the variables x (current screen's x value), y (current screen's y value), w (screen width), h (screen height), and r (indicator radius) can be used.
      - `--timestr="%H:%M:%S"` -- allows custom overriding of the time format string. Accepts `strftime` formatting. Default is `"%H:%M:%S"`.
-     - `--timepos="ix:iy-20"` -- position of the time. Expressions using the variables x (current screen's x value), y (current screen's y value), w (screen width), h (screen height), ix (indicator x position), iy (indicator y position) cw (clock width), and ch (clock height) can be used..
+     - `--timepos="ix:iy-20"` -- position of the time. All the variables in `indpos` can be used here, as well as the additional values ix (indicator x position), iy (indicator y position), cw (clock width), and ch (clock height).
      - `--timecolor=rrggbbaa` -- color of the time string
      - `--timefont="sans-serif"` -- font used for the time display
      - `--timesize=32` -- font size for the time display
      - `--datestr="%A, %m %Y"` -- allows custom overriding of the date format string. Accepts `strftime` formatting. Default is `"%A, %m %Y"`.
-     - `--datepos="ix:iy-20"` -- position of the date. All the variables in `timepos` can be used here, as well as the additional values tx (time x) and ty (time y).
+     - `--datepos="ix:iy-20"` -- position of the date. All the variables in `indpos` and `timepos` can be used here, as well as the additional values tx (time x) and ty (time y).
      - `--datecolor=rrggbbaa` -- color of the date string
      - `--datefont="sans-serif"` -- font used for the date display
      - `--datesize=14` -- font size for the date display

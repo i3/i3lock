@@ -182,6 +182,25 @@ Sets the color of the 'separtor', which is at both ends of the ring highlights.
 Sets the color of the status text ("verifying...", "wrong!", etc).
 
 .TP
+.B \-\-indpos="x position:y position"
+Sets the position for the unlock indicator. Valid variables include:
+
+.RS
+.RS
+x - x position of the current display. Corresponds to the leftmost row of pixels on that display.
+
+y - y position of the current display. Corresponds to the topmost row of pixels on that display.
+
+w - width of the current display.
+
+h - height of the current display.
+
+r - the unlock indicator radius.
+
+.RE
+.RE
+
+.TP
 .B \-\-timecolor=rrggbbaa
 Sets the color of the time in the clock.
 
@@ -199,18 +218,10 @@ Sets the font size for rendering the time string. Defaults to 32.
 
 .TP
 .B \-\-timepos="x position:y position"
-Sets the position for the time string. Valid variables include:
+Sets the position for the time string. All the variables from \-\-indpos may be used, in addition to:
 
 .RS
 .RS
-x - x position of the current display. Corresponds to the leftmost row of pixels on that display.
-
-y - y position of the current display. Corresponds to the topmost row of pixels on that display.
-
-w - width of the current display.
-
-h - height of the current display.
-
 ix - the x value of the indicator on the current display.
 
 iy - the y value of the indicator on the current display.
@@ -239,7 +250,7 @@ Sets the font size for rendering the date string. Defaults to 14.
 
 .TP
 .B \-\-datepos="x position:y position"
-Sets the position for the date string. All the variables from \-\-timepos may be used, in addition to:
+Sets the position for the date string. All the variables from \-\-indpos and \-\-timepos may be used, in addition to:
 
 .RS
 .RS
