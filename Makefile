@@ -22,7 +22,6 @@ CPPFLAGS += -D_GNU_SOURCE
 CPPFLAGS += -DXKBCOMPOSE=$(shell if test -e /usr/include/xkbcommon/xkbcommon-compose.h ; then echo 1 ; else echo 0 ; fi )
 CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-composite xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-composite xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
-LIBS += -lpam
 LIBS += -lev
 LIBS += -lm
 
