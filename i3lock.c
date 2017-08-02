@@ -7,6 +7,7 @@
  *
  */
 #include <stdio.h>
+#include <locale.h>
 #include <stdlib.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -945,6 +946,8 @@ int main(int argc, char *argv[]) {
         {"radius", required_argument, NULL, 0},
 
         {NULL, no_argument, NULL, 0}};
+
+    setlocale(LC_ALL, "");
 
     if ((pw = getpwuid(getuid())) == NULL)
         err(EXIT_FAILURE, "getpwuid() failed");
