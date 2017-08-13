@@ -977,11 +977,11 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "Could not load keymap");
 
     const char *locale = getenv("LC_ALL");
-    if (!locale)
+    if (!locale || !*locale)
         locale = getenv("LC_CTYPE");
-    if (!locale)
+    if (!locale || !*locale)
         locale = getenv("LANG");
-    if (!locale) {
+    if (!locale || !*locale) {
         if (debug_mode)
             fprintf(stderr, "Can't detect your locale, fallback to C\n");
         locale = "C";
