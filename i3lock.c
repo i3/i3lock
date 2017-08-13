@@ -819,7 +819,7 @@ int main(int argc, char *argv[]) {
 #endif
     int curs_choice = CURS_NONE;
     int o;
-    int optind = 0;
+    int longoptind = 0;
     struct option longopts[] = {
         {"version", no_argument, NULL, 'v'},
         {"nofork", no_argument, NULL, 'n'},
@@ -843,7 +843,7 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
     char *optstring = "hvnbdc:p:ui:teI:f";
-    while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
+    while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
                 errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg");
@@ -894,7 +894,7 @@ int main(int argc, char *argv[]) {
                 ignore_empty_password = true;
                 break;
             case 0:
-                if (strcmp(longopts[optind].name, "debug") == 0)
+                if (strcmp(longopts[longoptind].name, "debug") == 0)
                     debug_mode = true;
                 break;
             case 'f':
