@@ -890,7 +890,7 @@ int main(int argc, char *argv[]) {
 #endif
     int curs_choice = CURS_NONE;
     int o;
-    int optind = 0;
+    int longoptind = 0;
     struct option longopts[] = {
         {"version", no_argument, NULL, 'v'},
         {"nofork", no_argument, NULL, 'n'},
@@ -950,15 +950,13 @@ int main(int argc, char *argv[]) {
 
         {NULL, no_argument, NULL, 0}};
 
-    setlocale(LC_ALL, "");
-
     if ((pw = getpwuid(getuid())) == NULL)
         err(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
     char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
-    while ((o = getopt_long(argc, argv, optstring, longopts, &optind)) != -1) {
+    while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
                 errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg");
@@ -1032,12 +1030,12 @@ int main(int argc, char *argv[]) {
                 blur_sigma = atoi(optarg);
                 break;
             case 0:
-                if (strcmp(longopts[optind].name, "debug") == 0)
+                if (strcmp(longopts[longoptind].name, "debug") == 0)
                     debug_mode = true;
-                else if (strcmp(longopts[optind].name, "indicator") == 0) {
+                else if (strcmp(longopts[longoptind].name, "indicator") == 0) {
                     show_indicator = true;
                 }
-                else if (strcmp(longopts[optind].name, "insidevercolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "insidevercolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1047,7 +1045,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidevercolor) != 1)
                         errx(1, "insidevercolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "insidewrongcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "insidewrongcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1057,7 +1055,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidewrongcolor) != 1)
                         errx(1, "insidewrongcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "insidecolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "insidecolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1067,7 +1065,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidecolor) != 1)
                         errx(1, "insidecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "ringvercolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "ringvercolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1077,7 +1075,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringvercolor) != 1)
                         errx(1, "ringvercolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
-                else if (strcmp(longopts[optind].name, "ringwrongcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "ringwrongcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1087,7 +1085,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
                         errx(1, "ringwrongcolor is invalid, color must be given in r-byte format: rrggbb\n");
                 }
-                else if (strcmp(longopts[optind].name, "ringcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "ringcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1097,7 +1095,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringcolor) != 1)
                         errx(1, "ringcolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
-                else if (strcmp(longopts[optind].name, "linecolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "linecolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1107,7 +1105,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", linecolor) != 1)
                         errx(1, "linecolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
-                else if (strcmp(longopts[optind].name, "textcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "textcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1117,7 +1115,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
                         errx(1, "textcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "timecolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "timecolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1127,7 +1125,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", timecolor) != 1)
                         errx(1, "timecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "datecolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "datecolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1137,7 +1135,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", datecolor) != 1)
                         errx(1, "datecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "keyhlcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "keyhlcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1147,7 +1145,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", keyhlcolor) != 1)
                         errx(1, "keyhlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "bshlcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "bshlcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1157,7 +1155,7 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bshlcolor) != 1)
                         errx(1, "bshlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "separatorcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "separatorcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
@@ -1167,35 +1165,35 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
                         errx(1, "separator is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
-                else if (strcmp(longopts[optind].name, "timestr") == 0) {
+                else if (strcmp(longopts[longoptind].name, "timestr") == 0) {
                     //read in to timestr
                     if (strlen(optarg) > 31) {
                         errx(1, "time format string can be at most 31 characters\n");
                     }
                     strcpy(time_format,optarg);
                 }
-                else if (strcmp(longopts[optind].name, "datestr") == 0) {
+                else if (strcmp(longopts[longoptind].name, "datestr") == 0) {
                     //read in to datestr
                     if (strlen(optarg) > 31) {
                         errx(1, "time format string can be at most 31 characters\n");
                     }
                     strcpy(date_format,optarg);
                 }
-                else if (strcmp(longopts[optind].name, "timefont") == 0) {
+                else if (strcmp(longopts[longoptind].name, "timefont") == 0) {
                     //read in to time_font
                     if (strlen(optarg) > 31) {
                         errx(1, "time font string can be at most 31 characters\n");
                     }
                     strcpy(time_font,optarg);
                 }
-                else if (strcmp(longopts[optind].name, "datefont") == 0) {
+                else if (strcmp(longopts[longoptind].name, "datefont") == 0) {
                     //read in to date_font
                     if (strlen(optarg) > 31) {
                         errx(1, "date font string can be at most 31 characters\n");
                     }
                     strcpy(date_font,optarg);
                 }
-                else if (strcmp(longopts[optind].name, "timesize") == 0) {
+                else if (strcmp(longopts[longoptind].name, "timesize") == 0) {
                     char *arg = optarg;
 
                     if (sscanf(arg, "%lf", &time_size) != 1)
@@ -1203,7 +1201,7 @@ int main(int argc, char *argv[]) {
                     if (time_size < 1)
                         errx(1, "timesize must be larger than 0\n");
                 }
-                else if (strcmp(longopts[optind].name, "datesize") == 0) {
+                else if (strcmp(longopts[longoptind].name, "datesize") == 0) {
                     char *arg = optarg;
 
                     if (sscanf(arg, "%lf", &date_size) != 1)
@@ -1211,7 +1209,7 @@ int main(int argc, char *argv[]) {
                     if (date_size < 1)
                         errx(1, "datesize must be larger than 0\n");
                 }
-                else if (strcmp(longopts[optind].name, "indpos") == 0) {
+                else if (strcmp(longopts[longoptind].name, "indpos") == 0) {
                     //read in to ind_x_expr and ind_y_expr
                     if (strlen(optarg) > 31) {
                         // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
@@ -1222,7 +1220,7 @@ int main(int argc, char *argv[]) {
                         errx(1, "indpos must be of the form x:y\n");
                     }
                 }
-                else if (strcmp(longopts[optind].name, "timepos") == 0) {
+                else if (strcmp(longopts[longoptind].name, "timepos") == 0) {
                     //read in to time_x_expr and time_y_expr
                     if (strlen(optarg) > 31) {
                         // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
@@ -1233,7 +1231,7 @@ int main(int argc, char *argv[]) {
                         errx(1, "timepos must be of the form x:y\n");
                     }
                 }
-                else if (strcmp(longopts[optind].name, "datepos") == 0) {
+                else if (strcmp(longopts[longoptind].name, "datepos") == 0) {
                     //read in to date_x_expr and date_y_expr
                     if (strlen(optarg) > 31) {
                         // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
@@ -1244,7 +1242,7 @@ int main(int argc, char *argv[]) {
                         errx(1, "datepos must be of the form x:y\n");
                     }
                 }
-                else if (strcmp(longopts[optind].name, "refresh-rate") == 0) {
+                else if (strcmp(longopts[longoptind].name, "refresh-rate") == 0) {
                     char* arg = optarg;
                     refresh_rate = strtof(arg, NULL);
                     if (refresh_rate < 1.0) {
@@ -1252,16 +1250,16 @@ int main(int argc, char *argv[]) {
                         refresh_rate = 1.0;
                     }
                 }
-                else if (strcmp(longopts[optind].name, "composite") == 0) {
+                else if (strcmp(longopts[longoptind].name, "composite") == 0) {
                     composite = true;
                 }
-                else if (strcmp(longopts[optind].name, "veriftext") == 0) {
+                else if (strcmp(longopts[longoptind].name, "veriftext") == 0) {
                     verif_text = optarg;
                 }
-                else if (strcmp(longopts[optind].name, "wrongtext") == 0) {
+                else if (strcmp(longopts[longoptind].name, "wrongtext") == 0) {
                     wrong_text = optarg;
                 }
-                else if (strcmp(longopts[optind].name, "textsize") == 0) {
+                else if (strcmp(longopts[longoptind].name, "textsize") == 0) {
                     char *arg = optarg;
 
                     if (sscanf(arg, "%lf", &text_size) != 1)
@@ -1271,7 +1269,7 @@ int main(int argc, char *argv[]) {
                         text_size = 28.0;
                     }
                 }
-                else if (strcmp(longopts[optind].name, "modsize") == 0) {
+                else if (strcmp(longopts[longoptind].name, "modsize") == 0) {
                     char *arg = optarg;
 
                     if (sscanf(arg, "%lf", &modifier_size) != 1)
@@ -1281,7 +1279,7 @@ int main(int argc, char *argv[]) {
                         modifier_size = 14.0;
                     }
                 }
-                else if (strcmp(longopts[optind].name, "radius") == 0) {
+                else if (strcmp(longopts[longoptind].name, "radius") == 0) {
                     char *arg = optarg;
 
                     if (sscanf(arg, "%lf", &circle_radius) != 1)
@@ -1372,20 +1370,24 @@ int main(int argc, char *argv[]) {
     if (!load_keymap())
         errx(EXIT_FAILURE, "Could not load keymap");
 
-#if XKBCOMPOSE == 1
     const char *locale = getenv("LC_ALL");
-    if (!locale)
+    if (!locale || !*locale)
         locale = getenv("LC_CTYPE");
-    if (!locale)
+        fprintf(stderr, "Locale get (lc_ctype): %s\n", locale);
+    if (!locale || !*locale)
         locale = getenv("LANG");
-    if (!locale) {
+        fprintf(stderr, "Locale get (lang): %s\n", locale);
+    if (!locale || !*locale) {
         if (debug_mode)
             fprintf(stderr, "Can't detect your locale, fallback to C\n");
         locale = "C";
     }
 
+    setlocale(LC_ALL, locale);
+
+//#if XKBCOMPOSE == 1
     load_compose_table(locale);
-#endif
+//#endif
 
     xinerama_init();
     xinerama_query_screens();
