@@ -63,8 +63,15 @@ Many little improvements have been made to i3lock over time:
 - i3lock uses PAM and therefore is compatible with LDAP etc.
   On OpenBSD i3lock uses the bsd\_auth(3) framework.
 
-Requirements
-------------
+## Building
+
+Before you build - check and see if there's a packaged version available for your distro (there usually is, either in a community repo/PPA).
+
+If there's no packaged version available - think carefully, since you're using a forked screen locker at your own risk.
+
+If you don't understand what makefiles are and how they work, start reading [here](http://www.tldp.org/HOWTO/Software-Building-HOWTO-3.html). If you're building from source - make sure you're keeping up to date.
+
+### Required Packages
 - pkg-config
 - libxcb
 - libxcb-util
@@ -78,6 +85,8 @@ Requirements
 - libx11-xcb-dev
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
+
+(On centos/RHEL/etc, the packages tend to look like `cairo-devel` instead of `libcairo-dev`. Use `yum provides \*/<header.h>` to figure out what packages you need.)
 
 ##### Ubuntu
 
