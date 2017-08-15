@@ -1385,9 +1385,9 @@ int main(int argc, char *argv[]) {
 
     setlocale(LC_ALL, locale);
 
-//#if XKBCOMPOSE == 1
+#if XKBCOMPOSE == 1
     load_compose_table(locale);
-//#endif
+#endif
 
     xinerama_init();
     xinerama_query_screens();
