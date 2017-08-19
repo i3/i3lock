@@ -1373,10 +1373,8 @@ int main(int argc, char *argv[]) {
     const char *locale = getenv("LC_ALL");
     if (!locale || !*locale)
         locale = getenv("LC_CTYPE");
-        fprintf(stderr, "Locale get (lc_ctype): %s\n", locale);
     if (!locale || !*locale)
         locale = getenv("LANG");
-        fprintf(stderr, "Locale get (lang): %s\n", locale);
     if (!locale || !*locale) {
         if (debug_mode)
             fprintf(stderr, "Can't detect your locale, fallback to C\n");
