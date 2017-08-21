@@ -6,19 +6,19 @@
  * See LICENSE for licensing information
  *
  */
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <xcb/xcb.h>
-#include <ev.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <ev.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <xcb/xcb.h>
 
 #include "i3lock.h"
-#include "xcb.h"
 #include "unlock_indicator.h"
+#include "xcb.h"
 #include "xinerama.h"
 
 #define BUTTON_RADIUS 90
@@ -44,6 +44,9 @@ extern uint32_t last_resolution[2];
 
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
+
+/* Whether the unlock indicator rotates in a circle or randomly (default false = randomly) */
+extern bool unlock_indicator_rotate;
 
 /* List of pressed modifiers, or NULL if none are pressed. */
 extern char *modifier_string;
@@ -79,6 +82,9 @@ static xcb_visualtype_t *vistype;
  * indicator. */
 unlock_state_t unlock_state;
 auth_state_t auth_state;
+
+/* Current rotation position of the unlock indicator */
+double highlight_start = 0;
 
 /*
  * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
@@ -266,7 +272,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (unlock_state == STATE_KEY_ACTIVE ||
             unlock_state == STATE_BACKSPACE_ACTIVE) {
             cairo_new_sub_path(ctx);
-            double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
+            if (unlock_indicator_rotate) {
+                highlight_start += 2 * M_PI / 10;
+            } else {
+                highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
+            }
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
