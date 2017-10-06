@@ -1,6 +1,8 @@
 #ifndef _UNLOCK_INDICATOR_H
 #define _UNLOCK_INDICATOR_H
 
+#include <ev.h>
+
 typedef enum {
     STATE_STARTED = 0,         /* default state */
     STATE_KEY_PRESSED = 1,     /* key was pressed, show unlock indicator */
@@ -21,5 +23,6 @@ typedef enum {
 xcb_pixmap_t draw_image(uint32_t* resolution);
 void redraw_screen(void);
 void clear_indicator(void);
-
+void start_time_redraw_timeout(void);
+void start_time_redraw_tick(struct ev_loop*);
 #endif

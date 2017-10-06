@@ -7,6 +7,7 @@
  *
  */
 #include <stdio.h>
+#include <locale.h>
 #include <stdlib.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -28,7 +29,9 @@
 #include <ev.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
+#if XKBCOMPOSE == 1
 #include <xkbcommon/xkbcommon-compose.h>
+#endif
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -41,6 +44,7 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 #include "xinerama.h"
+#include "blur.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -53,6 +57,63 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
 char color[7] = "ffffff";
+
+/* options for unlock indicator colors */
+char insidevercolor[9] = "006effbf";
+char insidewrongcolor[9] = "fa0000bf";
+char insidecolor[9] = "000000bf";
+char ringvercolor[9] = "3300faff";
+char ringwrongcolor[9] = "7d3300ff";
+char ringcolor[9] = "337d00ff";
+char linecolor[9] = "000000ff";
+char textcolor[9] = "000000ff";
+char timecolor[9] = "000000ff";
+char datecolor[9] = "000000ff";
+char keyhlcolor[9] = "33db00ff";
+char bshlcolor[9] = "db3300ff";
+char separatorcolor[9] = "000000ff";
+
+/* int defining which display the lock indicator should be shown on. If -1, then show on all displays.*/
+int screen_number = -1;
+/* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
+int internal_line_source = 0;
+/* bool for showing the clock; why am I commenting this? */
+bool show_clock = false;
+bool show_indicator = false;
+float refresh_rate = 1.0;
+
+/* there's some issues with compositing - upstream removed support for this, but we'll allow people to supply an arg to enable it */ 
+bool composite = false;
+/* time formatter strings for date/time
+    I picked 32-length char arrays because some people might want really funky time formatters.
+    Who am I to judge?
+*/
+char time_format[32] = "%H:%M:%S\0";
+char date_format[32] = "%A, %m %Y\0";
+char time_font[32] = "sans-serif\0";
+char date_font[32] = "sans-serif\0";
+char ind_x_expr[32] = "x + (w / 2)\0";
+char ind_y_expr[32] = "y + (h / 2)\0";
+char time_x_expr[32] = "ix - (cw / 2)\0";
+char time_y_expr[32] = "iy - (ch / 2)\0";
+char date_x_expr[32] = "tx\0";
+char date_y_expr[32] = "ty+30\0";
+
+double time_size = 32.0;
+double date_size = 14.0;
+double text_size = 28.0;
+double modifier_size = 14.0;
+double circle_radius = 90.0;
+double ring_width = 7.0;
+
+char* verif_text = "verifying…";
+char* wrong_text = "wrong!";
+
+/* opts for blurring */
+bool blur = false;
+bool step_blur = false;
+int blur_sigma = 5;
+
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -80,12 +141,15 @@ bool retry_verification = false;
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
 static struct xkb_keymap *xkb_keymap;
+#if XKBCOMPOSE == 1
 static struct xkb_compose_table *xkb_compose_table;
 static struct xkb_compose_state *xkb_compose_state;
+#endif
 static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
 
 cairo_surface_t *img = NULL;
+cairo_surface_t *blur_img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
@@ -137,6 +201,7 @@ static bool load_keymap(void) {
     return true;
 }
 
+#if XKBCOMPOSE == 1
 /*
  * Loads the XKB compose table from the given locale.
  *
@@ -160,6 +225,7 @@ static bool load_compose_table(const char *locale) {
 
     return true;
 }
+#endif /* XKBCOMPOSE */
 
 /*
  * Clears the memory which stored the password to be a bit safer against
@@ -382,7 +448,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     char buffer[128];
     int n;
     bool ctrl;
+#if XKBCOMPOSE == 1
     bool composed = false;
+#endif
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
@@ -390,6 +458,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     /* The buffer will be null-terminated, so n >= 2 for 1 actual character. */
     memset(buffer, '\0', sizeof(buffer));
 
+#if XKBCOMPOSE == 1
     if (xkb_compose_state && xkb_compose_state_feed(xkb_compose_state, ksym) == XKB_COMPOSE_FEED_ACCEPTED) {
         switch (xkb_compose_state_get_status(xkb_compose_state)) {
             case XKB_COMPOSE_NOTHING:
@@ -412,6 +481,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     if (!composed) {
         n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
     }
+#else
+    n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
+#endif
 
     switch (ksym) {
         case XKB_KEY_j:
@@ -835,6 +907,49 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        /* options for unlock indicator colors */
+        // defining a lot of different chars here for the options -- TODO find a nicer way for this, maybe not offering single character options at all
+        {"insidevercolor", required_argument, NULL, 0},   // --i-v
+        {"insidewrongcolor", required_argument, NULL, 0}, // --i-w
+        {"insidecolor", required_argument, NULL, 0},      // --i-c
+        {"ringvercolor", required_argument, NULL, 0},     // --r-v
+        {"ringwrongcolor", required_argument, NULL, 0},   // --r-w
+        {"ringcolor", required_argument, NULL, 0},        // --r-c
+        {"linecolor", required_argument, NULL, 0},        // --l-c
+        {"textcolor", required_argument, NULL, 0},        // --t-c
+        {"timecolor", required_argument, NULL, 0},       
+        {"datecolor", required_argument, NULL, 0},       
+        {"keyhlcolor", required_argument, NULL, 0},       // --k-c
+        {"bshlcolor", required_argument, NULL, 0},        // --b-c
+        {"separatorcolor", required_argument, NULL, 0},
+        {"line-uses-ring", no_argument, NULL, 'r'},
+        {"line-uses-inside", no_argument, NULL, 's'},
+        /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh 
+         * note: `I` has been deprecated for a while, so I might just remove that and reshuffle that? */
+        {"screen", required_argument, NULL, 'S'},
+        {"blur", required_argument, NULL, 'B'},
+        {"clock", no_argument, NULL, 'k'},
+        {"indicator", no_argument, NULL, 0},
+        {"refresh-rate", required_argument, NULL, 0},
+        {"composite", no_argument, NULL, 0},
+        
+        {"timestr", required_argument, NULL, 0},
+        {"datestr", required_argument, NULL, 0},
+        {"timefont", required_argument, NULL, 0},
+        {"datefont", required_argument, NULL, 0},
+        {"timesize", required_argument, NULL, 0},
+        {"datesize", required_argument, NULL, 0},
+        {"timepos", required_argument, NULL, 0},
+        {"datepos", required_argument, NULL, 0},
+        {"indpos", required_argument, NULL, 0},
+
+        {"veriftext", required_argument, NULL, 0},
+        {"wrongtext", required_argument, NULL, 0},
+        {"textsize", required_argument, NULL, 0},
+        {"modsize", required_argument, NULL, 0},
+        {"radius", required_argument, NULL, 0},
+        {"ring-width", required_argument, NULL, 0},
+
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -842,7 +957,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -893,16 +1008,310 @@ int main(int argc, char *argv[]) {
             case 'e':
                 ignore_empty_password = true;
                 break;
+            case 'r':
+                if (internal_line_source != 0) {
+                  errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
+                }
+                internal_line_source = 1; //sets the line drawn inside to use the inside color when drawn
+                break;
+            case 's':
+                if (internal_line_source != 0) {
+                  errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
+                }
+                internal_line_source = 2;
+                break;
+            case 'S':
+                screen_number = atoi(optarg);
+                break;
+
+            case 'k':
+                show_clock = true;
+                break;
+            case 'B':
+                blur = true;
+                blur_sigma = atoi(optarg);
+                break;
             case 0:
                 if (strcmp(longopts[longoptind].name, "debug") == 0)
                     debug_mode = true;
+                else if (strcmp(longopts[longoptind].name, "indicator") == 0) {
+                    show_indicator = true;
+                }
+                else if (strcmp(longopts[longoptind].name, "insidevercolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidevercolor) != 1)
+                        errx(1, "insidevercolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "insidewrongcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidewrongcolor) != 1)
+                        errx(1, "insidewrongcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "insidecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidecolor) != 1)
+                        errx(1, "insidecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "ringvercolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringvercolor) != 1)
+                        errx(1, "ringvercolor is invalid, color must be given in 4-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "ringwrongcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
+                        errx(1, "ringwrongcolor is invalid, color must be given in r-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "ringcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringcolor) != 1)
+                        errx(1, "ringcolor is invalid, color must be given in 4-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "linecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", linecolor) != 1)
+                        errx(1, "linecolor is invalid, color must be given in 4-byte format: rrggbb\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "textcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
+                        errx(1, "textcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "timecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", timecolor) != 1)
+                        errx(1, "timecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "datecolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", datecolor) != 1)
+                        errx(1, "datecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "keyhlcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", keyhlcolor) != 1)
+                        errx(1, "keyhlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "bshlcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bshlcolor) != 1)
+                        errx(1, "bshlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "separatorcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
+                        errx(1, "separator is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "timestr") == 0) {
+                    //read in to timestr
+                    if (strlen(optarg) > 31) {
+                        errx(1, "time format string can be at most 31 characters\n");
+                    }
+                    strcpy(time_format,optarg);
+                }
+                else if (strcmp(longopts[longoptind].name, "datestr") == 0) {
+                    //read in to datestr
+                    if (strlen(optarg) > 31) {
+                        errx(1, "time format string can be at most 31 characters\n");
+                    }
+                    strcpy(date_format,optarg);
+                }
+                else if (strcmp(longopts[longoptind].name, "timefont") == 0) {
+                    //read in to time_font
+                    if (strlen(optarg) > 31) {
+                        errx(1, "time font string can be at most 31 characters\n");
+                    }
+                    strcpy(time_font,optarg);
+                }
+                else if (strcmp(longopts[longoptind].name, "datefont") == 0) {
+                    //read in to date_font
+                    if (strlen(optarg) > 31) {
+                        errx(1, "date font string can be at most 31 characters\n");
+                    }
+                    strcpy(date_font,optarg);
+                }
+                else if (strcmp(longopts[longoptind].name, "timesize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &time_size) != 1)
+                        errx(1, "timesize must be a number\n");
+                    if (time_size < 1)
+                        errx(1, "timesize must be larger than 0\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "datesize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &date_size) != 1)
+                        errx(1, "datesize must be a number\n");
+                    if (date_size < 1)
+                        errx(1, "datesize must be larger than 0\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "indpos") == 0) {
+                    //read in to ind_x_expr and ind_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "indicator position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", ind_x_expr, ind_y_expr) != 2) {
+                        errx(1, "indpos must be of the form x:y\n");
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "timepos") == 0) {
+                    //read in to time_x_expr and time_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "time position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", time_x_expr, time_y_expr) != 2) {
+                        errx(1, "timepos must be of the form x:y\n");
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "datepos") == 0) {
+                    //read in to date_x_expr and date_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "date position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", date_x_expr, date_y_expr) != 2) {
+                        errx(1, "datepos must be of the form x:y\n");
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "refresh-rate") == 0) {
+                    char* arg = optarg;
+                    refresh_rate = strtof(arg, NULL);
+                    if (refresh_rate < 1.0) {
+                        fprintf(stderr, "The given refresh rate of %fs is less than one second and was ignored.\n", refresh_rate);
+                        refresh_rate = 1.0;
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "composite") == 0) {
+                    composite = true;
+                }
+                else if (strcmp(longopts[longoptind].name, "veriftext") == 0) {
+                    verif_text = optarg;
+                }
+                else if (strcmp(longopts[longoptind].name, "wrongtext") == 0) {
+                    wrong_text = optarg;
+                }
+                else if (strcmp(longopts[longoptind].name, "textsize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &text_size) != 1)
+                        errx(1, "textsize must be a number\n");
+                    if (text_size < 1) {
+                        fprintf(stderr, "textsize must be a positive integer; ignoring...\n");
+                        text_size = 28.0;
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "modsize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &modifier_size) != 1)
+                        errx(1, "modsize must be a number\n");
+                    if (modifier_size < 1) {
+                        fprintf(stderr, "modsize must be a positive integer; ignoring...\n");
+                        modifier_size = 14.0;
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "radius") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &circle_radius) != 1)
+                        errx(1, "radius must be a number\n");
+                    if (circle_radius < 1) {
+                        fprintf(stderr, "radius must be a positive integer; ignoring...\n");
+                        circle_radius = 90.0;
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "ring-width") == 0) {
+                    char *arg = optarg;
+                    double new_width = 0;
+                    if (sscanf(arg, "%lf", &new_width) != 1)
+                        errx(1, "ring-width must be a number\n");
+                    if (new_width < 1) {
+                        fprintf(stderr, "ring-width must be a positive integer; ignoring...\n");
+                    }
+                    else {
+                        ring_width = new_width;
+                    }
+                }
+
                 break;
             case 'f':
                 show_failed_attempts = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-f]\n"
+                                   "Please see the manpage for a full list of arguments.");
         }
     }
 
@@ -987,7 +1396,11 @@ int main(int argc, char *argv[]) {
         locale = "C";
     }
 
+    setlocale(LC_ALL, locale);
+
+#if XKBCOMPOSE == 1
     load_compose_table(locale);
+#endif
 
     xinerama_init();
     xinerama_query_screens();
@@ -1012,12 +1425,35 @@ int main(int argc, char *argv[]) {
         free(image_path);
     }
 
+    xcb_pixmap_t* blur_pixmap = NULL;
+    if (blur) {
+        blur_pixmap = malloc(sizeof(xcb_pixmap_t));
+        xcb_visualtype_t *vistype = get_root_visual_type(screen);
+        *blur_pixmap = capture_bg_pixmap(conn, screen, last_resolution);
+        cairo_surface_t *xcb_img = cairo_xcb_surface_create(conn, *blur_pixmap, vistype, last_resolution[0], last_resolution[1]);
+
+        blur_img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, last_resolution[0], last_resolution[1]);
+        cairo_t *ctx = cairo_create(blur_img);
+        cairo_set_source_surface(ctx, xcb_img, 0, 0);
+        cairo_paint(ctx);
+
+        cairo_destroy(ctx);
+        cairo_surface_destroy(xcb_img);
+        blur_image_surface(blur_img, blur_sigma);
+    }
+
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
     /* Open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, screen, color, bg_pixmap);
     xcb_free_pixmap(conn, bg_pixmap);
+    if (blur_pixmap) {
+        xcb_free_pixmap(conn, *blur_pixmap);
+        free(blur_pixmap);
+        blur_pixmap = NULL;
+    }
+
 
     cursor = create_cursor(conn, screen, win, curs_choice);
 
@@ -1069,5 +1505,8 @@ int main(int argc, char *argv[]) {
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
+    if (show_clock) {
+        start_time_redraw_tick(main_loop);
+    }
     ev_loop(main_loop, 0);
 }

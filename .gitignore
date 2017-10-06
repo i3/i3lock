@@ -2,3 +2,4 @@ i3lock
 *.o
 tags
 *.swp
+*.gz
