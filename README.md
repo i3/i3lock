@@ -57,6 +57,7 @@ Many little improvements have been made to i3lock over time:
 		 - `--textsize=28` -- font size for the status text
 		 - `--modsize=14` -- font size for the modifier keys listing
 		 - `--radius=90` -- the radius of the circle indicator
+		 - `--ring-width=7` -- the width of the indicator ring
 
 - You can specify whether i3lock should bell upon a wrong password.
 
