@@ -26,10 +26,12 @@
 #include <time.h>
 
 extern double circle_radius;
+extern double ring_width;
 
 #define BUTTON_RADIUS (circle_radius)
-#define BUTTON_SPACE (BUTTON_RADIUS + 5)
-#define BUTTON_CENTER (BUTTON_RADIUS + 5)
+#define RING_WIDTH (ring_width)
+#define BUTTON_SPACE (BUTTON_RADIUS + RING_WIDTH)
+#define BUTTON_CENTER (BUTTON_RADIUS + RING_WIDTH)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
 #define CLOCK_WIDTH 400
 #define CLOCK_HEIGHT 200
@@ -324,7 +326,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
-        cairo_set_line_width(ctx, 7.0);
+        cairo_set_line_width(ctx, RING_WIDTH);
         cairo_arc(ctx,
                   BUTTON_CENTER /* x */,
                   BUTTON_CENTER /* y */,
@@ -465,7 +467,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
          * keypress. */
         if (unlock_state == STATE_KEY_ACTIVE ||
             unlock_state == STATE_BACKSPACE_ACTIVE) {
-            cairo_set_line_width(ctx, 7.0);
+            cairo_set_line_width(ctx, RING_WIDTH);
             cairo_new_sub_path(ctx);
             double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
             cairo_arc(ctx,

@@ -104,6 +104,7 @@ double date_size = 14.0;
 double text_size = 28.0;
 double modifier_size = 14.0;
 double circle_radius = 90.0;
+double ring_width = 7.0;
 
 char* verif_text = "verifying…";
 char* wrong_text = "wrong!";
@@ -947,6 +948,7 @@ int main(int argc, char *argv[]) {
         {"textsize", required_argument, NULL, 0},
         {"modsize", required_argument, NULL, 0},
         {"radius", required_argument, NULL, 0},
+        {"ring-width", required_argument, NULL, 0},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1289,6 +1291,19 @@ int main(int argc, char *argv[]) {
                         circle_radius = 90.0;
                     }
                 }
+                else if (strcmp(longopts[longoptind].name, "ring-width") == 0) {
+                    char *arg = optarg;
+                    double new_width = 0;
+                    if (sscanf(arg, "%lf", &new_width) != 1)
+                        errx(1, "ring-width must be a number\n");
+                    if (new_width < 1) {
+                        fprintf(stderr, "ring-width must be a positive integer; ignoring...\n");
+                    }
+                    else {
+                        ring_width = new_width;
+                    }
+                }
+
                 break;
             case 'f':
                 show_failed_attempts = true;
