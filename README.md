@@ -93,6 +93,9 @@ If you don't understand what makefiles are and how they work, start reading [her
     sudo apt-get install pkg-config libxcb1 libpam-dev libcairo-dev libxcb-composite0 libxcb-composite0-dev libxcb-xinerama0-dev libev-dev libx11-dev libx11-xcb-dev libxkbcommon0 libxkbcommon-x11-0 libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev libxcb-xkb-dev libxkbcommon-x11-dev libxkbcommon-dev
     
 ##### Aur Package
+Stable:
+https://aur.archlinux.org/packages/i3lock-color/
+Git:
 https://aur.archlinux.org/packages/i3lock-color-git
 
 Running i3lock
