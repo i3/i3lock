@@ -30,8 +30,8 @@ extern double ring_width;
 
 #define BUTTON_RADIUS (circle_radius)
 #define RING_WIDTH (ring_width)
-#define BUTTON_SPACE (BUTTON_RADIUS + RING_WIDTH)
-#define BUTTON_CENTER (BUTTON_RADIUS + RING_WIDTH)
+#define BUTTON_SPACE (BUTTON_RADIUS + (RING_WIDTH / 2))
+#define BUTTON_CENTER (BUTTON_RADIUS + (RING_WIDTH / 2))
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
 #define CLOCK_WIDTH 400
 #define CLOCK_HEIGHT 200
