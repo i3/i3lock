@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <err.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "cursors.h"
 #include "unlock_indicator.h"
@@ -172,11 +173,15 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
     xcb_grab_keyboard_cookie_t kcookie;
     xcb_grab_keyboard_reply_t *kreply;
 
+    const suseconds_t screen_redraw_timeout = 100000; /* 100ms */
     int tries = 10000;
 
     /* Using few variables to trigger a redraw_screen() if too many tries */
     bool redrawn = false;
-    time_t start = clock();
+    struct timeval start;
+    if (gettimeofday(&start, NULL) == -1) {
+        err(EXIT_FAILURE, "gettimeofday");
+    }
 
     while (tries-- > 0) {
         pcookie = xcb_grab_pointer(
@@ -199,10 +204,17 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
         /* Make this quite a bit slower */
         usleep(50);
 
-        /* Measure elapsed time and trigger a screen redraw if elapsed > 250000 */
+        struct timeval now;
+        if (gettimeofday(&now, NULL) == -1) {
+            err(EXIT_FAILURE, "gettimeofday");
+        }
+
+        struct timeval elapsed;
+        timersub(&now, &start, &elapsed);
+
         if (!redrawn &&
             (tries % 100) == 0 &&
-            (clock() - start) > 250000) {
+            elapsed.tv_usec >= screen_redraw_timeout) {
             redraw_screen();
             redrawn = true;
         }
@@ -226,10 +238,18 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
         /* Make this quite a bit slower */
         usleep(50);
 
-        /* Measure elapsed time and trigger a screen redraw if elapsed > 250000 */
+        struct timeval now;
+        if (gettimeofday(&now, NULL) == -1) {
+            err(EXIT_FAILURE, "gettimeofday");
+        }
+
+        struct timeval elapsed;
+        timersub(&now, &start, &elapsed);
+
+        /* Trigger a screen redraw if 100ms elapsed */
         if (!redrawn &&
             (tries % 100) == 0 &&
-            (clock() - start) > 250000) {
+            elapsed.tv_usec >= screen_redraw_timeout) {
             redraw_screen();
             redrawn = true;
         }
