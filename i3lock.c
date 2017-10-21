@@ -445,14 +445,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
                 ksym == XKB_KEY_Escape) {
                 DEBUG("C-u pressed\n");
                 clear_input();
-                /* Hide the unlock indicator after a bit if the password buffer is
-                 * empty. */
-                if (unlock_indicator) {
-                    START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
-                    unlock_state = STATE_BACKSPACE_ACTIVE;
-                    redraw_screen();
-                    unlock_state = STATE_KEY_PRESSED;
-                }
+                /* Also hide the unlock indicator */
+                if (unlock_indicator)
+                    clear_indicator();
                 return;
             }
             break;
