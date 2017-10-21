@@ -21,9 +21,9 @@ addons:
     - libxcb-xkb-dev
 before_install:
   - "echo 'APT::Default-Release \"trusty\";' | sudo tee /etc/apt/apt.conf.d/default-release"
-  - "echo 'deb http://archive.ubuntu.com/ubuntu/ wily main universe' | sudo tee /etc/apt/sources.list.d/wily.list"
+  - "echo 'deb http://archive.ubuntu.com/ubuntu/ xenial main universe' | sudo tee /etc/apt/sources.list.d/wily.list"
   - sudo apt-get update
-  - sudo apt-get --force-yes -y install -t wily libxkbcommon-dev libxkbcommon-x11-dev
+  - sudo apt-get --force-yes -y install -t xenial libxkbcommon-dev libxkbcommon-x11-dev
 script:
   - make -j
   - clang-format-3.5 -i *.[ch] && git diff --exit-code || (echo 'Code was not formatted using clang-format!'; false)
