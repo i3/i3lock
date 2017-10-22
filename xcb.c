@@ -163,10 +163,13 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
 }
 
 /*
- * Repeatedly tries to grab pointer and keyboard (up to 10000 times).
+ * Repeatedly tries to grab pointer and keyboard (up to the specified number of
+ * tries).
+ *
+ * Returns true if the grab succeeded, false if not.
  *
  */
-void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb_cursor_t cursor) {
+bool grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb_cursor_t cursor, int tries) {
     xcb_grab_pointer_cookie_t pcookie;
     xcb_grab_pointer_reply_t *preply;
 
@@ -174,7 +177,6 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
     xcb_grab_keyboard_reply_t *kreply;
 
     const suseconds_t screen_redraw_timeout = 100000; /* 100ms */
-    int tries = 10000;
 
     /* Using few variables to trigger a redraw_screen() if too many tries */
     bool redrawn = false;
@@ -255,14 +257,7 @@ void grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
         }
     }
 
-    /* After trying for 10000 times, i3lock will display an error message
-     * for 2 sec prior to terminate. */
-    if (tries <= 0) {
-        auth_state = STATE_I3LOCK_LOCK_FAILED;
-        redraw_screen();
-        sleep(1);
-        errx(EXIT_FAILURE, "Cannot grab pointer/keyboard");
-    }
+    return (tries > 0);
 }
 
 xcb_cursor_t create_cursor(xcb_connection_t *conn, xcb_screen_t *screen, xcb_window_t win, int choice) {
@@ -326,4 +321,68 @@ xcb_cursor_t create_cursor(xcb_connection_t *conn, xcb_screen_t *screen, xcb_win
     xcb_free_pixmap(conn, mask);
 
     return cursor;
+}
+
+static xcb_atom_t _NET_ACTIVE_WINDOW = XCB_NONE;
+void _init_net_active_window(xcb_connection_t *conn) {
+    if (_NET_ACTIVE_WINDOW != XCB_NONE) {
+        /* already initialized */
+        return;
+    }
+    xcb_generic_error_t *err;
+    xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(
+        conn,
+        xcb_intern_atom(conn, 0, strlen("_NET_ACTIVE_WINDOW"), "_NET_ACTIVE_WINDOW"),
+        &err);
+    if (atom_reply == NULL) {
+        fprintf(stderr, "X11 Error %d\n", err->error_code);
+        free(err);
+        return;
+    }
+    _NET_ACTIVE_WINDOW = atom_reply->atom;
+    free(atom_reply);
+}
+
+xcb_window_t find_focused_window(xcb_connection_t *conn, const xcb_window_t root) {
+    xcb_window_t result = XCB_NONE;
+
+    _init_net_active_window(conn);
+
+    xcb_get_property_reply_t *prop_reply = xcb_get_property_reply(
+        conn,
+        xcb_get_property_unchecked(
+            conn, false, root, _NET_ACTIVE_WINDOW, XCB_GET_PROPERTY_TYPE_ANY, 0, 1 /* word */),
+        NULL);
+    if (prop_reply == NULL) {
+        goto out;
+    }
+    if (xcb_get_property_value_length(prop_reply) == 0) {
+        goto out_prop;
+    }
+    if (prop_reply->type != XCB_ATOM_WINDOW) {
+        goto out_prop;
+    }
+
+    result = *((xcb_window_t *)xcb_get_property_value(prop_reply));
+
+out_prop:
+    free(prop_reply);
+out:
+    return result;
+}
+
+void set_focused_window(xcb_connection_t *conn, const xcb_window_t root, const xcb_window_t window) {
+    xcb_client_message_event_t ev;
+    memset(&ev, '\0', sizeof(xcb_client_message_event_t));
+
+    _init_net_active_window(conn);
+
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.window = window;
+    ev.type = _NET_ACTIVE_WINDOW;
+    ev.format = 32;
+    ev.data.data32[0] = 2; /* 2 = pager */
+
+    xcb_send_event(conn, false, root, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT, (char *)&ev);
+    xcb_flush(conn);
 }
