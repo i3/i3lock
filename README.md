@@ -32,6 +32,7 @@ Requirements
 - libx11-xcb-dev
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
+- libjpeg
 
 Running i3lock
 -------------
