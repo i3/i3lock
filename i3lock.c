@@ -38,6 +38,7 @@
 #ifdef __OpenBSD__
 #include <strings.h> /* explicit_bzero(3) */
 #endif
+#include <xcb/xcb_aux.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -344,7 +345,8 @@ static void input_done(void) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
 
-        exit(0);
+        ev_break(EV_DEFAULT, EVBREAK_ALL);
+        return;
     }
 #else
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
@@ -358,7 +360,8 @@ static void input_done(void) {
         pam_setcred(pam_handle, PAM_REFRESH_CRED);
         pam_end(pam_handle, PAM_SUCCESS);
 
-        exit(0);
+        ev_break(EV_DEFAULT, EVBREAK_ALL);
+        return;
     }
 #endif
 
@@ -517,14 +520,9 @@ static void handle_key_press(xcb_key_press_event_t *event) {
                 ksym == XKB_KEY_Escape) {
                 DEBUG("C-u pressed\n");
                 clear_input();
-                /* Hide the unlock indicator after a bit if the password buffer is
-                 * empty. */
-                if (unlock_indicator) {
-                    START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
-                    unlock_state = STATE_BACKSPACE_ACTIVE;
-                    redraw_screen();
-                    unlock_state = STATE_KEY_PRESSED;
-                }
+                /* Also hide the unlock indicator */
+                if (unlock_indicator)
+                    clear_indicator();
                 return;
             }
             break;
@@ -1445,6 +1443,8 @@ int main(int argc, char *argv[]) {
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
+    xcb_window_t stolen_focus = find_focused_window(conn, screen->root);
+
     /* Open the fullscreen window, already with the correct pixmap in place */
     win = open_fullscreen_window(conn, screen, color, bg_pixmap);
     xcb_free_pixmap(conn, bg_pixmap);
@@ -1459,7 +1459,23 @@ int main(int argc, char *argv[]) {
 
     /* Display the "locking…" message while trying to grab the pointer/keyboard. */
     auth_state = STATE_AUTH_LOCK;
-    grab_pointer_and_keyboard(conn, screen, cursor);
+    if (!grab_pointer_and_keyboard(conn, screen, cursor, 1000)) {
+        DEBUG("stole focus from X11 window 0x%08x\n", stolen_focus);
+
+        /* Set the focus to i3lock, possibly closing context menus which would
+         * otherwise prevent us from grabbing keyboard/pointer.
+         *
+         * We cannot use set_focused_window because _NET_ACTIVE_WINDOW only
+         * works for managed windows, but i3lock uses an unmanaged window
+         * (override_redirect=1). */
+        xcb_set_input_focus(conn, XCB_INPUT_FOCUS_PARENT /* revert_to */, win, XCB_CURRENT_TIME);
+        if (!grab_pointer_and_keyboard(conn, screen, cursor, 9000)) {
+            auth_state = STATE_I3LOCK_LOCK_FAILED;
+            redraw_screen();
+            sleep(1);
+            errx(EXIT_FAILURE, "Cannot grab pointer/keyboard");
+        }
+    }
 
     pid_t pid = fork();
     /* The pid == -1 case is intentionally ignored here:
@@ -1509,4 +1525,17 @@ int main(int argc, char *argv[]) {
         start_time_redraw_tick(main_loop);
     }
     ev_loop(main_loop, 0);
+
+    if (stolen_focus == XCB_NONE) {
+        return 0;
+    }
+
+    DEBUG("restoring focus to X11 window 0x%08x\n", stolen_focus);
+    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+    xcb_ungrab_keyboard(conn, XCB_CURRENT_TIME);
+    xcb_destroy_window(conn, win);
+    set_focused_window(conn, screen->root, stolen_focus);
+    xcb_aux_sync(conn);
+
+    return 0;
 }
