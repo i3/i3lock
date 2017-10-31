@@ -360,7 +360,7 @@ bool cairo_image_surface_from_file(const char* path, cairo_surface_t** surface_o
             break;
         case NONE:
             errno = EINVAL; /* path is an invalid argument - not a supported image type */
-            /* fallthrough */
+                            /* fallthrough */
         case ERROR:
             ret = false;
     }
