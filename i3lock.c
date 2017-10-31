@@ -8,43 +8,43 @@
  */
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <assert.h>
+#include <err.h>
 #include <pwd.h>
-#include <sys/types.h>
-#include <string.h>
-#include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
-#include <err.h>
-#include <assert.h>
 #ifdef __OpenBSD__
 #include <bsd_auth.h>
 #else
 #include <security/pam_appl.h>
 #endif
-#include <getopt.h>
-#include <ev.h>
-#include <sys/mman.h>
-#include <xkbcommon/xkbcommon.h>
-#include <xkbcommon/xkbcommon-compose.h>
-#include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <ev.h>
+#include <getopt.h>
+#include <sys/mman.h>
+#include <xkbcommon/xkbcommon-compose.h>
+#include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon.h>
 #ifdef __OpenBSD__
 #include <strings.h> /* explicit_bzero(3) */
 #endif
+#include <errno.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
-#include <errno.h>
 
-#include "img_load.h"
-#include "i3lock.h"
-#include "xcb.h"
 #include "cursors.h"
+#include "i3lock.h"
+#include "img_load.h"
 #include "unlock_indicator.h"
+#include "xcb.h"
 #include "randr.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
@@ -1011,8 +1011,7 @@ int main(int argc, char *argv[]) {
 
     if (image_path) {
         /* In case loading failed, we just pretend no -i was specified. */
-        if (!cairo_image_surface_from_file(image_path, &img))
-        {
+        if (!cairo_image_surface_from_file(image_path, &img)) {
             fprintf(stderr, "Could not load image \"%s\": %s\n", image_path, strerror(errno));
             img = NULL;
         } else if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
@@ -1106,8 +1105,7 @@ int main(int argc, char *argv[]) {
     }
 
     DEBUG("restoring focus to X11 window 0x%08x\n", stolen_focus);
-    if (img != NULL)
-    {
+    if (img != NULL) {
         cairo_surface_destroy(img);
     }
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);

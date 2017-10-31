@@ -6,41 +6,44 @@
  * See LICENSE for licensing information
  *
  */
+#include "img_load.h"
 #include <assert.h>
-#include <unistd.h>
-#include <stdint.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <jpeglib.h>
 #include <setjmp.h>
-#include "img_load.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-#define CHECK(A) if (!(A)) return false
+#define CHECK(A) \
+    if (!(A))    \
+    return false
 
-typedef enum
-{
+typedef enum {
     PNG,
     JPEG,
     NONE,
     ERROR
 } supported_img_t;
 typedef int file_t;
-#define CHECKE(A) if (!(A)) return ERROR;
+#define CHECKE(A) \
+    if (!(A))     \
+        return ERROR;
 
-#define CHECKEXIT(A) if(!(A)) goto exit
+#define CHECKEXIT(A) \
+    if (!(A))        \
+    goto exit
 
-#define CHECK_FILE_SIZE(fd, size) do                                    \
-{                                                                       \
-    off_t file_size = lseek(fd, 0, SEEK_END);                           \
-    CHECKE(file_size != -1);                                            \
-    assert(file_size > 0);                                              \
-    if ((size_t)file_size < size)                                       \
-    {                                                                   \
-        ret = NONE;                                                     \
-        goto exit;                                                      \
-    }                                                                   \
-} while(false);
+#define CHECK_FILE_SIZE(fd, size)                 \
+    do {                                          \
+        off_t file_size = lseek(fd, 0, SEEK_END); \
+        CHECKE(file_size != -1);                  \
+        assert(file_size > 0);                    \
+        if ((size_t)file_size < size) {           \
+            ret = NONE;                           \
+            goto exit;                            \
+        }                                         \
+    } while (false);
 
 /*
  * This function checks if the file passed in is a jpeg image. Meant to be used as a helper to
@@ -60,8 +63,7 @@ typedef int file_t;
 #endif
 typedef uint16_t jpeg_header_t;
 typedef uint16_t jpeg_footer_t;
-static supported_img_t is_jpeg_img(const file_t img_file)
-{
+static supported_img_t is_jpeg_img(const file_t img_file) {
     supported_img_t ret = NONE;
 
     off_t initial_offset = lseek(img_file, 0, SEEK_CUR);
@@ -78,13 +80,11 @@ static supported_img_t is_jpeg_img(const file_t img_file)
     jpeg_header_t header;
     ssize_t bytes_read = pread(img_file, &header, sizeof(header), 0 /* offset */);
     CHECKE(bytes_read != -1);
-    if (bytes_read != sizeof(header))
-    {
+    if (bytes_read != sizeof(header)) {
         errno = EIO;
         return ERROR;
     }
-    if (header != JPEG_HEADER)
-    {
+    if (header != JPEG_HEADER) {
         ret = NONE;
         goto exit;
     }
@@ -94,19 +94,17 @@ static supported_img_t is_jpeg_img(const file_t img_file)
     jpeg_footer_t footer;
     bytes_read = read(img_file, &footer, sizeof(footer));
     CHECKE(bytes_read != -1);
-    if (bytes_read != sizeof(footer))
-    {
+    if (bytes_read != sizeof(footer)) {
         errno = EIO;
         return ERROR;
     }
-    if (footer != JPEG_FOOTER)
-    {
+    if (footer != JPEG_FOOTER) {
         ret = NONE;
         goto exit;
     }
 
     ret = JPEG;
-  exit:
+exit:
     CHECKE(lseek(img_file, initial_offset, SEEK_SET) != -1);
     return ret;
 }
@@ -125,8 +123,7 @@ typedef uint64_t png_header_t;
 #else
 #define PNG_HEADER 0x89504E470D0A1A0A
 #endif
-static supported_img_t is_png_img(const file_t img_file)
-{
+static supported_img_t is_png_img(const file_t img_file) {
     supported_img_t ret = NONE;
 
     off_t initial_offset = lseek(img_file, 0, SEEK_CUR);
@@ -139,19 +136,17 @@ static supported_img_t is_png_img(const file_t img_file)
     png_header_t header;
     ssize_t bytes_read = pread(img_file, &header, sizeof(header), 0 /* offset */);
     CHECKE(bytes_read != -1);
-    if (bytes_read != sizeof(header))
-    {
+    if (bytes_read != sizeof(header)) {
         errno = EIO;
         return ERROR;
     }
-    if (header != PNG_HEADER)
-    {
+    if (header != PNG_HEADER) {
         ret = NONE;
         goto exit;
     }
 
     ret = PNG;
-  exit:
+exit:
     CHECKE(lseek(img_file, initial_offset, SEEK_SET) != -1);
     return ret;
 }
@@ -165,8 +160,7 @@ static supported_img_t is_png_img(const file_t img_file)
  * though, the seek posiiton will be returned to its original value when this function was called.
  *
  */
-static supported_img_t get_img_type(FILE* const img_fp)
-{
+static supported_img_t get_img_type(FILE* const img_fp) {
     assert(img_fp != NULL);
     file_t img_file = fileno(img_fp);
     assert(img_file >= 0);
@@ -179,7 +173,7 @@ static supported_img_t get_img_type(FILE* const img_fp)
     CHECKE(ret != ERROR);
     CHECKEXIT(ret == NONE); /* fallthrough if NONE was returned */
 
-  exit:
+exit:
     return ret;
 }
 
@@ -189,8 +183,7 @@ static supported_img_t get_img_type(FILE* const img_fp)
  * handle the error in a non-fatal way.
  *
  */
-struct jmp_error_mgr
-{
+struct jmp_error_mgr {
     struct jpeg_error_mgr mgr;
     jmp_buf setjmp_buffer;
 };
@@ -199,10 +192,9 @@ struct jmp_error_mgr
  * This function displays the error message, and then gives control back to the caller via longjmp.
  *
  */
-void jmp_error_exit (j_common_ptr cinfo)
-{
+void jmp_error_exit(j_common_ptr cinfo) {
     /* cinfo->err is a jmp_error_mgr object, even if it's stored as a different pointer type */
-    struct jmp_error_mgr* myerr = (struct jmp_error_mgr*) cinfo->err;
+    struct jmp_error_mgr* myerr = (struct jmp_error_mgr*)cinfo->err;
     myerr->mgr.output_message(cinfo);
     longjmp(myerr->setjmp_buffer, 1);
 }
@@ -227,8 +219,7 @@ void jmp_error_exit (j_common_ptr cinfo)
 #else
 #define JPEG_COLOR_SPACE JCS_EXT_ARGB
 #endif
-static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const surface)
-{
+static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const surface) {
     assert(img_file != NULL);
     assert(fileno(img_file) != -1);
 
@@ -240,8 +231,7 @@ static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const 
     bool ret = false;
     cinfo.err = jpeg_std_error(&jerr.mgr);
     jerr.mgr.error_exit = jmp_error_exit;
-    if (setjmp(jerr.setjmp_buffer))
-    {
+    if (setjmp(jerr.setjmp_buffer)) {
         errno = EINVAL; /* catch-all error code, the actual error was printed by the mgr */
         goto exit;
     }
@@ -258,7 +248,7 @@ static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const 
      *
      */
 
-    (void) jpeg_read_header(&cinfo, TRUE);
+    (void)jpeg_read_header(&cinfo, TRUE);
 
     /*
      * Manipulate the output colorspace into one that cairo will work with. The most compatible
@@ -269,7 +259,7 @@ static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const 
     cinfo.out_color_space = JPEG_COLOR_SPACE;
     data_format = CAIRO_FORMAT_RGB24;
 
-    (void) jpeg_start_decompress(&cinfo);
+    (void)jpeg_start_decompress(&cinfo);
 
     JDIMENSION width = cinfo.output_width;
     JDIMENSION height = cinfo.output_height;
@@ -287,25 +277,23 @@ static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const 
     CHECKEXIT(data != NULL);
     buffer = malloc(height * sizeof(JSAMPROW));
     CHECKEXIT(buffer != NULL);
-    for (size_t r = 0; r < height; ++r)
-    {
-        buffer[r] = &data[stride*r];
+    for (size_t r = 0; r < height; ++r) {
+        buffer[r] = &data[stride * r];
     }
 
-    do
-    {
+    do {
         /*
          * The number of scanlines read so far is kept in cinfo.output_scanline, so it is not
          * necessary to store the output of jpeg_read_scanlines anywhere.
          *
          */
-        (void) jpeg_read_scanlines(
+        (void)jpeg_read_scanlines(
             &cinfo,
-            buffer+cinfo.output_scanline,
-            height-cinfo.output_scanline);
-    } while(cinfo.output_scanline < height);
+            buffer + cinfo.output_scanline,
+            height - cinfo.output_scanline);
+    } while (cinfo.output_scanline < height);
 
-    (void) jpeg_finish_decompress(&cinfo);
+    (void)jpeg_finish_decompress(&cinfo);
 
     /*
      * Now that we've filled the data from the jpeg file, create the cairo surface and make it own
@@ -327,14 +315,12 @@ static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const 
                   data) == CAIRO_STATUS_SUCCESS);
     data = NULL;
 
-  exit:
+exit:
     jpeg_destroy_decompress(&cinfo);
-    if (data != NULL)
-    {
+    if (data != NULL) {
         free(data);
     }
-    if (buffer != NULL)
-    {
+    if (buffer != NULL) {
         free(buffer);
     }
 
@@ -354,31 +340,29 @@ static bool jpeg_to_cairo_surface(FILE* const img_file, cairo_surface_t** const 
  * All callers must check both the return value of this function (in case it is `false` more
  * information exists in the errno) and the status of the cairo surface.
  */
-bool cairo_image_surface_from_file(const char* path, cairo_surface_t** surface_out)
-{
+bool cairo_image_surface_from_file(const char* path, cairo_surface_t** surface_out) {
     assert(*surface_out == NULL);
     FILE* img_file = fopen(path, "rb");
     CHECK(img_file != NULL);
 
     bool ret = true;
     supported_img_t img_type = get_img_type(img_file);
-    switch (img_type)
-    {
-    case PNG:
-        /*
+    switch (img_type) {
+        case PNG:
+            /*
          * We already have a file descriptor so this could be made a bit more efficient. It is,
          * however, less risky and complex to just use cairo's builtin PNG extractor.
          */
-        *surface_out = cairo_image_surface_create_from_png(path);
-        break;
-    case JPEG:
-        ret = jpeg_to_cairo_surface(img_file, surface_out);
-        break;
-    case NONE:
-        errno = EINVAL; /* path is an invalid argument - not a supported image type */
-        /* fallthrough */
-    case ERROR:
-        ret = false;
+            *surface_out = cairo_image_surface_create_from_png(path);
+            break;
+        case JPEG:
+            ret = jpeg_to_cairo_surface(img_file, surface_out);
+            break;
+        case NONE:
+            errno = EINVAL; /* path is an invalid argument - not a supported image type */
+            /* fallthrough */
+        case ERROR:
+            ret = false;
     }
 
     CHECK(fclose(img_file) == 0);
