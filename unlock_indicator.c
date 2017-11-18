@@ -19,7 +19,7 @@
 #include "i3lock.h"
 #include "xcb.h"
 #include "unlock_indicator.h"
-#include "xinerama.h"
+#include "randr.h"
 
 #define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)

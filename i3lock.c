@@ -42,7 +42,7 @@
 #include "xcb.h"
 #include "cursors.h"
 #include "unlock_indicator.h"
-#include "xinerama.h"
+#include "randr.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))

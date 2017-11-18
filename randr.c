@@ -16,7 +16,7 @@
 
 #include "i3lock.h"
 #include "xcb.h"
-#include "xinerama.h"
+#include "randr.h"
 
 /* Number of Xinerama screens which are currently present. */
 int xr_screens = 0;
