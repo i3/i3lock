@@ -15,8 +15,8 @@ CFLAGS += -std=c99
 CFLAGS += -pipe
 CFLAGS += -Wall
 CPPFLAGS += -D_GNU_SOURCE
-CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
-LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-xinerama xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
+CFLAGS += $(shell $(PKG_CONFIG) --cflags cairo xcb-xinerama xcb-randr xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
+LIBS += $(shell $(PKG_CONFIG) --libs cairo xcb-xinerama xcb-randr xcb-atom xcb-image xcb-xkb xkbcommon xkbcommon-x11)
 LIBS += -lev
 LIBS += -lm
 
