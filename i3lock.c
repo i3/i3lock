@@ -83,6 +83,7 @@ int screen_number = -1;
 int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
 bool show_clock = false;
+bool always_show_clock = false;
 bool show_indicator = false;
 float refresh_rate = 1.0;
 
@@ -1014,6 +1015,7 @@ int main(int argc, char *argv[]) {
         {"screen", required_argument, NULL, 'S'},
         {"blur", required_argument, NULL, 'B'},
         {"clock", no_argument, NULL, 'k'},
+        {"force-clock", no_argument, NULL, 0},
         {"indicator", no_argument, NULL, 0},
         {"refresh-rate", required_argument, NULL, 0},
         {"composite", no_argument, NULL, 0},
@@ -1435,6 +1437,10 @@ int main(int argc, char *argv[]) {
                     else {
                         ring_width = new_width;
                     }
+                }
+                else if (strcmp(longopts[longoptind].name, "force-clock") == 0) {
+                    show_clock = true;
+                    always_show_clock = true;
                 }
 
                 break;

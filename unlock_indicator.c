@@ -87,6 +87,7 @@ extern int screen_number;
 extern float refresh_rate;
 
 extern bool show_clock;
+extern bool always_show_clock;
 extern bool show_indicator;
 extern char time_format[32];
 extern char date_format[32];
@@ -494,7 +495,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
     }
 
-    if (show_clock && !unlock_indic_text) {
+    if (show_clock && (!unlock_indic_text || always_show_clock)) {
         char *text = NULL;
         char *date = NULL;
         char time_text[40] = {0};
@@ -601,7 +602,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 iy = 0;
                 ix = te_eval(te_ind_x_expr);
                 iy = te_eval(te_ind_y_expr);
-                DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f ix: %f iy: %f\n", xr_resolutions[screen_number].x, xr_resolutions[screen_number].y, w, h, ix, iy);
             }
             else {
                 ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
@@ -628,9 +628,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 double layout_x = te_eval(te_layout_x_expr);
                 double layout_y = te_eval(te_layout_y_expr);
 
-                DEBUG("tx: %f ty: %f ix: %f, iy: %f\n", tx, ty, ix, iy);
-                DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f layout_x: %f layout_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, layout_x, layout_y, screen_number);
-                DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f\n", xr_resolutions[screen_number].x, xr_resolutions[screen_number].y, w, h);
                 cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
                 cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                 cairo_fill(xcb_ctx);
@@ -652,7 +649,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     iy = 0;
                     ix = te_eval(te_ind_x_expr);
                     iy = te_eval(te_ind_y_expr);
-                    DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f ix: %f iy: %f\n", xr_resolutions[screen].x, xr_resolutions[screen].y, w, h, ix, iy);
                 }
                 else {
                     ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
@@ -676,9 +672,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     double date_y = dy;
                     double layout_x = te_eval(te_layout_x_expr);
                     double layout_y = te_eval(te_layout_y_expr);
-                    DEBUG("tx: %f ty: %f f ix: %f iy: %f\n", tx, ty, ix, iy);
-                    DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f layout_x: %f layout_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, layout_x, layout_y, screen_number);
-                    DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f\n", xr_resolutions[screen].x, xr_resolutions[screen].y, w, h);
                     cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
                     cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                     cairo_fill(xcb_ctx);
@@ -710,10 +703,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (te_time_x_expr && te_time_y_expr) {
             tx = te_eval(te_time_x_expr);
             ty = te_eval(te_time_y_expr);
-            double time_x = tx - CLOCK_WIDTH / 2;
-            double time_y = tx - CLOCK_HEIGHT / 2;
-            double date_x = te_eval(te_date_x_expr) - CLOCK_WIDTH / 2;
-            double date_y = te_eval(te_date_y_expr) - CLOCK_HEIGHT / 2;
+            double time_x = tx;
+            double time_y = ty;
+            dx = te_eval(te_date_x_expr);
+            dy = te_eval(te_date_y_expr);
+            double date_x = dx;
+            double date_y = dy;
+            double layout_x = te_eval(te_layout_x_expr);
+            double layout_y = te_eval(te_layout_y_expr);
             DEBUG("Placing time at %f, %f\n", time_x, time_y);
             cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
             cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
@@ -721,16 +718,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
             cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
             cairo_fill(xcb_ctx);
+            cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
+            cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+            cairo_fill(xcb_ctx);
         }
     }
 
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(time_output);
     cairo_surface_destroy(date_output);
+    cairo_surface_destroy(layout_output);
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
     cairo_destroy(time_ctx);
     cairo_destroy(date_ctx);
+    cairo_destroy(layout_ctx);
     cairo_destroy(xcb_ctx);
     return bg_pixmap;
 }
@@ -740,7 +742,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  *
  */
 void redraw_screen(void) {
-    DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
+    DEBUG("redraw_screen(unlock_state = %d, auth_state = %d) @ [%lu]\n", unlock_state, auth_state, (unsigned long)time(NULL));
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
