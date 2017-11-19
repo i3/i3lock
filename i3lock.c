@@ -70,6 +70,7 @@ char ringwrongcolor[9] = "7d3300ff";
 char ringcolor[9] = "337d00ff";
 char linecolor[9] = "000000ff";
 char textcolor[9] = "000000ff";
+char layoutcolor[9] = "000000ff";
 char timecolor[9] = "000000ff";
 char datecolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
@@ -95,22 +96,27 @@ char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 char time_font[32] = "sans-serif\0";
 char date_font[32] = "sans-serif\0";
+char layout_font[32] = "sans-serif\0";
 char ind_x_expr[32] = "x + (w / 2)\0";
 char ind_y_expr[32] = "y + (h / 2)\0";
 char time_x_expr[32] = "ix - (cw / 2)\0";
 char time_y_expr[32] = "iy - (ch / 2)\0";
 char date_x_expr[32] = "tx\0";
 char date_y_expr[32] = "ty+30\0";
+char layout_x_expr[32] = "dx\0";
+char layout_y_expr[32] = "dy+30\0";
 
 double time_size = 32.0;
 double date_size = 14.0;
 double text_size = 28.0;
 double modifier_size = 14.0;
+double layout_size = 14.0;
 double circle_radius = 90.0;
 double ring_width = 7.0;
 
 char* verif_text = "verifying…";
 char* wrong_text = "wrong!";
+char* layout_text = NULL;
 
 /* opts for blurring */
 bool blur = false;
@@ -173,47 +179,77 @@ void u8_dec(char *s, int *i) {
  * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
  * Necessary so that we can properly let xkbcommon track the keyboard state and
  * translate keypresses to utf-8.
- *
+ * arg: 0 (show full string returned)
+ *      1 (show the text, sans parenthesis)
+ *      2 (show just what's in the parenthesis)
  */
 
-char* get_keylayoutname(void) {
+char* get_keylayoutname(int mode) {
+
     Display *display;
 	XkbDescPtr keyboard;
     XkbStateRec	state;
-    int result;
+    char* answer;
+    char* newans = NULL;
+    int res, i;
 
-	display = XkbOpenDisplay( getenv("DISPLAY") , NULL, NULL, NULL, NULL, &result );
-	if( !display ) {
-		errx(1, "X server unreachable");
+	display = XkbOpenDisplay(getenv("DISPLAY"), NULL, NULL, NULL, NULL, &res);
+	if(!display) {
+        DEBUG("X server unreachable\n");
+        return NULL;
     }
 
     keyboard = XkbAllocKeyboard();
 
-    if ( XkbGetNames(display, XkbGroupNamesMask, keyboard) != Success ) {
-		errx(1, "Error obtaining symbolic names");
+    if (XkbGetNames(display, XkbGroupNamesMask, keyboard) != Success ) {
+		DEBUG("Error obtaining symbolic names");
+        return NULL;
     }
 
-    if( XkbGetState(display, XkbUseCoreKbd, &state) != Success ) {
-        errx(1, "Error getting keyboard state");
+    if(XkbGetState(display, XkbUseCoreKbd, &state) != Success) {
+        DEBUG("Error getting keyboard state");
+        return NULL;
     }	
 
-    printf( "aaa: %s\n", XGetAtomName(display, keyboard->names->groups[state.group]) );
-
-    Atom current_group;
-    int i = 0;
-    for (; i < XkbNumKbdGroups; i++) {
-        if ( (current_group = keyboard->names->groups[i]) != 0 ) {
-            char* group_name = XGetAtomName(display, current_group);
-            if (group_name != NULL) {
-                printf( "bbb: %d. %s\n", i, group_name );
+    answer = XGetAtomName(display, keyboard->names->groups[state.group]);
+    DEBUG("keylayout answer is: [%s]\n", answer);
+    switch (mode) {
+        case 1:
+            // truncate the string at the first parens
+            for(i = 0; answer[i] != '\0'; ++i) {
+                if (answer[i] == '(') {
+                    if (i != 0 && answer[i - 1] == ' ') {
+                        answer[i - 1] = '\0';
+                        break;
+                    } else {
+                        answer[i] = '\0';
+                        break;
+                    }
+                }
             }
-            XFree(group_name);
-        }
+            break;
+        case 2:
+            for(i = 0; answer[i] != '\0'; ++i) {
+                if (answer[i] == '(') {
+                    newans = &answer[i + 1];
+                } else if (answer[i] == ')' && newans != NULL) {
+                    answer[i] = '\0';
+                    break;
+                }
+            }
+            if (newans != NULL)
+                answer = newans;
+            break;
+        case 0:
+            // fall through
+        default:
+            break;
     }
-
+    DEBUG("answer after mode parsing: [%s]\n", answer);
 	// Free symbolic names structures 
 	XkbFreeNames(keyboard, XkbGroupNamesMask, True);
-    return NULL;
+    // note: this is called in option parsing, so this debug() may not trigger unless --debug is the first option
+    return answer;
 }
 
 static bool load_keymap(void) {
@@ -965,6 +1001,7 @@ int main(int argc, char *argv[]) {
         {"ringcolor", required_argument, NULL, 0},        // --r-c
         {"linecolor", required_argument, NULL, 0},        // --l-c
         {"textcolor", required_argument, NULL, 0},        // --t-c
+        {"layoutcolor", required_argument, NULL, 0},        // --t-c
         {"timecolor", required_argument, NULL, 0},       
         {"datecolor", required_argument, NULL, 0},       
         {"keyhlcolor", required_argument, NULL, 0},       // --k-c
@@ -983,12 +1020,16 @@ int main(int argc, char *argv[]) {
         
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
+        {"keylayout", required_argument, NULL, 0},
         {"timefont", required_argument, NULL, 0},
         {"datefont", required_argument, NULL, 0},
+        {"layoutfont", required_argument, NULL, 0},
         {"timesize", required_argument, NULL, 0},
         {"datesize", required_argument, NULL, 0},
+        {"layoutsize", required_argument, NULL, 0},
         {"timepos", required_argument, NULL, 0},
         {"datepos", required_argument, NULL, 0},
+        {"layoutpos", required_argument, NULL, 0},
         {"indpos", required_argument, NULL, 0},
 
         {"veriftext", required_argument, NULL, 0},
@@ -1004,8 +1045,6 @@ int main(int argc, char *argv[]) {
         err(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
-
-    (void) get_keylayoutname();
 
     char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
@@ -1167,6 +1206,16 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
                         errx(1, "textcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
+                else if (strcmp(longopts[longoptind].name, "layoutcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", layoutcolor) != 1)
+                        errx(1, "layoutcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
                 else if (strcmp(longopts[longoptind].name, "timecolor") == 0) {
                     char *arg = optarg;
 
@@ -1217,6 +1266,12 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
                         errx(1, "separator is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
+                else if (strcmp(longopts[longoptind].name, "keylayout") == 0) {
+                    // if layout is NULL, do nothing
+                    // if not NULL, attempt to display stuff
+                    // need to code some sane defaults for it
+                    layout_text = get_keylayoutname(atoi(optarg));
+                }
                 else if (strcmp(longopts[longoptind].name, "timestr") == 0) {
                     //read in to timestr
                     if (strlen(optarg) > 31) {
@@ -1230,6 +1285,13 @@ int main(int argc, char *argv[]) {
                         errx(1, "time format string can be at most 31 characters\n");
                     }
                     strcpy(date_format,optarg);
+                }
+                else if (strcmp(longopts[longoptind].name, "layoutfont") == 0) {
+                    //read in to time_font
+                    if (strlen(optarg) > 31) {
+                        errx(1, "layout font string can be at most 31 characters\n");
+                    }
+                    strcpy(layout_font,optarg);
                 }
                 else if (strcmp(longopts[longoptind].name, "timefont") == 0) {
                     //read in to time_font
@@ -1260,6 +1322,14 @@ int main(int argc, char *argv[]) {
                         errx(1, "datesize must be a number\n");
                     if (date_size < 1)
                         errx(1, "datesize must be larger than 0\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "layoutsize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &layout_size) != 1)
+                        errx(1, "layoutsize must be a number\n");
+                    if (date_size < 1)
+                        errx(1, "layoutsize must be larger than 0\n");
                 }
                 else if (strcmp(longopts[longoptind].name, "indpos") == 0) {
                     //read in to ind_x_expr and ind_y_expr
@@ -1292,6 +1362,17 @@ int main(int argc, char *argv[]) {
                     char* arg = optarg;
                     if (sscanf(arg, "%30[^:]:%30[^:]", date_x_expr, date_y_expr) != 2) {
                         errx(1, "datepos must be of the form x:y\n");
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "layoutpos") == 0) {
+                    //read in to time_x_expr and time_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "layout position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", layout_x_expr, layout_y_expr) != 2) {
+                        errx(1, "layoutpos must be of the form x:y\n");
                     }
                 }
                 else if (strcmp(longopts[longoptind].name, "refresh-rate") == 0) {
@@ -1462,6 +1543,8 @@ int main(int argc, char *argv[]) {
 
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
+
+    init_colors_once();
 
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */

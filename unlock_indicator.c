@@ -75,6 +75,7 @@ extern char ringwrongcolor[9];
 extern char ringcolor[9];
 extern char linecolor[9];
 extern char textcolor[9];
+extern char layoutcolor[9];
 extern char timecolor[9];
 extern char datecolor[9];
 extern char keyhlcolor[9];
@@ -91,20 +92,25 @@ extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
 extern char date_font[32];
+extern char layout_font[32];
 extern char ind_x_expr[32];
 extern char ind_y_expr[32];
 extern char time_x_expr[32];
 extern char time_y_expr[32];
 extern char date_x_expr[32];
 extern char date_y_expr[32];
+extern char layout_x_expr[32];
+extern char layout_y_expr[32];
 
 extern double time_size;
 extern double date_size;
 extern double text_size;
 extern double modifier_size;
+extern double layout_size;
 
 extern char* verif_text;
 extern char* wrong_text;
+extern char* layout_text;
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -133,6 +139,94 @@ static xcb_visualtype_t *vistype;
 unlock_state_t unlock_state;
 auth_state_t auth_state;
 
+// color arrays
+rgba_t insidever16[4];
+rgba_t insidewrong16[4];
+rgba_t inside16[4];
+rgba_t ringver16[4];
+rgba_t ringwrong16[4];
+rgba_t ring16[4];
+rgba_t line16[4];
+rgba_t text16[4];
+rgba_t layout16[4];
+rgba_t time16[4];
+rgba_t date16[4];
+rgba_t keyhl16[4];
+rgba_t bshl16[4];
+rgba_t sep16[4];
+// just rgb
+rgb_t  rgb16[3];
+
+/*
+ * Initialize all the color arrays once.
+ * Called once after options are parsed.
+ */
+
+/*
+    colorstring: 8-character RGBA string ("ff0000ff", "00000000", "ffffffff", etc)
+    colorstring16: array of 4 integers (r, g, b, a).
+    MAKE_COLORGROUPS(colorstring, colorstring16) =>
+
+    char colorstring_tmparr[4][3] = {{colorstring[0], colorstring[1], '\0'},
+                                     {colorstring[2], colorstring[3], '\0'},
+                                     {colorstring[4], colorstring[5], '\0'},
+                              	     {colorstring[6], colorstring[7], '\0'}};
+    uint32_t colorstring16[4] = {(strtol(colorstring_tmparr[0], NULL, 16)),
+                                 (strtol(colorstring_tmparr[1], NULL, 16)),
+                                 (strtol(colorstring_tmparr[2], NULL, 16)),
+			         (strtol(colorstring_tmparr[3], NULL, 16))};
+ */
+
+inline void set_color(char* dest, const char* src, int offset) {
+    dest[0] = src[offset];
+    dest[1] = src[offset + 1];
+    dest[2] = '\0';
+}
+
+inline void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
+    set_color(tmp->red, src, 0);
+    set_color(tmp->green, src, 2);
+    set_color(tmp->blue, src, 4);
+    set_color(tmp->alpha, src, 6);
+
+    dest->red = strtol(tmp->red, NULL, 16);
+    dest->green = strtol(tmp->green, NULL, 16);
+    dest->blue = strtol(tmp->blue, NULL, 16);
+    dest->alpha = strtol(tmp->alpha, NULL, 16);
+}
+
+inline void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
+    set_color(tmp->red, src, 0);
+    set_color(tmp->green, src, 2);
+    set_color(tmp->blue, src, 4);
+
+    dest->red = strtol(tmp->red, NULL, 16);
+    dest->green = strtol(tmp->green, NULL, 16);
+    dest->blue = strtol(tmp->blue, NULL, 16);
+}
+
+void init_colors_once(void) {
+    rgba_str_t tmp;
+    rgb_str_t  tmp_rgb;
+
+    /* build indicator color arrays */
+    colorgen(&tmp, insidevercolor, insidever16);
+    colorgen(&tmp, insidewrongcolor, insidewrong16);
+    colorgen(&tmp, insidecolor, inside16);
+    colorgen(&tmp, ringvercolor, ringver16);
+    colorgen(&tmp, ringwrongcolor, ringwrong16);
+    colorgen(&tmp, ringcolor, ring16);
+    colorgen(&tmp, linecolor, line16);
+    colorgen(&tmp, textcolor, text16);
+    colorgen(&tmp, layoutcolor, layout16);
+    colorgen(&tmp, timecolor, time16);
+    colorgen(&tmp, datecolor, date16);
+    colorgen(&tmp, keyhlcolor, keyhl16);
+    colorgen(&tmp, bshlcolor, bshl16);
+    colorgen(&tmp, separatorcolor, sep16);
+    colorgen_rgb(&tmp_rgb, color, rgb16);
+}
+
 /*
  * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
  * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
@@ -143,6 +237,7 @@ static double scaling_factor(void) {
                     (double)screen->height_in_millimeters;
     return (dpi / 96.0);
 }
+
 
 /*
  * Draws global image with fill color onto a pixmap with the given
@@ -174,6 +269,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_surface_t *date_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
     cairo_t *date_ctx = cairo_create(date_output);
 
+    cairo_surface_t *layout_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
+    cairo_t *layout_ctx = cairo_create(layout_output);
+
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
@@ -198,122 +296,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             }
         }
     } else {
-        char strgroups[3][3] = {{color[0], color[1], '\0'},
-                                {color[2], color[3], '\0'},
-                                {color[4], color[5], '\0'}};
-        uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
-                             (strtol(strgroups[1], NULL, 16)),
-                             (strtol(strgroups[2], NULL, 16))};
-        cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
+        cairo_set_source_rgb(xcb_ctx, rgb16->red / 255.0, rgb16->green / 255.0, rgb16->blue / 255.0);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
-
-    /* build indicator color arrays */
-    char strgroupsiv[4][3] = {{insidevercolor[0], insidevercolor[1], '\0'},
-                              {insidevercolor[2], insidevercolor[3], '\0'},
-                              {insidevercolor[4], insidevercolor[5], '\0'},
-                              {insidevercolor[6], insidevercolor[7], '\0'}};
-    uint32_t insidever16[4] = {(strtol(strgroupsiv[0], NULL, 16)),
-                               (strtol(strgroupsiv[1], NULL, 16)),
-                               (strtol(strgroupsiv[2], NULL, 16)),
-                               (strtol(strgroupsiv[3], NULL, 16))};
-    char strgroupsiw[4][3] = {{insidewrongcolor[0], insidewrongcolor[1], '\0'},
-                              {insidewrongcolor[2], insidewrongcolor[3], '\0'},
-                              {insidewrongcolor[4], insidewrongcolor[5], '\0'},
-                              {insidewrongcolor[6], insidewrongcolor[7], '\0'}};
-    uint32_t insidewrong16[4] = {(strtol(strgroupsiw[0], NULL, 16)),
-                                 (strtol(strgroupsiw[1], NULL, 16)),
-                                 (strtol(strgroupsiw[2], NULL, 16)),
-                                 (strtol(strgroupsiw[3], NULL, 16))};
-    char strgroupsi[4][3] = {{insidecolor[0], insidecolor[1], '\0'},
-                             {insidecolor[2], insidecolor[3], '\0'},
-                             {insidecolor[4], insidecolor[5], '\0'},
-                             {insidecolor[6], insidecolor[7], '\0'}};
-    uint32_t inside16[4] = {(strtol(strgroupsi[0], NULL, 16)),
-                            (strtol(strgroupsi[1], NULL, 16)),
-                            (strtol(strgroupsi[2], NULL, 16)),
-                            (strtol(strgroupsi[3], NULL, 16))};
-    char strgroupsrv[4][3] = {{ringvercolor[0], ringvercolor[1], '\0'},
-                              {ringvercolor[2], ringvercolor[3], '\0'},
-                              {ringvercolor[4], ringvercolor[5], '\0'},
-                              {ringvercolor[6], ringvercolor[7], '\0'}};
-    uint32_t ringver16[4] = {(strtol(strgroupsrv[0], NULL, 16)),
-                             (strtol(strgroupsrv[1], NULL, 16)),
-                             (strtol(strgroupsrv[2], NULL, 16)),
-                             (strtol(strgroupsrv[3], NULL, 16))};
-    char strgroupsrw[4][3] = {{ringwrongcolor[0], ringwrongcolor[1], '\0'},
-                              {ringwrongcolor[2], ringwrongcolor[3], '\0'},
-                              {ringwrongcolor[4], ringwrongcolor[5], '\0'},
-                              {ringwrongcolor[6], ringwrongcolor[7], '\0'}};
-    uint32_t ringwrong16[4] = {(strtol(strgroupsrw[0], NULL, 16)),
-                               (strtol(strgroupsrw[1], NULL, 16)),
-                               (strtol(strgroupsrw[2], NULL, 16)),
-                               (strtol(strgroupsrw[3], NULL, 16))};
-    char strgroupsr[4][3] = {{ringcolor[0], ringcolor[1], '\0'},
-                             {ringcolor[2], ringcolor[3], '\0'},
-                             {ringcolor[4], ringcolor[5], '\0'},
-                             {ringcolor[6], ringcolor[7], '\0'}};
-    uint32_t ring16[4] = {(strtol(strgroupsr[0], NULL, 16)),
-                          (strtol(strgroupsr[1], NULL, 16)),
-                          (strtol(strgroupsr[2], NULL, 16)),
-                          (strtol(strgroupsr[3], NULL, 16))};
-    char strgroupsl[4][3] = {{linecolor[0], linecolor[1], '\0'},
-                             {linecolor[2], linecolor[3], '\0'},
-                             {linecolor[4], linecolor[5], '\0'},
-                             {linecolor[6], linecolor[7], '\0'}};
-    uint32_t line16[4] = {(strtol(strgroupsl[0], NULL, 16)),
-                          (strtol(strgroupsl[1], NULL, 16)),
-                          (strtol(strgroupsl[2], NULL, 16)),
-                          (strtol(strgroupsl[3], NULL, 16))};
-    char strgroupst[4][3] = {{textcolor[0], textcolor[1], '\0'},
-                             {textcolor[2], textcolor[3], '\0'},
-                             {textcolor[4], textcolor[5], '\0'},
-                             {textcolor[6], textcolor[7], '\0'}};
-    uint32_t text16[4] = {(strtol(strgroupst[0], NULL, 16)),
-                          (strtol(strgroupst[1], NULL, 16)),
-                          (strtol(strgroupst[2], NULL, 16)),
-                          (strtol(strgroupst[3], NULL, 16))};
-    char strgroupsc[4][3] = {{timecolor[0], timecolor[1], '\0'},
-                             {timecolor[2], timecolor[3], '\0'},
-                             {timecolor[4], timecolor[5], '\0'},
-                             {timecolor[6], timecolor[7], '\0'}};
-    uint32_t time16[4] = {(strtol(strgroupsc[0], NULL, 16)),
-                          (strtol(strgroupsc[1], NULL, 16)),
-                          (strtol(strgroupsc[2], NULL, 16)),
-                          (strtol(strgroupsc[3], NULL, 16))};
-    char strgroupsd[4][3] = {{datecolor[0], datecolor[1], '\0'},
-                             {datecolor[2], datecolor[3], '\0'},
-                             {datecolor[4], datecolor[5], '\0'},
-                             {datecolor[6], datecolor[7], '\0'}};
-    uint32_t date16[4] = {(strtol(strgroupsd[0], NULL, 16)),
-                          (strtol(strgroupsd[1], NULL, 16)),
-                          (strtol(strgroupsd[2], NULL, 16)),
-                          (strtol(strgroupsd[3], NULL, 16))};
-    char strgroupsk[4][3] = {{keyhlcolor[0], keyhlcolor[1], '\0'},
-                             {keyhlcolor[2], keyhlcolor[3], '\0'},
-                             {keyhlcolor[4], keyhlcolor[5], '\0'},
-                             {keyhlcolor[6], keyhlcolor[7], '\0'}};
-    uint32_t keyhl16[4] = {(strtol(strgroupsk[0], NULL, 16)),
-                           (strtol(strgroupsk[1], NULL, 16)),
-                           (strtol(strgroupsk[2], NULL, 16)),
-                           (strtol(strgroupsk[3], NULL, 16))};
-    char strgroupsb[4][3] = {{bshlcolor[0], bshlcolor[1], '\0'},
-                             {bshlcolor[2], bshlcolor[3], '\0'},
-                             {bshlcolor[4], bshlcolor[5], '\0'},
-                             {bshlcolor[6], bshlcolor[7], '\0'}};
-    uint32_t bshl16[4] = {(strtol(strgroupsb[0], NULL, 16)),
-                          (strtol(strgroupsb[1], NULL, 16)),
-                          (strtol(strgroupsb[2], NULL, 16)),
-                          (strtol(strgroupsb[3], NULL, 16))};
-    char strgroupss[4][3] = {{separatorcolor[0], separatorcolor[1], '\0'},
-                             {separatorcolor[2], separatorcolor[3], '\0'},
-                             {separatorcolor[4], separatorcolor[5], '\0'},
-                             {separatorcolor[6], separatorcolor[7], '\0'}};
-    uint32_t sep16[4] = {(strtol(strgroupss[0], NULL, 16)),
-                          (strtol(strgroupss[1], NULL, 16)),
-                          (strtol(strgroupss[2], NULL, 16)),
-                          (strtol(strgroupss[3], NULL, 16))};
+    
 
     /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
     time_t rawtime;
@@ -339,14 +326,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, (double)insidever16[0]/255, (double)insidever16[1]/255, (double)insidever16[2]/255, (double)insidever16[3]/255);
+                cairo_set_source_rgba(ctx, (double)insidever16->red/255, (double)insidever16->green/255, (double)insidever16->blue/255, (double)insidever16->alpha/255);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, (double)insidewrong16[0]/255, (double)insidewrong16[1]/255, (double)insidewrong16[2]/255, (double)insidewrong16[3]/255);
+                cairo_set_source_rgba(ctx, (double)insidewrong16->red/255, (double)insidewrong16->green/255, (double)insidewrong16->blue/255, (double)insidewrong16->alpha/255);
                 break;
             default:
-                cairo_set_source_rgba(ctx, (double)inside16[0]/255, (double)inside16[1]/255, (double)inside16[2]/255, (double)inside16[3]/255);
+                cairo_set_source_rgba(ctx, (double)inside16->red/255, (double)inside16->green/255, (double)inside16->blue/255, (double)inside16->alpha/255);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -354,31 +341,31 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, (double)ringver16[0]/255, (double)ringver16[1]/255, (double)ringver16[2]/255, (double)ringver16[3]/255);
+                cairo_set_source_rgba(ctx, (double)ringver16->red/255, (double)ringver16->green/255, (double)ringver16->blue/255, (double)ringver16->alpha/255);
                 if (internal_line_source == 1) {
-                  line16[0] = ringver16[0];
-                  line16[1] = ringver16[1];
-                  line16[2] = ringver16[2];
-                  line16[3] = ringver16[3];
+                  line16->red = ringver16->red;
+                  line16->green = ringver16->green;
+                  line16->blue = ringver16->blue;
+                  line16->alpha = ringver16->alpha;
                 }
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, (double)ringwrong16[0]/255, (double)ringwrong16[1]/255, (double)ringwrong16[2]/255, (double)ringwrong16[3]/255);
+                cairo_set_source_rgba(ctx, (double)ringwrong16->red/255, (double)ringwrong16->green/255, (double)ringwrong16->blue/255, (double)ringwrong16->alpha/255);
                 if (internal_line_source == 1) {
-                  line16[0] = ringwrong16[0];
-                  line16[1] = ringwrong16[1];
-                  line16[2] = ringwrong16[2];
-                  line16[3] = ringwrong16[3];
+                  line16->red = ringwrong16->red;
+                  line16->green = ringwrong16->green;
+                  line16->blue = ringwrong16->blue;
+                  line16->alpha = ringwrong16->alpha;
                 }
                 break;
             case STATE_AUTH_IDLE:
-                cairo_set_source_rgba(ctx, (double)ring16[0]/255, (double)ring16[1]/255, (double)ring16[2]/255, (double)ring16[3]/255);
+                cairo_set_source_rgba(ctx, (double)ring16->red/255, (double)ring16->green/255, (double)ring16->blue/255, (double)ring16->alpha/255);
                 if (internal_line_source == 1) {
-                  line16[0] = ring16[0];
-                  line16[1] = ring16[1];
-                  line16[2] = ring16[2];
-                  line16[3] = ring16[3];
+                  line16->red = ring16->red;
+                  line16->green = ring16->green;
+                  line16->blue = ring16->blue;
+                  line16->alpha = ring16->alpha;
                 }
                 break;
         }
@@ -386,7 +373,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Draw an inner separator line. */
         if (internal_line_source != 2) { //pretty sure this only needs drawn if it's being drawn over the inside?
-          cairo_set_source_rgba(ctx, (double)line16[0]/255, (double)line16[1]/255, (double)line16[2]/255, (double)line16[3]/255);
+          cairo_set_source_rgba(ctx, (double)line16->red/255, (double)line16->green/255, (double)line16->blue/255, (double)line16->alpha/255);
           cairo_set_line_width(ctx, 2.0);
           cairo_arc(ctx,
                     BUTTON_CENTER /* x */,
@@ -405,7 +392,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgba(ctx, (double)text16[0]/255, (double)text16[1]/255, (double)text16[2]/255, (double)text16[3]/255);
+        cairo_set_source_rgba(ctx, (double)text16->red/255, (double)text16->green/255, (double)text16->blue/255, (double)text16->alpha/255);
         cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, text_size);
         switch (auth_state) {
@@ -479,17 +466,17 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */ //lol no
-                cairo_set_source_rgba(ctx, (double)keyhl16[0]/255, (double)keyhl16[1]/255, (double)keyhl16[2]/255, (double)keyhl16[3]/255);
+                cairo_set_source_rgba(ctx, (double)keyhl16->red/255, (double)keyhl16->green/255, (double)keyhl16->blue/255, (double)keyhl16->alpha/255);
             } else {
                 /* For backspace, we use red. */ //lol no
-                cairo_set_source_rgba(ctx, (double)bshl16[0]/255, (double)bshl16[1]/255, (double)bshl16[2]/255, (double)bshl16[3]/255);
+                cairo_set_source_rgba(ctx, (double)bshl16->red/255, (double)bshl16->green/255, (double)bshl16->blue/255, (double)bshl16->alpha/255);
             }
 
             cairo_stroke(ctx);
 
             /* Draw two little separators for the highlighted part of the
              * unlock indicator. */
-            cairo_set_source_rgba(ctx, (double)sep16[0]/255, (double)sep16[1]/255, (double)sep16[2]/255, (double)sep16[3]/255);
+            cairo_set_source_rgba(ctx, (double)sep16->red/255, (double)sep16->green/255, (double)sep16->blue/255, (double)sep16->alpha/255);
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
@@ -512,6 +499,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         char *date = NULL;
         char time_text[40] = {0};
         char date_text[40] = {0};
+        // common vars for each if block
+        double x, y;
+        cairo_text_extents_t extents;
 
         strftime(time_text, 40, time_format, timeinfo);
         strftime(date_text, 40, date_format, timeinfo);
@@ -519,12 +509,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         date = date_text;
 
         if (text) {
-            double x, y;
-            cairo_text_extents_t extents;
-
             cairo_set_font_size(time_ctx, time_size);
             cairo_select_font_face(time_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(time_ctx, (double)time16[0]/255, (double)time16[1]/255, (double)time16[2]/255, (double)time16[3]/255);
+            cairo_set_source_rgba(time_ctx, (double)time16->red/255, (double)time16->green/255, (double)time16->blue/255, (double)time16->alpha/255);
 
             cairo_text_extents(time_ctx, text, &extents);
             x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
@@ -536,11 +523,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
 
         if (date) {
-            double x, y;
-            cairo_text_extents_t extents;
-
             cairo_select_font_face(date_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(date_ctx, (double)date16[0]/255, (double)date16[1]/255, (double)date16[2]/255, (double)date16[3]/255);
+            cairo_set_source_rgba(date_ctx, (double)date16->red/255, (double)date16->green/255, (double)date16->blue/255, (double)date16->alpha/255);
             cairo_set_font_size(date_ctx, date_size);
 
             cairo_text_extents(date_ctx, date, &extents);
@@ -551,6 +535,20 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_show_text(date_ctx, date);
             cairo_close_path(date_ctx);
         }
+        if (layout_text) {
+            cairo_select_font_face(layout_ctx, layout_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+            cairo_set_source_rgba(layout_ctx, (double)layout16->red/255, (double)layout16->green/255, (double)layout16->blue/255, (double)layout16->alpha/255);
+            cairo_set_font_size(layout_ctx, layout_size);
+
+            cairo_text_extents(layout_ctx, layout_text, &extents);
+            x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+            y = CLOCK_HEIGHT/2;
+
+            cairo_move_to(layout_ctx, x, y);
+            cairo_show_text(layout_ctx, layout_text);
+            cairo_close_path(layout_ctx);
+        
+        }
     }
 
     double ix, iy;
@@ -559,6 +557,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     double w, h;
     double tx = 0;
     double ty = 0;
+    double dx = 0;
+    double dy = 0;
 
     double clock_width = CLOCK_WIDTH;
     double clock_height = CLOCK_HEIGHT;
@@ -573,16 +573,20 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         {"x", &screen_x}, {"y", &screen_y},
         {"ix", &ix}, {"iy", &iy},
         {"tx", &tx}, {"ty", &ty},
+        {"dx", &dx}, {"dy", &dy},
         {"cw", &clock_width}, {"ch", &clock_height}, // pretty sure this is fine.
         {"r", &radius}
     };
+#define NUM_VARS 13
 
-    te_expr *te_ind_x_expr = te_compile(ind_x_expr, vars, 11, &te_x_err);
-    te_expr *te_ind_y_expr = te_compile(ind_y_expr, vars, 11, &te_y_err);
-    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, 11, &te_x_err);
-    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, 11, &te_y_err);
-    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, 11, &te_x_err);
-    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, 11, &te_y_err);
+    te_expr *te_ind_x_expr = te_compile(ind_x_expr, vars, NUM_VARS, &te_x_err);
+    te_expr *te_ind_y_expr = te_compile(ind_y_expr, vars, NUM_VARS, &te_y_err);
+    te_expr *te_time_x_expr = te_compile(time_x_expr, vars, NUM_VARS, &te_x_err);
+    te_expr *te_time_y_expr = te_compile(time_y_expr, vars, NUM_VARS, &te_y_err);
+    te_expr *te_date_x_expr = te_compile(date_x_expr, vars, NUM_VARS, &te_x_err);
+    te_expr *te_date_y_expr = te_compile(date_y_expr, vars, NUM_VARS, &te_y_err);
+    te_expr *te_layout_x_expr = te_compile(layout_x_expr, vars, NUM_VARS, &te_x_err);
+    te_expr *te_layout_y_expr = te_compile(layout_y_expr, vars, NUM_VARS, &te_y_err);
 
     if (xr_screens > 0) {
         /* Composite the unlock indicator in the middle of each screen. */
@@ -617,16 +621,24 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 ty = te_eval(te_time_y_expr);
                 double time_x = tx;
                 double time_y = ty;
-                double date_x = te_eval(te_date_x_expr);
-                double date_y = te_eval(te_date_y_expr);
+                dx = te_eval(te_date_x_expr);
+                dy = te_eval(te_date_y_expr);
+                double date_x = dx;
+                double date_y = dy;
+                double layout_x = te_eval(te_layout_x_expr);
+                double layout_y = te_eval(te_layout_y_expr);
+
                 DEBUG("tx: %f ty: %f ix: %f, iy: %f\n", tx, ty, ix, iy);
-                DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, screen_number);
+                DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f layout_x: %f layout_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, layout_x, layout_y, screen_number);
                 DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f\n", xr_resolutions[screen_number].x, xr_resolutions[screen_number].y, w, h);
                 cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
                 cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                 cairo_fill(xcb_ctx);
                 cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
                 cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                cairo_fill(xcb_ctx);
+                cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
+                cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                 cairo_fill(xcb_ctx);
             }
         } else {
@@ -658,16 +670,23 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     ty = te_eval(te_time_y_expr);
                     double time_x = tx;
                     double time_y = ty;
-                    double date_x = te_eval(te_date_x_expr);
-                    double date_y = te_eval(te_date_y_expr);
+                    dx = te_eval(te_date_x_expr);
+                    dy = te_eval(te_date_y_expr);
+                    double date_x = dx;
+                    double date_y = dy;
+                    double layout_x = te_eval(te_layout_x_expr);
+                    double layout_y = te_eval(te_layout_y_expr);
                     DEBUG("tx: %f ty: %f f ix: %f iy: %f\n", tx, ty, ix, iy);
-                    DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, screen);
+                    DEBUG("\ttime_x: %f time_y: %f date_x: %f date_y: %f layout_x: %f layout_y: %f screen_number: %d\n", time_x, time_y, date_x, date_y, layout_x, layout_y, screen_number);
                     DEBUG("\tscreen x: %d screen y: %d screen w: %f screen h: %f\n", xr_resolutions[screen].x, xr_resolutions[screen].y, w, h);
                     cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
                     cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                     cairo_fill(xcb_ctx);
                     cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
                     cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+                    cairo_fill(xcb_ctx);
+                    cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
+                    cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                     cairo_fill(xcb_ctx);
                 } else {
                     DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);

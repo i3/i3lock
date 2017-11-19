@@ -3,6 +3,32 @@
 
 #include <ev.h>
 
+typedef struct rgb {
+	uint32_t red;
+	uint32_t green;
+	uint32_t blue;
+} rgb_t;
+
+typedef struct rgb_str {
+	char red[3];
+	char green[3];
+	char blue[3];
+} rgb_str_t;
+
+typedef struct rgba {
+	uint32_t red;
+	uint32_t green;
+	uint32_t blue;
+	uint32_t alpha;
+} rgba_t;
+
+typedef struct rgba_str {
+	char red[3];
+	char green[3];
+	char blue[3];
+	char alpha[3];
+} rgba_str_t;
+
 typedef enum {
     STATE_STARTED = 0,         /* default state */
     STATE_KEY_PRESSED = 1,     /* key was pressed, show unlock indicator */
@@ -21,6 +47,7 @@ typedef enum {
 } auth_state_t;
 
 xcb_pixmap_t draw_image(uint32_t* resolution);
+void init_colors_once(void);
 void redraw_screen(void);
 void clear_indicator(void);
 void start_time_redraw_timeout(void);

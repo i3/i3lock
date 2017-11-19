@@ -22,6 +22,7 @@ V='#bb00bbbb'  # verifying
 --textcolor=$T        \
 --timecolor=$T        \
 --datecolor=$T        \
+--layoutcolor=$T      \
 --keyhlcolor=$W       \
 --bshlcolor=$W        \
 \
@@ -31,6 +32,7 @@ V='#bb00bbbb'  # verifying
 --indicator           \
 --timestr="%H:%M:%S"  \
 --datestr="%A, %m %Y" \
+--keylayout 2         \
 
 # --veriftext="Drinking verification can..."
 # --wrongtext="Nope!"
