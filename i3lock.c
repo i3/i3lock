@@ -40,6 +40,7 @@
 #endif
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
+#include <X11/XKBlib.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -174,6 +175,47 @@ void u8_dec(char *s, int *i) {
  * translate keypresses to utf-8.
  *
  */
+
+char* get_keylayoutname(void) {
+    Display *display;
+	XkbDescPtr keyboard;
+    XkbStateRec	state;
+    int result;
+
+	display = XkbOpenDisplay( getenv("DISPLAY") , NULL, NULL, NULL, NULL, &result );
+	if( !display ) {
+		errx(1, "X server unreachable");
+    }
+
+    keyboard = XkbAllocKeyboard();
+
+    if ( XkbGetNames(display, XkbGroupNamesMask, keyboard) != Success ) {
+		errx(1, "Error obtaining symbolic names");
+    }
+
+    if( XkbGetState(display, XkbUseCoreKbd, &state) != Success ) {
+        errx(1, "Error getting keyboard state");
+    }	
+
+    printf( "aaa: %s\n", XGetAtomName(display, keyboard->names->groups[state.group]) );
+
+    Atom current_group;
+    int i = 0;
+    for (; i < XkbNumKbdGroups; i++) {
+        if ( (current_group = keyboard->names->groups[i]) != 0 ) {
+            char* group_name = XGetAtomName(display, current_group);
+            if (group_name != NULL) {
+                printf( "bbb: %d. %s\n", i, group_name );
+            }
+            XFree(group_name);
+        }
+    }
+
+	// Free symbolic names structures 
+	XkbFreeNames(keyboard, XkbGroupNamesMask, True);
+    return NULL;
+}
+
 static bool load_keymap(void) {
     if (xkb_context == NULL) {
         if ((xkb_context = xkb_context_new(0)) == NULL) {
@@ -962,6 +1004,8 @@ int main(int argc, char *argv[]) {
         err(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
+
+    (void) get_keylayoutname();
 
     char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
