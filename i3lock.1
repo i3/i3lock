@@ -126,6 +126,21 @@ Images may still be overlaid over the blurred screenshot.
 Forces the indicator to always be visible, instead of only showing on activity.
 
 .TP
+.B \-\-keylayout mode
+Displays the keylayout. Modes are as follows:
+.RS
+.RS
+
+0 - Displays the full string returned by the query, i.e. "English (US)"
+
+1 - Displays up until the first parenthesis, i.e. "English"
+
+2 - Displays just the contents of the parenthesis, i.e. "US"
+
+.RE
+.RE
+
+.TP
 .B \-\-composite
 Some compositors have problems with i3lock trying to render over them, so this argument is disabled by default. However, some will work properly with it, so it's been left enabled.
 

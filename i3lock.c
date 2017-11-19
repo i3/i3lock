@@ -1271,6 +1271,8 @@ int main(int argc, char *argv[]) {
                     // if not NULL, attempt to display stuff
                     // need to code some sane defaults for it
                     layout_text = get_keylayoutname(atoi(optarg));
+                    if (layout_text)
+                        show_clock = true;
                 }
                 else if (strcmp(longopts[longoptind].name, "timestr") == 0) {
                     //read in to timestr
