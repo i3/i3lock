@@ -39,12 +39,13 @@
 #include <strings.h> /* explicit_bzero(3) */
 #endif
 #include <xcb/xcb_aux.h>
+#include <xcb/randr.h>
 
 #include "i3lock.h"
 #include "xcb.h"
 #include "cursors.h"
 #include "unlock_indicator.h"
-#include "xinerama.h"
+#include "randr.h"
 #include "blur.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
@@ -148,6 +149,7 @@ static struct xkb_compose_state *xkb_compose_state;
 #endif
 static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
+static int randr_base = -1;
 
 cairo_surface_t *img = NULL;
 cairo_surface_t *blur_img = NULL;
@@ -692,7 +694,7 @@ void handle_screen_resize(void) {
     xcb_configure_window(conn, win, mask, last_resolution);
     xcb_flush(conn);
 
-    xinerama_query_screens();
+    randr_query(screen->root);
     redraw_screen();
 }
 
@@ -815,8 +817,14 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                 break;
 
             default:
-                if (type == xkb_base_event)
+                if (type == xkb_base_event) {
                     process_xkb_event(event);
+                }
+                if (randr_base > -1 &&
+                    type == randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
+                    randr_query(screen->root);
+                    handle_screen_resize();
+                }
         }
 
         free(event);
@@ -1400,10 +1408,10 @@ int main(int argc, char *argv[]) {
     load_compose_table(locale);
 #endif
 
-    xinerama_init();
-    xinerama_query_screens();
-
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+
+    randr_init(&randr_base, screen->root);
+    randr_query(screen->root);
 
     last_resolution[0] = screen->width_in_pixels;
     last_resolution[1] = screen->height_in_pixels;

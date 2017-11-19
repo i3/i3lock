@@ -81,6 +81,7 @@ If you don't understand what makefiles are and how they work, start reading [her
 - libxcb-composite0
 - libxcb-composite0-dev
 - libxcb-xinerama
+- libxcb-randr
 - libev
 - libx11-dev
 - libx11-xcb-dev

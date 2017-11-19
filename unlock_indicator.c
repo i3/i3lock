@@ -19,7 +19,7 @@
 #include "i3lock.h"
 #include "xcb.h"
 #include "unlock_indicator.h"
-#include "xinerama.h"
+#include "randr.h"
 #include "tinyexpr.h"
 
 /* clock stuff */
@@ -399,6 +399,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         cairo_set_line_width(ctx, 10.0);
 
+        /* Display a (centered) text of the current PAM state. */
         char *text = NULL;
 
         /* We don't want to show more than a 3-digit number. */
