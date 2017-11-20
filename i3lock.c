@@ -37,15 +37,15 @@
 #include <strings.h> /* explicit_bzero(3) */
 #endif
 #include <errno.h>
-#include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
+#include <xcb/xcb_aux.h>
 
 #include "cursors.h"
 #include "i3lock.h"
 #include "img_load.h"
+#include "randr.h"
 #include "unlock_indicator.h"
 #include "xcb.h"
-#include "randr.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
