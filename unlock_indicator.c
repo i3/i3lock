@@ -89,6 +89,9 @@ extern float refresh_rate;
 extern bool show_clock;
 extern bool always_show_clock;
 extern bool show_indicator;
+extern int  time_align;
+extern int  date_align;
+extern int  layout_align;
 extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
@@ -515,7 +518,19 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_set_source_rgba(time_ctx, (double)time16->red/255, (double)time16->green/255, (double)time16->blue/255, (double)time16->alpha/255);
 
             cairo_text_extents(time_ctx, text, &extents);
-            x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+            switch(time_align) {
+                case 1:
+                    x = 0;
+                    break;
+                case 2:
+                    x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
+                    break;
+                case 0:
+                default:
+                    x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+                    break;
+            }
+
             y = CLOCK_HEIGHT/2;
 
             cairo_move_to(time_ctx, x, y);
@@ -529,9 +544,22 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_set_font_size(date_ctx, date_size);
 
             cairo_text_extents(date_ctx, date, &extents);
-            x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+            
+            switch(date_align) {
+                case 1:
+                    x = 0;
+                    break;
+                case 2:
+                    x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
+                    break;
+                case 0:
+                default:
+                    x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+                    break;
+            }
+            
             y = CLOCK_HEIGHT/2;
-
+            
             cairo_move_to(date_ctx, x, y);
             cairo_show_text(date_ctx, date);
             cairo_close_path(date_ctx);
@@ -542,9 +570,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_set_font_size(layout_ctx, layout_size);
 
             cairo_text_extents(layout_ctx, layout_text, &extents);
-            x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+            switch(layout_align) {
+                case 1:
+                    x = 0;
+                    break;
+                case 2:
+                    x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
+                    break;
+                case 0:
+                default:
+                    x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+                    break;
+            }
+            
             y = CLOCK_HEIGHT/2;
-
+            
             cairo_move_to(layout_ctx, x, y);
             cairo_show_text(layout_ctx, layout_text);
             cairo_close_path(layout_ctx);
@@ -627,7 +667,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 double date_y = dy;
                 double layout_x = te_eval(te_layout_x_expr);
                 double layout_y = te_eval(te_layout_y_expr);
-
                 cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
                 cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
                 cairo_fill(xcb_ctx);
@@ -711,7 +750,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             double date_y = dy;
             double layout_x = te_eval(te_layout_x_expr);
             double layout_y = te_eval(te_layout_y_expr);
-            DEBUG("Placing time at %f, %f\n", time_x, time_y);
             cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
             cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
             cairo_fill(xcb_ctx);

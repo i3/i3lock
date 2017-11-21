@@ -93,6 +93,15 @@ bool composite = false;
     I picked 32-length char arrays because some people might want really funky time formatters.
     Who am I to judge?
 */
+/*
+ * 0 = center
+ * 1 = left
+ * 2 = right
+ */
+int  time_align = 0;
+int  date_align = 0;
+int  layout_align = 0;
+
 char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 char time_font[32] = "sans-serif\0";
@@ -1020,6 +1029,10 @@ int main(int argc, char *argv[]) {
         {"refresh-rate", required_argument, NULL, 0},
         {"composite", no_argument, NULL, 0},
         
+        {"time-align", required_argument, NULL, 0},
+        {"date-align", required_argument, NULL, 0},
+        {"layout-align", required_argument, NULL, 0},
+
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
         {"keylayout", required_argument, NULL, 0},
@@ -1437,6 +1450,21 @@ int main(int argc, char *argv[]) {
                     else {
                         ring_width = new_width;
                     }
+                }
+                else if (strcmp(longopts[longoptind].name, "time-align") == 0) {
+                    int opt = atoi(optarg);
+                    if (opt < 0 || opt > 2) opt = 0;
+                    time_align = opt;
+                }
+                else if (strcmp(longopts[longoptind].name, "date-align") == 0) {
+                    int opt = atoi(optarg);
+                    if (opt < 0 || opt > 2) opt = 0;
+                    date_align = opt;
+                }
+                else if (strcmp(longopts[longoptind].name, "layout-align") == 0) {
+                    int opt = atoi(optarg);
+                    if (opt < 0 || opt > 2) opt = 0;
+                    layout_align = opt;
                 }
                 else if (strcmp(longopts[longoptind].name, "force-clock") == 0) {
                     show_clock = true;
