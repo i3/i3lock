@@ -96,6 +96,7 @@ extern char time_format[32];
 extern char date_format[32];
 extern char time_font[32];
 extern char date_font[32];
+extern char status_font[32];
 extern char layout_font[32];
 extern char ind_x_expr[32];
 extern char ind_y_expr[32];
@@ -304,7 +305,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
-    
+
 
     /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
     time_t rawtime;
@@ -397,7 +398,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         char buf[4];
 
         cairo_set_source_rgba(ctx, (double)text16->red/255, (double)text16->green/255, (double)text16->blue/255, (double)text16->alpha/255);
-        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_select_font_face(ctx, status_font, CAIRO_FONT_SLANT_NORMAL,
+                CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, text_size);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
@@ -544,7 +546,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_set_font_size(date_ctx, date_size);
 
             cairo_text_extents(date_ctx, date, &extents);
-            
+
             switch(date_align) {
                 case 1:
                     x = 0;
@@ -557,9 +559,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
                     break;
             }
-            
+
             y = CLOCK_HEIGHT/2;
-            
+
             cairo_move_to(date_ctx, x, y);
             cairo_show_text(date_ctx, date);
             cairo_close_path(date_ctx);
@@ -582,13 +584,13 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
                     break;
             }
-            
+
             y = CLOCK_HEIGHT/2;
-            
+
             cairo_move_to(layout_ctx, x, y);
             cairo_show_text(layout_ctx, layout_text);
             cairo_close_path(layout_ctx);
-        
+
         }
     }
 
