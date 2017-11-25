@@ -6,6 +6,8 @@
  * See LICENSE for licensing information
  *
  */
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pwd.h>
@@ -178,7 +180,7 @@ static void clear_password_memory(void) {
     /* A volatile pointer to the password buffer to prevent the compiler from
      * optimizing this out. */
     volatile char *vpassword = password;
-    for (int c = 0; c < sizeof(password); c++)
+    for (size_t c = 0; c < sizeof(password); c++)
         /* We store a non-random pattern which consists of the (irrelevant)
          * index plus (!) the value of the beep variable. This prevents the
          * compiler from optimizing the calls away, since the value of 'beep'
@@ -486,7 +488,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             return;
     }
 
-    if ((input_position + 8) >= sizeof(password))
+    if ((input_position + 8) >= (int)sizeof(password))
         return;
 
 #if 0
@@ -852,7 +854,7 @@ int main(int argc, char *argv[]) {
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
-                errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg");
+                errx(EXIT_SUCCESS, "version " I3LOCK_VERSION " © 2010 Michael Stapelberg");
             case 'n':
                 dont_fork = true;
                 break;

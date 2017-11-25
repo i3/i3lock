@@ -25,5 +25,5 @@ before_install:
   - sudo apt-get update
   - sudo apt-get --force-yes -y install -t xenial libxkbcommon-dev libxkbcommon-x11-dev
 script:
-  - make -j
+  - autoreconf -fi && mkdir -p build && cd build && (../configure || (cat config.log; false)) && make -j CFLAGS="-Wformat -Wformat-security -Wextra -Wno-unused-parameter -Werror"
   - clang-format-3.5 -i *.[ch] && git diff --exit-code || (echo 'Code was not formatted using clang-format!'; false)
