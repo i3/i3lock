@@ -69,7 +69,10 @@ bool debug_mode = false;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
+bool regrettable = true;
+int regrettable_timeout = 0;
 struct ev_loop *main_loop;
+static struct ev_timer *regrettable_timer;
 static struct ev_timer *clear_auth_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *discard_passwd_timeout;
@@ -221,6 +224,18 @@ static void finish_input(void) {
     unlock_state = STATE_KEY_PRESSED;
     redraw_screen();
     input_done();
+}
+
+/*
+ * Turn regrettable status off (called beyond regrettable_timeout)
+ *
+ */
+static void regrettable_off(EV_P_ ev_timer *w, int revents) {
+    regrettable = false;
+
+    /* Now free this timeout. */
+    STOP_TIMER(w);
+    DEBUG("regrettable off\n");
 }
 
 /*
@@ -388,6 +403,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     int n;
     bool ctrl;
     bool composed = false;
+
+    /* if a key is pressed within regrettable_timeout, then unlock */
+    if (regrettable) {
+        ev_break(EV_DEFAULT, EVBREAK_ALL);
+        return;
+    }
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
@@ -830,6 +851,7 @@ int main(int argc, char *argv[]) {
         {"version", no_argument, NULL, 'v'},
         {"nofork", no_argument, NULL, 'n'},
         {"beep", no_argument, NULL, 'b'},
+        {"regrettable", required_argument, NULL, 'r'},
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL, 'p'},
@@ -848,7 +870,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbr:dc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -858,6 +880,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'b':
                 beep = true;
+                break;
+            case 'r':
+                regrettable_timeout = atoi(optarg);
                 break;
             case 'd':
                 fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
@@ -907,7 +932,7 @@ int main(int argc, char *argv[]) {
                 show_failed_attempts = true;
                 break;
             default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-r timeout] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
@@ -1071,6 +1096,10 @@ int main(int argc, char *argv[]) {
     main_loop = EV_DEFAULT;
     if (main_loop == NULL)
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
+
+    /* start the timer to expire the regrettable state */
+    if (regrettable_timeout > 0)
+        START_TIMER(regrettable_timer, TSTAMP_N_SECS(regrettable_timeout), regrettable_off);
 
     /* Explicitly call the screen redraw in case "locking…" message was displayed */
     auth_state = STATE_AUTH_IDLE;

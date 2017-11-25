@@ -18,6 +18,8 @@ i3lock \- improved screen locker
 .RB [\|\-v\|]
 .RB [\|\-n\|]
 .RB [\|\-b\|]
+.RB [\|\-r
+.IR timeout \|]
 .RB [\|\-i
 .IR image.png \|]
 .RB [\|\-c
@@ -42,6 +44,8 @@ i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock
 .IP \[bu]
 You can specify either a background color or a PNG image which will be displayed while your screen is locked.
 .IP \[bu]
+You can cancel the lock by pressing any key within the first few seconds.
+.IP \[bu]
 You can specify whether i3lock should bell upon a wrong password.
 .IP \[bu]
 i3lock uses PAM and therefore is compatible with LDAP, etc.
@@ -61,6 +65,11 @@ Don't fork after starting.
 .B \-b, \-\-beep
 Enable beeping. Be sure to not do this when you are about to annoy other people,
 like when opening your laptop in a boring lecture.
+
+.TP
+.BI \-r\  timeout \fR,\ \fB\-\-regrettable= timeout
+Specify the regrettable timer in seconds. Within this time period, any key press
+will cancel the lock.
 
 .TP
 .B \-u, \-\-no-unlock-indicator
