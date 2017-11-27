@@ -1,3 +1,13 @@
+2017-11-25 i3lock 2.10
+
+ • Only use -lpam when not on OpenBSD (Thanks Kaashif)
+ • locale: treat empty string same as unset (Thanks Ran)
+ • Fix overwrite of getopt optind (Thanks jakob)
+ • Immediately hide the unlock indicator after ESC / C-u (Thanks Orestis)
+ • Measure wall-clock time instead of CPU time for “locking” indicator.
+ • SetInputFocus to the i3lock window to force-close context menus
+ • Use RandR for learning about attached monitors
+
 2017-06-21 i3lock 2.9.1
 
  • Fix version number mechanism (for --version)
