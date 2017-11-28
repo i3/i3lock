@@ -60,6 +60,8 @@ Many little improvements have been made to i3lock over time:
      - `--radius=90` -- the radius of the circle indicator
      - `--ring-width=7` -- the width of the indicator ring
 
+	- The readme's list of options might be a bit out of date - please check the manpage, or look at the list of options in i3lock.c.
+
 - You can specify whether i3lock should bell upon a wrong password.
 
 - i3lock uses PAM and therefore is compatible with LDAP etc.
