@@ -175,6 +175,18 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+
+// experimental bar stuff
+bool bar_enabled = false;
+int *bar_heights = NULL;
+int num_bars = 0;
+int bar_width = 15;
+#define BAR_VERT 0
+#define BAR_FLAT 1
+int bar_orientation = BAR_FLAT;
+int bar_step = 15;
+int max_bar_height = 50;
+
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -1055,6 +1067,15 @@ int main(int argc, char *argv[]) {
         {"modsize", required_argument, NULL, 0},
         {"radius", required_argument, NULL, 0},
         {"ring-width", required_argument, NULL, 0},
+        
+        {"bar-indicator", no_argument, NULL, 0},
+        {"bar-width", required_argument, NULL, 0},
+        {"bar-orientation", required_argument, NULL, 0},
+        {"bar-step", required_argument, NULL, 0},
+        {"bar-height", required_argument, NULL, 0},
+        // color options
+        // bar base?
+        // time tick decrease rate
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1405,8 +1426,8 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[longoptind].name, "refresh-rate") == 0) {
                     char* arg = optarg;
                     refresh_rate = strtof(arg, NULL);
-                    if (refresh_rate < 1.0) {
-                        fprintf(stderr, "The given refresh rate of %fs is less than one second and was ignored.\n", refresh_rate);
+                    if (refresh_rate < 0.0) {
+                        fprintf(stderr, "The given refresh rate of %fs is less than zero seconds and was ignored.\n", refresh_rate);
                         refresh_rate = 1.0;
                     }
                 }
@@ -1479,6 +1500,31 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[longoptind].name, "force-clock") == 0) {
                     show_clock = true;
                     always_show_clock = true;
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-indicator") == 0) {
+                    bar_enabled = true;                    
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-width") == 0) {
+                    int width = atoi(optarg);
+                    if (width < 1) width = 15;
+                    // num_bars and bar_heights* initialized later when we grab display info
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-orientation") == 0) {
+                    char* arg = optarg;
+                    if (strcmp(arg, "vertical") == 0)
+                        bar_orientation = BAR_VERT;
+                    else if (strcmp(arg, "horizontal") == 0)
+                        bar_orientation = BAR_FLAT;
+                    else
+                        errx(1, "bar orientation must be \"vertical\" or \"horizontal\"\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-step") == 0) {
+                    bar_step = atoi(optarg);
+                    if (bar_step < 1) bar_step = 15;
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-height") == 0) {
+                    max_bar_height = atoi(optarg);
+                    if (max_bar_height < 1) max_bar_height = 50;
                 }
 
                 break;
@@ -1586,6 +1632,15 @@ int main(int argc, char *argv[]) {
 
     last_resolution[0] = screen->width_in_pixels;
     last_resolution[1] = screen->height_in_pixels;
+
+    if (bar_enabled && bar_width > 0) {
+        int tmp = screen->width_in_pixels;
+        if (bar_orientation == BAR_VERT) tmp = screen->height_in_pixels;
+        num_bars = tmp / bar_width;
+        if (tmp % bar_width != 0) ++num_bars;
+
+        bar_heights = calloc(num_bars, sizeof(int));
+    }
 
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
@@ -1702,7 +1757,7 @@ int main(int argc, char *argv[]) {
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
-    if (show_clock) {
+    if (show_clock || bar_enabled) {
         start_time_redraw_tick(main_loop);
     }
     ev_loop(main_loop, 0);

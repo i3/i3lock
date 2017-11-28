@@ -162,6 +162,17 @@ rgba_t sep16[4];
 // just rgb
 rgb_t  rgb16[3];
 
+// experimental bar stuff
+extern bool bar_enabled;
+extern int *bar_heights;
+extern int num_bars;
+extern int bar_width;
+#define BAR_VERT 0
+#define BAR_FLAT 1
+extern int bar_orientation;
+extern int bar_step;
+extern int max_bar_height;
+
 /*
  * Initialize all the color arrays once.
  * Called once after options are parsed.
@@ -464,6 +475,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
          * keypress. */
         if (unlock_state == STATE_KEY_ACTIVE ||
             unlock_state == STATE_BACKSPACE_ACTIVE) {
+            if (bar_enabled) {
+                // note: might be biased to cause more hits on lower indices
+                // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
+                int index = rand() % num_bars;
+                bar_heights[index] = max_bar_height;
+                for(int i = 0; i < ((max_bar_height / bar_step) + 1); ++i) {
+                    int low_ind = (index - i) % num_bars;
+                    int high_ind = (index + i) % num_bars;
+                    int tmp_height = max_bar_height - (bar_step * i);
+                    if (tmp_height < 0) tmp_height = 0;
+                    bar_heights[low_ind] = tmp_height;
+                    bar_heights[high_ind] = tmp_height;
+                    if (tmp_height == 0) break;
+                }
+            }
             cairo_set_line_width(ctx, RING_WIDTH);
             cairo_new_sub_path(ctx);
             double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
@@ -766,14 +792,34 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_fill(xcb_ctx);
         }
     }
-    
-    cairo_set_source_rgba(bar_ctx, 1.0, 0, 0, 0.55);
-    cairo_rectangle(bar_ctx, 0, 0, resolution[0], RING_WIDTH);
-    cairo_fill(bar_ctx);
-    
-    cairo_set_source_surface(xcb_ctx, bar_output, 0, 0);
-    cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
-    cairo_fill(xcb_ctx);
+   
+    if (bar_enabled) {
+
+        cairo_set_source_rgba(bar_ctx, 0.0, 0, 0, 0.55);
+        cairo_rectangle(bar_ctx, 0, 0, resolution[0], bar_step);
+        cairo_fill(bar_ctx);
+
+        // note: might be biased to cause more hits on lower indices
+        // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
+        for(int i = 0; i < num_bars; ++i) {
+            cairo_set_source_rgba(bar_ctx, 1.0, 0, 0, 1.0);
+            if (bar_orientation == BAR_VERT) { // showerthought: this if statement would be better outside the for loop, or something
+                cairo_rectangle(bar_ctx, 0, i * bar_width, bar_heights[i], bar_width);
+                cairo_fill(bar_ctx);
+            } else {
+                cairo_rectangle(bar_ctx, i * bar_width, 0, bar_width, bar_heights[i]);
+                cairo_fill(bar_ctx);
+            }
+        }
+        
+        cairo_set_source_surface(xcb_ctx, bar_output, 0, 0);
+        cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+        cairo_fill(xcb_ctx);
+        for(int i = 0; i < num_bars; ++i) {
+            if (bar_heights[i] > 0)
+                --(bar_heights[i]);
+        }
+    }
 
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(time_output);
