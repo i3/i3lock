@@ -176,16 +176,22 @@ bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
 
-// experimental bar stuff
-bool bar_enabled = false;
-int *bar_heights = NULL;
-int num_bars = 0;
-int bar_width = 15;
 #define BAR_VERT 0
 #define BAR_FLAT 1
+// experimental bar stuff
+bool bar_enabled = false;
+double *bar_heights = NULL;
+double bar_step = 15;
+double bar_base_height = 15;
+double bar_periodic_step = 1;
+double max_bar_height = 50;
+int num_bars = 0;
+int bar_width = 15;
 int bar_orientation = BAR_FLAT;
-int bar_step = 15;
-int max_bar_height = 50;
+
+char bar_base_color[9] = "00000033";
+char bar_expr[32] = "0\0";
+bool bar_bidirectional = false;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -1069,13 +1075,15 @@ int main(int argc, char *argv[]) {
         {"ring-width", required_argument, NULL, 0},
         
         {"bar-indicator", no_argument, NULL, 0},
+        {"bar-bidirectional", no_argument, NULL, 0},
         {"bar-width", required_argument, NULL, 0},
         {"bar-orientation", required_argument, NULL, 0},
         {"bar-step", required_argument, NULL, 0},
-        {"bar-height", required_argument, NULL, 0},
-        // color options
-        // bar base?
-        // time tick decrease rate
+        {"bar-max-height", required_argument, NULL, 0},
+        {"bar-base-width", required_argument, NULL, 0},
+        {"bar-color", required_argument, NULL, 0},
+        {"bar-periodic-step", required_argument, NULL, 0},
+        {"bar-position", required_argument, NULL, 0},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1504,6 +1512,9 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[longoptind].name, "bar-indicator") == 0) {
                     bar_enabled = true;                    
                 }
+                else if (strcmp(longopts[longoptind].name, "bar-bidirectional") == 0) {
+                    bar_bidirectional = true;                    
+                }
                 else if (strcmp(longopts[longoptind].name, "bar-width") == 0) {
                     int width = atoi(optarg);
                     if (width < 1) width = 15;
@@ -1522,10 +1533,43 @@ int main(int argc, char *argv[]) {
                     bar_step = atoi(optarg);
                     if (bar_step < 1) bar_step = 15;
                 }
-                else if (strcmp(longopts[longoptind].name, "bar-height") == 0) {
+                else if (strcmp(longopts[longoptind].name, "bar-max-height") == 0) {
                     max_bar_height = atoi(optarg);
                     if (max_bar_height < 1) max_bar_height = 50;
                 }
+                else if (strcmp(longopts[longoptind].name, "bar-base-width") == 0) {
+                    bar_base_height = atoi(optarg);
+                    if (bar_base_height < 1) bar_base_height = 15;
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-color") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bar_base_color) != 1)
+                        errx(1, "bar-color is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-perioidic-step") == 0) {
+                    int tmp = atoi(optarg);
+                    if (tmp > 0)
+                        bar_periodic_step = tmp;
+                }
+                else if (strcmp(longopts[longoptind].name, "bar-position") == 0) {
+                    //read in to ind_x_expr and ind_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "indicator position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%31s", bar_expr) != 1) {
+                        errx(1, "bar-position must be of the form [pos] with a max length of 31\n");
+                    }
+                
+                }
+                
 
                 break;
             case 'f':
@@ -1639,7 +1683,7 @@ int main(int argc, char *argv[]) {
         num_bars = tmp / bar_width;
         if (tmp % bar_width != 0) ++num_bars;
 
-        bar_heights = calloc(num_bars, sizeof(int));
+        bar_heights = (double*) calloc(num_bars, sizeof(double));
     }
 
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,

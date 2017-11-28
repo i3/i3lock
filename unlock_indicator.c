@@ -145,33 +145,43 @@ unlock_state_t unlock_state;
 auth_state_t auth_state;
 
 // color arrays
-rgba_t insidever16[4];
-rgba_t insidewrong16[4];
-rgba_t inside16[4];
-rgba_t ringver16[4];
-rgba_t ringwrong16[4];
-rgba_t ring16[4];
-rgba_t line16[4];
-rgba_t text16[4];
-rgba_t layout16[4];
-rgba_t time16[4];
-rgba_t date16[4];
-rgba_t keyhl16[4];
-rgba_t bshl16[4];
-rgba_t sep16[4];
+rgba_t insidever16;
+rgba_t insidewrong16;
+rgba_t inside16;
+rgba_t ringver16;
+rgba_t ringwrong16;
+rgba_t ring16;
+rgba_t line16;
+rgba_t text16;
+rgba_t layout16;
+rgba_t time16;
+rgba_t date16;
+rgba_t keyhl16;
+rgba_t bshl16;
+rgba_t sep16;
+rgba_t bar16;
 // just rgb
-rgb_t  rgb16[3];
+rgb_t  rgb16;
 
 // experimental bar stuff
-extern bool bar_enabled;
-extern int *bar_heights;
-extern int num_bars;
-extern int bar_width;
+
 #define BAR_VERT 0
 #define BAR_FLAT 1
+// experimental bar stuff
+extern bool bar_enabled;
+extern double *bar_heights;
+extern double bar_step;
+extern double bar_base_height;
+extern double bar_periodic_step;
+extern double max_bar_height;
+extern double bar_position;
+extern int num_bars;
+extern int bar_width;
 extern int bar_orientation;
-extern int bar_step;
-extern int max_bar_height;
+
+extern char bar_base_color[9];
+extern char bar_expr[32];
+extern bool bar_bidirectional;
 
 /*
  * Initialize all the color arrays once.
@@ -186,11 +196,11 @@ extern int max_bar_height;
     char colorstring_tmparr[4][3] = {{colorstring[0], colorstring[1], '\0'},
                                      {colorstring[2], colorstring[3], '\0'},
                                      {colorstring[4], colorstring[5], '\0'},
-                              	     {colorstring[6], colorstring[7], '\0'}};
+                                     {colorstring[6], colorstring[7], '\0'}};
     uint32_t colorstring16[4] = {(strtol(colorstring_tmparr[0], NULL, 16)),
                                  (strtol(colorstring_tmparr[1], NULL, 16)),
                                  (strtol(colorstring_tmparr[2], NULL, 16)),
-			         (strtol(colorstring_tmparr[3], NULL, 16))};
+                                 (strtol(colorstring_tmparr[3], NULL, 16))};
  */
 
 inline void set_color(char* dest, const char* src, int offset) {
@@ -205,10 +215,10 @@ inline void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
     set_color(tmp->blue, src, 4);
     set_color(tmp->alpha, src, 6);
 
-    dest->red = strtol(tmp->red, NULL, 16);
-    dest->green = strtol(tmp->green, NULL, 16);
-    dest->blue = strtol(tmp->blue, NULL, 16);
-    dest->alpha = strtol(tmp->alpha, NULL, 16);
+    dest->red = strtol(tmp->red, NULL, 16) / 255.0;
+    dest->green = strtol(tmp->green, NULL, 16) / 255.0;
+    dest->blue = strtol(tmp->blue, NULL, 16) / 255.0;
+    dest->alpha = strtol(tmp->alpha, NULL, 16) / 255.0;
 }
 
 inline void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
@@ -216,9 +226,9 @@ inline void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
     set_color(tmp->green, src, 2);
     set_color(tmp->blue, src, 4);
 
-    dest->red = strtol(tmp->red, NULL, 16);
-    dest->green = strtol(tmp->green, NULL, 16);
-    dest->blue = strtol(tmp->blue, NULL, 16);
+    dest->red = strtol(tmp->red, NULL, 16) / 255.0;
+    dest->green = strtol(tmp->green, NULL, 16) / 255.0;
+    dest->blue = strtol(tmp->blue, NULL, 16) / 255.0;
 }
 
 void init_colors_once(void) {
@@ -226,21 +236,22 @@ void init_colors_once(void) {
     rgb_str_t  tmp_rgb;
 
     /* build indicator color arrays */
-    colorgen(&tmp, insidevercolor, insidever16);
-    colorgen(&tmp, insidewrongcolor, insidewrong16);
-    colorgen(&tmp, insidecolor, inside16);
-    colorgen(&tmp, ringvercolor, ringver16);
-    colorgen(&tmp, ringwrongcolor, ringwrong16);
-    colorgen(&tmp, ringcolor, ring16);
-    colorgen(&tmp, linecolor, line16);
-    colorgen(&tmp, textcolor, text16);
-    colorgen(&tmp, layoutcolor, layout16);
-    colorgen(&tmp, timecolor, time16);
-    colorgen(&tmp, datecolor, date16);
-    colorgen(&tmp, keyhlcolor, keyhl16);
-    colorgen(&tmp, bshlcolor, bshl16);
-    colorgen(&tmp, separatorcolor, sep16);
-    colorgen_rgb(&tmp_rgb, color, rgb16);
+    colorgen(&tmp, insidevercolor,   &insidever16);
+    colorgen(&tmp, insidewrongcolor, &insidewrong16);
+    colorgen(&tmp, insidecolor,      &inside16);
+    colorgen(&tmp, ringvercolor,     &ringver16);
+    colorgen(&tmp, ringwrongcolor,   &ringwrong16);
+    colorgen(&tmp, ringcolor,        &ring16);
+    colorgen(&tmp, linecolor,        &line16);
+    colorgen(&tmp, textcolor,        &text16);
+    colorgen(&tmp, layoutcolor,      &layout16);
+    colorgen(&tmp, timecolor,        &time16);
+    colorgen(&tmp, datecolor,        &date16);
+    colorgen(&tmp, keyhlcolor,       &keyhl16);
+    colorgen(&tmp, bshlcolor,        &bshl16);
+    colorgen(&tmp, separatorcolor,   &sep16);
+    colorgen(&tmp, bar_base_color,   &bar16);
+    colorgen_rgb(&tmp_rgb, color,    &rgb16);
 }
 
 /*
@@ -287,7 +298,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     cairo_surface_t *layout_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
     cairo_t *layout_ctx = cairo_create(layout_output);
-    
+
     cairo_surface_t *bar_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, resolution[0], resolution[1]);
     cairo_t *bar_ctx = cairo_create(bar_output);
 
@@ -315,11 +326,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             }
         }
     } else {
-        cairo_set_source_rgb(xcb_ctx, rgb16->red / 255.0, rgb16->green / 255.0, rgb16->blue / 255.0);
+        cairo_set_source_rgb(xcb_ctx, rgb16.red, rgb16.green, rgb16.blue);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
- 
+
     /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
     time_t rawtime;
     struct tm* timeinfo;
@@ -332,7 +343,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, RING_WIDTH);
-        
+
         cairo_arc(ctx,
                   BUTTON_CENTER /* x */,
                   BUTTON_CENTER /* y */,
@@ -345,14 +356,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, (double)insidever16->red/255, (double)insidever16->green/255, (double)insidever16->blue/255, (double)insidever16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)insidever16.red, (double)insidever16.green, (double)insidever16.blue, (double)insidever16.alpha);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, (double)insidewrong16->red/255, (double)insidewrong16->green/255, (double)insidewrong16->blue/255, (double)insidewrong16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)insidewrong16.red, (double)insidewrong16.green, (double)insidewrong16.blue, (double)insidewrong16.alpha);
                 break;
             default:
-                cairo_set_source_rgba(ctx, (double)inside16->red/255, (double)inside16->green/255, (double)inside16->blue/255, (double)inside16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)inside16.red, (double)inside16.green, (double)inside16.blue, (double)inside16.alpha);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -360,31 +371,31 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, (double)ringver16->red/255, (double)ringver16->green/255, (double)ringver16->blue/255, (double)ringver16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)ringver16.red, (double)ringver16.green, (double)ringver16.blue, (double)ringver16.alpha);
                 if (internal_line_source == 1) {
-                  line16->red = ringver16->red;
-                  line16->green = ringver16->green;
-                  line16->blue = ringver16->blue;
-                  line16->alpha = ringver16->alpha;
+                  line16.red = ringver16.red;
+                  line16.green = ringver16.green;
+                  line16.blue = ringver16.blue;
+                  line16.alpha = ringver16.alpha;
                 }
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, (double)ringwrong16->red/255, (double)ringwrong16->green/255, (double)ringwrong16->blue/255, (double)ringwrong16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)ringwrong16.red, (double)ringwrong16.green, (double)ringwrong16.blue, (double)ringwrong16.alpha);
                 if (internal_line_source == 1) {
-                  line16->red = ringwrong16->red;
-                  line16->green = ringwrong16->green;
-                  line16->blue = ringwrong16->blue;
-                  line16->alpha = ringwrong16->alpha;
+                  line16.red = ringwrong16.red;
+                  line16.green = ringwrong16.green;
+                  line16.blue = ringwrong16.blue;
+                  line16.alpha = ringwrong16.alpha;
                 }
                 break;
             case STATE_AUTH_IDLE:
-                cairo_set_source_rgba(ctx, (double)ring16->red/255, (double)ring16->green/255, (double)ring16->blue/255, (double)ring16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)ring16.red, (double)ring16.green, (double)ring16.blue, (double)ring16.alpha);
                 if (internal_line_source == 1) {
-                  line16->red = ring16->red;
-                  line16->green = ring16->green;
-                  line16->blue = ring16->blue;
-                  line16->alpha = ring16->alpha;
+                  line16.red = ring16.red;
+                  line16.green = ring16.green;
+                  line16.blue = ring16.blue;
+                  line16.alpha = ring16.alpha;
                 }
                 break;
         }
@@ -392,7 +403,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Draw an inner separator line. */
         if (internal_line_source != 2) { //pretty sure this only needs drawn if it's being drawn over the inside?
-          cairo_set_source_rgba(ctx, (double)line16->red/255, (double)line16->green/255, (double)line16->blue/255, (double)line16->alpha/255);
+          cairo_set_source_rgba(ctx, (double)line16.red, (double)line16.green, (double)line16.blue, (double)line16.alpha);
           cairo_set_line_width(ctx, 2.0);
           cairo_arc(ctx,
                     BUTTON_CENTER /* x */,
@@ -411,7 +422,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgba(ctx, (double)text16->red/255, (double)text16->green/255, (double)text16->blue/255, (double)text16->alpha/255);
+        cairo_set_source_rgba(ctx, (double)text16.red, (double)text16.green, (double)text16.blue, (double)text16.alpha);
         cairo_select_font_face(ctx, status_font, CAIRO_FONT_SLANT_NORMAL,
                 CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, text_size);
@@ -473,6 +484,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* After the user pressed any valid key or the backspace key, we
          * highlight a random part of the unlock indicator to confirm this
          * keypress. */
+        //TODO: figure out what to do with the bar indicator for this
         if (unlock_state == STATE_KEY_ACTIVE ||
             unlock_state == STATE_BACKSPACE_ACTIVE) {
             if (bar_enabled) {
@@ -485,8 +497,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     int high_ind = (index + i) % num_bars;
                     int tmp_height = max_bar_height - (bar_step * i);
                     if (tmp_height < 0) tmp_height = 0;
-                    bar_heights[low_ind] = tmp_height;
-                    bar_heights[high_ind] = tmp_height;
+                    if (bar_heights[low_ind] < tmp_height)
+                        bar_heights[low_ind] = tmp_height;
+                    if (bar_heights[high_ind] < tmp_height)
+                        bar_heights[high_ind] = tmp_height;
                     if (tmp_height == 0) break;
                 }
             }
@@ -501,17 +515,17 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */ //lol no
-                cairo_set_source_rgba(ctx, (double)keyhl16->red/255, (double)keyhl16->green/255, (double)keyhl16->blue/255, (double)keyhl16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)keyhl16.red, (double)keyhl16.green, (double)keyhl16.blue, (double)keyhl16.alpha);
             } else {
                 /* For backspace, we use red. */ //lol no
-                cairo_set_source_rgba(ctx, (double)bshl16->red/255, (double)bshl16->green/255, (double)bshl16->blue/255, (double)bshl16->alpha/255);
+                cairo_set_source_rgba(ctx, (double)bshl16.red, (double)bshl16.green, (double)bshl16.blue, (double)bshl16.alpha);
             }
 
             cairo_stroke(ctx);
 
             /* Draw two little separators for the highlighted part of the
              * unlock indicator. */
-            cairo_set_source_rgba(ctx, (double)sep16->red/255, (double)sep16->green/255, (double)sep16->blue/255, (double)sep16->alpha/255);
+            cairo_set_source_rgba(ctx, (double)sep16.red, (double)sep16.green, (double)sep16.blue, (double)sep16.alpha);
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
@@ -546,7 +560,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (text) {
             cairo_set_font_size(time_ctx, time_size);
             cairo_select_font_face(time_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(time_ctx, (double)time16->red/255, (double)time16->green/255, (double)time16->blue/255, (double)time16->alpha/255);
+            cairo_set_source_rgba(time_ctx, (double)time16.red, (double)time16.green, (double)time16.blue, (double)time16.alpha);
 
             cairo_text_extents(time_ctx, text, &extents);
             switch(time_align) {
@@ -571,7 +585,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         if (date) {
             cairo_select_font_face(date_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(date_ctx, (double)date16->red/255, (double)date16->green/255, (double)date16->blue/255, (double)date16->alpha/255);
+            cairo_set_source_rgba(date_ctx, (double)date16.red, (double)date16.green, (double)date16.blue, (double)date16.alpha);
             cairo_set_font_size(date_ctx, date_size);
 
             cairo_text_extents(date_ctx, date, &extents);
@@ -597,7 +611,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
         if (layout_text) {
             cairo_select_font_face(layout_ctx, layout_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(layout_ctx, (double)layout16->red/255, (double)layout16->green/255, (double)layout16->blue/255, (double)layout16->alpha/255);
+            cairo_set_source_rgba(layout_ctx, (double)layout16.red, (double)layout16.green, (double)layout16.blue, (double)layout16.alpha);
             cairo_set_font_size(layout_ctx, layout_size);
 
             cairo_text_extents(layout_ctx, layout_text, &extents);
@@ -659,6 +673,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_expr *te_date_y_expr = te_compile(date_y_expr, vars, NUM_VARS, &te_y_err);
     te_expr *te_layout_x_expr = te_compile(layout_x_expr, vars, NUM_VARS, &te_x_err);
     te_expr *te_layout_y_expr = te_compile(layout_y_expr, vars, NUM_VARS, &te_y_err);
+    te_expr *te_bar_expr = te_compile(bar_expr, vars, NUM_VARS, &te_x_err);
 
     if (xr_screens > 0) {
         /* Composite the unlock indicator in the middle of each screen. */
@@ -792,32 +807,85 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_fill(xcb_ctx);
         }
     }
-   
+    // oh boy, here we go!
+    // this really needs to be broken into functions or something :D
+    double bar_offset = te_eval(te_bar_expr);
     if (bar_enabled) {
-
-        cairo_set_source_rgba(bar_ctx, 0.0, 0, 0, 0.55);
-        cairo_rectangle(bar_ctx, 0, 0, resolution[0], bar_step);
-        cairo_fill(bar_ctx);
-
-        // note: might be biased to cause more hits on lower indices
-        // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
+        double x, y, width, height;
+        double back_x = 0, back_y = 0, back_x2 = 0, back_y2 = 0, back_width = 0, back_height = 0;
         for(int i = 0; i < num_bars; ++i) {
-            cairo_set_source_rgba(bar_ctx, 1.0, 0, 0, 1.0);
-            if (bar_orientation == BAR_VERT) { // showerthought: this if statement would be better outside the for loop, or something
-                cairo_rectangle(bar_ctx, 0, i * bar_width, bar_heights[i], bar_width);
-                cairo_fill(bar_ctx);
+            double cur_bar_height = bar_heights[i];
+            
+            if (cur_bar_height > 0) {
+                cairo_set_source_rgba(bar_ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
             } else {
-                cairo_rectangle(bar_ctx, i * bar_width, 0, bar_width, bar_heights[i]);
-                cairo_fill(bar_ctx);
+                cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+            }
+
+            if (bar_orientation == BAR_VERT) {
+                width = (cur_bar_height < 0 ? bar_base_height : cur_bar_height);
+                height = bar_width;
+                x = bar_offset;
+                y = i * bar_width;
+                if (bar_bidirectional) {
+                    width = (cur_bar_height < 0 ? bar_base_height : cur_bar_height) * 2;
+                    x = bar_offset - (width / 2) + (bar_base_height / 2);
+                }
+            } else {
+                width = bar_width;
+                height = (cur_bar_height < 0 ? bar_base_height : cur_bar_height);
+                x = i * bar_width;
+                y = bar_offset;
+                if (bar_bidirectional) {
+                    height = (cur_bar_height < 0 ? bar_base_height : cur_bar_height) * 2;
+                    y = bar_offset - (height / 2) + (bar_base_height / 2);
+                }
+            }
+            
+            if (cur_bar_height < bar_base_height) {
+                if (bar_orientation == BAR_VERT) {
+                    back_x = bar_offset + cur_bar_height;
+                    back_y = y;
+                    back_width = bar_base_height - cur_bar_height;
+                    back_height = height;
+                    if (bar_bidirectional) {
+                        back_x = bar_offset;
+                        back_y2 = y;
+                        back_width = (bar_base_height - (cur_bar_height * 2)) / 2;
+                        back_x2 = bar_offset + (cur_bar_height * 2) + back_width;
+                    }
+                } else {
+                    back_x = x;
+                    back_y = bar_offset + cur_bar_height;
+                    back_width = width;
+                    back_height = bar_base_height - cur_bar_height;
+                    if (bar_bidirectional) {
+                        back_x2 = x;
+                        back_y = bar_offset;
+                        back_height = (bar_base_height - (cur_bar_height * 2)) / 2;
+                        back_y2= bar_offset + (cur_bar_height * 2) + back_height;
+                    }
+                }
+            }
+            
+            cairo_rectangle(bar_ctx, x, y, width, height);
+            cairo_fill(bar_ctx);
+            if ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
+                    || (!bar_bidirectional && (cur_bar_height < bar_base_height))) {
+                cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                cairo_rectangle(bar_ctx, back_x, back_y, back_width, back_height);
+                if (bar_bidirectional) {
+                    cairo_rectangle(bar_ctx, back_x2, back_y2, back_width, back_height);
+                }
+                cairo_fill(bar_ctx);                
             }
         }
-        
         cairo_set_source_surface(xcb_ctx, bar_output, 0, 0);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
         for(int i = 0; i < num_bars; ++i) {
             if (bar_heights[i] > 0)
-                --(bar_heights[i]);
+                bar_heights[i] -= bar_periodic_step;
         }
     }
 
