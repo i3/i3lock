@@ -276,6 +276,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     cairo_surface_t *layout_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
     cairo_t *layout_ctx = cairo_create(layout_output);
+    
+    cairo_surface_t *bar_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, resolution[0], resolution[1]);
+    cairo_t *bar_ctx = cairo_create(bar_output);
 
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
@@ -305,8 +308,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
-
-
+ 
     /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
     time_t rawtime;
     struct tm* timeinfo;
@@ -319,6 +321,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_scale(ctx, scaling_factor(), scaling_factor());
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, RING_WIDTH);
+        
         cairo_arc(ctx,
                   BUTTON_CENTER /* x */,
                   BUTTON_CENTER /* y */,
@@ -763,16 +766,26 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_fill(xcb_ctx);
         }
     }
+    
+    cairo_set_source_rgba(bar_ctx, 1.0, 0, 0, 0.55);
+    cairo_rectangle(bar_ctx, 0, 0, resolution[0], RING_WIDTH);
+    cairo_fill(bar_ctx);
+    
+    cairo_set_source_surface(xcb_ctx, bar_output, 0, 0);
+    cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+    cairo_fill(xcb_ctx);
 
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(time_output);
     cairo_surface_destroy(date_output);
     cairo_surface_destroy(layout_output);
+    cairo_surface_destroy(bar_output);
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
     cairo_destroy(time_ctx);
     cairo_destroy(date_ctx);
     cairo_destroy(layout_ctx);
+    cairo_destroy(bar_ctx);
     cairo_destroy(xcb_ctx);
     return bg_pixmap;
 }
