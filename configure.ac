@@ -80,6 +80,8 @@ AC_SEARCH_LIBS([pam_authenticate], [pam])
 
 AC_SEARCH_LIBS([iconv_open], [iconv], , [AC_MSG_FAILURE([cannot find the required iconv_open() function despite trying to link with -liconv])])
 
+AC_SEARCH_LIBS([jpeg_std_error], [jpeg])
+
 dnl Each prefix corresponds to a source tarball which users might have
 dnl downloaded in a newer version and would like to overwrite.
 PKG_CHECK_MODULES([XCB], [xcb xcb-xkb xcb-xinerama xcb-randr])
@@ -87,6 +89,7 @@ PKG_CHECK_MODULES([XCB_IMAGE], [xcb-image])
 PKG_CHECK_MODULES([XCB_UTIL], [xcb-event xcb-util xcb-atom])
 PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon xkbcommon-x11])
 PKG_CHECK_MODULES([CAIRO], [cairo])
+PKG_CHECK_MODULES([LIBJPEG], [libjpeg])
 
 # Checks for programs.
 AC_PROG_AWK
