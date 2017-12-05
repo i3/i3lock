@@ -216,11 +216,15 @@ char* get_keylayoutname(int mode) {
 
     if (XkbGetNames(display, XkbGroupNamesMask, keyboard) != Success ) {
 		DEBUG("Error obtaining symbolic names");
+        XCloseDisplay(display);
+        XkbFreeClientMap(keyboard, 0, true);
         return NULL;
     }
 
     if(XkbGetState(display, XkbUseCoreKbd, &state) != Success) {
         DEBUG("Error getting keyboard state");
+        XCloseDisplay(display);
+        XkbFreeClientMap(keyboard, 0, true);
         return NULL;
     }
 
@@ -258,10 +262,12 @@ char* get_keylayoutname(int mode) {
         default:
             break;
     }
+    // note: this is called in option parsing, so this debug() may not trigger unless --debug is the first option
     DEBUG("answer after mode parsing: [%s]\n", answer);
 	// Free symbolic names structures
-	XkbFreeNames(keyboard, XkbGroupNamesMask, True);
-    // note: this is called in option parsing, so this debug() may not trigger unless --debug is the first option
+    XkbFreeClientMap(keyboard, 0, true);
+    XCloseDisplay(display);
+    display = NULL;
     return answer;
 }
 
