@@ -21,7 +21,9 @@ i3lock_CFLAGS = \
 	$(XCB_UTIL_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
 	$(CAIRO_CFLAGS) \
-	$(CODE_COVERAGE_CFLAGS)
+	$(CODE_COVERAGE_CFLAGS) \
+	$(X11_CFLAGS) \
+	$(SIMD_CFLAGS)
 
 i3lock_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -33,7 +35,8 @@ i3lock_LDADD = \
 	$(XCB_UTIL_LIBS) \
 	$(XKBCOMMON_LIBS) \
 	$(CAIRO_LIBS) \
-	$(CODE_COVERAGE_LDFLAGS)
+	$(CODE_COVERAGE_LDFLAGS) \
+	$(X11_LIBS)
 
 i3lock_SOURCES = \
 	cursors.h \
@@ -44,7 +47,13 @@ i3lock_SOURCES = \
 	unlock_indicator.c \
 	unlock_indicator.h \
 	xcb.c \
-	xcb.h
+	xcb.h \
+	tinyexpr.c \
+	tinyexpr.h \
+	blur_simd.c \
+	blur.c \
+	blur.h 
+
 
 EXTRA_DIST = \
 	$(pamd_files) \

@@ -65,7 +65,7 @@ blur_image_surface (cairo_surface_t *surface, int sigma)
 
     // according to a paper by Peter Kovesi [1], box filter of width w, equals to Gaussian blur of following sigma:
     // σ_av = sqrt((w*w-1)/12)
-    // for our 7x7 filter we have σ_av = 2.0.
+    // for our 8x8 filter we have σ_av = 2.0.
     // applying the same Gaussian filter n times results in σ_n = sqrt(n*σ_av*σ_av) [2]
     // after some trivial math, we arrive at n = ((σ_d)/(σ_av))^2
     // since it's a box blur filter, n >= 3

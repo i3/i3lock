@@ -2,7 +2,7 @@
 # Run autoreconf -fi to generate a configure script from this file.
 
 AC_PREREQ([2.69])
-AC_INIT([i3lock], [2.10], [https://github.com/i3/i3lock/issues])
+AC_INIT([i3lock-color], [2.10], [https://github.com/chrjguill/i3lock-color/issues])
 # For AX_EXTEND_SRCDIR
 AX_ENABLE_BUILDDIR
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall no-dist-gzip dist-bzip2])
@@ -34,7 +34,7 @@ AS_IF([test -d ${srcdir}/.git],
         VERSION="$(git -C ${srcdir} describe --tags --abbrev=0)"
         I3LOCK_VERSION="$(git -C ${srcdir} describe --tags --always) ($(git -C ${srcdir} log --pretty=format:%cd --date=short -n1), branch \\\"$(git -C ${srcdir} describe --tags --always --all | sed s:heads/::)\\\")"
         # Mirrors what libi3/is_debug_build.c does:
-        is_release=$(test $(echo "${I3LOCK_VERSION}" | cut -d '(' -f 1 | wc -m) -lt 10 && echo yes || echo no)
+        is_release=$(test $(echo "${I3LOCK_VERSION}" | cut -d '(' -f 1 | wc -m) -lt 11 && echo yes || echo no)
       ],
       [
         VERSION="$(cut -d '-' -f 1 ${srcdir}/I3LOCK_VERSION | cut -d ' ' -f 1)"
@@ -82,11 +82,14 @@ AC_SEARCH_LIBS([iconv_open], [iconv], , [AC_MSG_FAILURE([cannot find the require
 
 dnl Each prefix corresponds to a source tarball which users might have
 dnl downloaded in a newer version and would like to overwrite.
-PKG_CHECK_MODULES([XCB], [xcb xcb-xkb xcb-xinerama xcb-randr])
+PKG_CHECK_MODULES([XCB], [xcb xcb-xkb xcb-xinerama xcb-randr xcb-composite])
 PKG_CHECK_MODULES([XCB_IMAGE], [xcb-image])
 PKG_CHECK_MODULES([XCB_UTIL], [xcb-event xcb-util xcb-atom])
 PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon xkbcommon-x11])
 PKG_CHECK_MODULES([CAIRO], [cairo])
+PKG_CHECK_MODULES([X11], [x11])
+
+SIMD_CFLAGS=" -funroll-loops -msse2 -std=c99 -pipe -O2"
 
 # Checks for programs.
 AC_PROG_AWK

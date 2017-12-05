@@ -145,22 +145,22 @@ unlock_state_t unlock_state;
 auth_state_t auth_state;
 
 // color arrays
-rgba_t insidever16[4];
-rgba_t insidewrong16[4];
-rgba_t inside16[4];
-rgba_t ringver16[4];
-rgba_t ringwrong16[4];
-rgba_t ring16[4];
-rgba_t line16[4];
-rgba_t text16[4];
-rgba_t layout16[4];
-rgba_t time16[4];
-rgba_t date16[4];
-rgba_t keyhl16[4];
-rgba_t bshl16[4];
-rgba_t sep16[4];
+rgba_t insidever16;
+rgba_t insidewrong16;
+rgba_t inside16;
+rgba_t ringver16;
+rgba_t ringwrong16;
+rgba_t ring16;
+rgba_t line16;
+rgba_t text16;
+rgba_t layout16;
+rgba_t time16;
+rgba_t date16;
+rgba_t keyhl16;
+rgba_t bshl16;
+rgba_t sep16;
 // just rgb
-rgb_t  rgb16[3];
+rgb_t  rgb16;
 
 /*
  * Initialize all the color arrays once.
@@ -182,32 +182,32 @@ rgb_t  rgb16[3];
 			         (strtol(colorstring_tmparr[3], NULL, 16))};
  */
 
-inline void set_color(char* dest, const char* src, int offset) {
+void set_color(char* dest, const char* src, int offset) {
     dest[0] = src[offset];
     dest[1] = src[offset + 1];
     dest[2] = '\0';
 }
 
-inline void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
+void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
     set_color(tmp->red, src, 0);
     set_color(tmp->green, src, 2);
     set_color(tmp->blue, src, 4);
     set_color(tmp->alpha, src, 6);
 
-    dest->red = strtol(tmp->red, NULL, 16);
-    dest->green = strtol(tmp->green, NULL, 16);
-    dest->blue = strtol(tmp->blue, NULL, 16);
-    dest->alpha = strtol(tmp->alpha, NULL, 16);
+    dest->red = strtol(tmp->red, NULL, 16) / 255.0;
+    dest->green = strtol(tmp->green, NULL, 16) / 255.0;
+    dest->blue = strtol(tmp->blue, NULL, 16) / 255.0;
+    dest->alpha = strtol(tmp->alpha, NULL, 16) / 255.0;
 }
 
-inline void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
+void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
     set_color(tmp->red, src, 0);
     set_color(tmp->green, src, 2);
     set_color(tmp->blue, src, 4);
 
-    dest->red = strtol(tmp->red, NULL, 16);
-    dest->green = strtol(tmp->green, NULL, 16);
-    dest->blue = strtol(tmp->blue, NULL, 16);
+    dest->red = strtol(tmp->red, NULL, 16) / 255.0;
+    dest->green = strtol(tmp->green, NULL, 16) / 255.0;
+    dest->blue = strtol(tmp->blue, NULL, 16) / 255.0;
 }
 
 void init_colors_once(void) {
@@ -215,21 +215,21 @@ void init_colors_once(void) {
     rgb_str_t  tmp_rgb;
 
     /* build indicator color arrays */
-    colorgen(&tmp, insidevercolor, insidever16);
-    colorgen(&tmp, insidewrongcolor, insidewrong16);
-    colorgen(&tmp, insidecolor, inside16);
-    colorgen(&tmp, ringvercolor, ringver16);
-    colorgen(&tmp, ringwrongcolor, ringwrong16);
-    colorgen(&tmp, ringcolor, ring16);
-    colorgen(&tmp, linecolor, line16);
-    colorgen(&tmp, textcolor, text16);
-    colorgen(&tmp, layoutcolor, layout16);
-    colorgen(&tmp, timecolor, time16);
-    colorgen(&tmp, datecolor, date16);
-    colorgen(&tmp, keyhlcolor, keyhl16);
-    colorgen(&tmp, bshlcolor, bshl16);
-    colorgen(&tmp, separatorcolor, sep16);
-    colorgen_rgb(&tmp_rgb, color, rgb16);
+    colorgen(&tmp, insidevercolor, &insidever16);
+    colorgen(&tmp, insidewrongcolor, &insidewrong16);
+    colorgen(&tmp, insidecolor, &inside16);
+    colorgen(&tmp, ringvercolor, &ringver16);
+    colorgen(&tmp, ringwrongcolor, &ringwrong16);
+    colorgen(&tmp, ringcolor, &ring16);
+    colorgen(&tmp, linecolor, &line16);
+    colorgen(&tmp, textcolor, &text16);
+    colorgen(&tmp, layoutcolor, &layout16);
+    colorgen(&tmp, timecolor, &time16);
+    colorgen(&tmp, datecolor, &date16);
+    colorgen(&tmp, keyhlcolor, &keyhl16);
+    colorgen(&tmp, bshlcolor, &bshl16);
+    colorgen(&tmp, separatorcolor, &sep16);
+    colorgen_rgb(&tmp_rgb, color, &rgb16);
 }
 
 /*
@@ -238,8 +238,8 @@ void init_colors_once(void) {
  *
  */
 static double scaling_factor(void) {
-    const int dpi = (double)screen->height_in_pixels * 25.4 /
-                    (double)screen->height_in_millimeters;
+    const int dpi = (double) screen->height_in_pixels * 25.4 /
+                    (double) screen->height_in_millimeters;
     return (dpi / 96.0);
 }
 
@@ -301,7 +301,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             }
         }
     } else {
-        cairo_set_source_rgb(xcb_ctx, rgb16->red / 255.0, rgb16->green / 255.0, rgb16->blue / 255.0);
+        cairo_set_source_rgb(xcb_ctx, rgb16.red, rgb16.green, rgb16.blue);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
@@ -331,14 +331,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, (double)insidever16->red/255, (double)insidever16->green/255, (double)insidever16->blue/255, (double)insidever16->alpha/255);
+                cairo_set_source_rgba(ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, (double)insidewrong16->red/255, (double)insidewrong16->green/255, (double)insidewrong16->blue/255, (double)insidewrong16->alpha/255);
+                cairo_set_source_rgba(ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
                 break;
             default:
-                cairo_set_source_rgba(ctx, (double)inside16->red/255, (double)inside16->green/255, (double)inside16->blue/255, (double)inside16->alpha/255);
+                cairo_set_source_rgba(ctx, inside16.red, inside16.green, inside16.blue, inside16.alpha);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -346,31 +346,31 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, (double)ringver16->red/255, (double)ringver16->green/255, (double)ringver16->blue/255, (double)ringver16->alpha/255);
+                cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
                 if (internal_line_source == 1) {
-                  line16->red = ringver16->red;
-                  line16->green = ringver16->green;
-                  line16->blue = ringver16->blue;
-                  line16->alpha = ringver16->alpha;
+                  line16.red = ringver16.red;
+                  line16.green = ringver16.green;
+                  line16.blue = ringver16.blue;
+                  line16.alpha = ringver16.alpha;
                 }
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, (double)ringwrong16->red/255, (double)ringwrong16->green/255, (double)ringwrong16->blue/255, (double)ringwrong16->alpha/255);
+                cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
                 if (internal_line_source == 1) {
-                  line16->red = ringwrong16->red;
-                  line16->green = ringwrong16->green;
-                  line16->blue = ringwrong16->blue;
-                  line16->alpha = ringwrong16->alpha;
+                  line16.red = ringwrong16.red;
+                  line16.green = ringwrong16.green;
+                  line16.blue = ringwrong16.blue;
+                  line16.alpha = ringwrong16.alpha;
                 }
                 break;
             case STATE_AUTH_IDLE:
-                cairo_set_source_rgba(ctx, (double)ring16->red/255, (double)ring16->green/255, (double)ring16->blue/255, (double)ring16->alpha/255);
+                cairo_set_source_rgba(ctx, ring16.red, ring16.green, ring16.blue, ring16.alpha);
                 if (internal_line_source == 1) {
-                  line16->red = ring16->red;
-                  line16->green = ring16->green;
-                  line16->blue = ring16->blue;
-                  line16->alpha = ring16->alpha;
+                  line16.red = ring16.red;
+                  line16.green = ring16.green;
+                  line16.blue = ring16.blue;
+                  line16.alpha = ring16.alpha;
                 }
                 break;
         }
@@ -378,7 +378,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         /* Draw an inner separator line. */
         if (internal_line_source != 2) { //pretty sure this only needs drawn if it's being drawn over the inside?
-          cairo_set_source_rgba(ctx, (double)line16->red/255, (double)line16->green/255, (double)line16->blue/255, (double)line16->alpha/255);
+          cairo_set_source_rgba(ctx, line16.red, line16.green, line16.blue, line16.alpha);
           cairo_set_line_width(ctx, 2.0);
           cairo_arc(ctx,
                     BUTTON_CENTER /* x */,
@@ -397,7 +397,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgba(ctx, (double)text16->red/255, (double)text16->green/255, (double)text16->blue/255, (double)text16->alpha/255);
+        cairo_set_source_rgba(ctx, text16.red, text16.green, text16.blue, text16.alpha);
         cairo_select_font_face(ctx, status_font, CAIRO_FONT_SLANT_NORMAL,
                 CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, text_size);
@@ -472,17 +472,17 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */ //lol no
-                cairo_set_source_rgba(ctx, (double)keyhl16->red/255, (double)keyhl16->green/255, (double)keyhl16->blue/255, (double)keyhl16->alpha/255);
+                cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
             } else {
                 /* For backspace, we use red. */ //lol no
-                cairo_set_source_rgba(ctx, (double)bshl16->red/255, (double)bshl16->green/255, (double)bshl16->blue/255, (double)bshl16->alpha/255);
+                cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
             }
 
             cairo_stroke(ctx);
 
             /* Draw two little separators for the highlighted part of the
              * unlock indicator. */
-            cairo_set_source_rgba(ctx, (double)sep16->red/255, (double)sep16->green/255, (double)sep16->blue/255, (double)sep16->alpha/255);
+            cairo_set_source_rgba(ctx, sep16.red, sep16.green, sep16.blue, sep16.alpha);
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
@@ -517,7 +517,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (text) {
             cairo_set_font_size(time_ctx, time_size);
             cairo_select_font_face(time_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(time_ctx, (double)time16->red/255, (double)time16->green/255, (double)time16->blue/255, (double)time16->alpha/255);
+            cairo_set_source_rgba(time_ctx, time16.red, time16.green, time16.blue, time16.alpha);
 
             cairo_text_extents(time_ctx, text, &extents);
             switch(time_align) {
@@ -542,7 +542,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
         if (date) {
             cairo_select_font_face(date_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(date_ctx, (double)date16->red/255, (double)date16->green/255, (double)date16->blue/255, (double)date16->alpha/255);
+            cairo_set_source_rgba(date_ctx, date16.red, date16.green, date16.blue, date16.alpha);
             cairo_set_font_size(date_ctx, date_size);
 
             cairo_text_extents(date_ctx, date, &extents);
@@ -568,7 +568,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         }
         if (layout_text) {
             cairo_select_font_face(layout_ctx, layout_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(layout_ctx, (double)layout16->red/255, (double)layout16->green/255, (double)layout16->blue/255, (double)layout16->alpha/255);
+            cairo_set_source_rgba(layout_ctx, layout16.red, layout16.green, layout16.blue, layout16.alpha);
             cairo_set_font_size(layout_ctx, layout_size);
 
             cairo_text_extents(layout_ctx, layout_text, &extents);
@@ -763,6 +763,15 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_fill(xcb_ctx);
         }
     }
+    
+    te_free(te_ind_x_expr);
+    te_free(te_ind_y_expr);
+    te_free(te_time_x_expr);
+    te_free(te_time_y_expr);
+    te_free(te_date_x_expr);
+    te_free(te_date_y_expr);
+    te_free(te_layout_x_expr);
+    te_free(te_layout_y_expr);
 
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(time_output);
