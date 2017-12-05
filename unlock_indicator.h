@@ -4,9 +4,9 @@
 #include <ev.h>
 
 typedef struct rgb {
-	uint32_t red;
-	uint32_t green;
-	uint32_t blue;
+	double red;
+	double green;
+	double blue;
 } rgb_t;
 
 typedef struct rgb_str {
@@ -16,10 +16,10 @@ typedef struct rgb_str {
 } rgb_str_t;
 
 typedef struct rgba {
-	uint32_t red;
-	uint32_t green;
-	uint32_t blue;
-	uint32_t alpha;
+	double red;
+	double green;
+	double blue;
+	double alpha;
 } rgba_t;
 
 typedef struct rgba_str {

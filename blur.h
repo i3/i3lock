@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <cairo.h>
 
-#define KERNEL_SIZE 7 
+#define KERNEL_SIZE 8 
 #define SIGMA_AV 2
 #define HALF_KERNEL KERNEL_SIZE / 2
 
