@@ -27,7 +27,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int
             int leftBorder = column < HALF_KERNEL;
             int rightBorder = column > (width - HALF_KERNEL);
             // +1 to make memory checkers not complain
-            uint32_t _rgbaIn[KERNEL_SIZE] __attribute__((aligned(16)));
+            uint32_t _rgbaIn[KERNEL_SIZE + 1] __attribute__((aligned(16)));
             int i = 0;
             if (leftBorder) {
                 // for kernel size 8x8 and column == 0, we have:
@@ -51,7 +51,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int
                     rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
             } else {
                 for (int k = 0; k < REGISTERS_CNT; k++) {
-                    printf("\t\tk: %d\n", k);
+                    printf("\t\tk: %d %p\n", k, src);
                     rgbaIn[k] = _mm_load_si128((__m128i*)(src + 4*k - HALF_KERNEL));
                 }
             }
