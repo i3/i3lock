@@ -141,8 +141,8 @@ AC_DEFUN([AX_CODE_COVERAGE],[
 
 		dnl Build the code coverage flags
 		CODE_COVERAGE_CPPFLAGS="-DNDEBUG"
-		CODE_COVERAGE_CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
-		CODE_COVERAGE_CXXFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
+		CODE_COVERAGE_CFLAGS="-O2 -g -fprofile-arcs -ftest-coverage"
+		CODE_COVERAGE_CXXFLAGS="-O2 -g -fprofile-arcs -ftest-coverage"
 		CODE_COVERAGE_LDFLAGS="-lgcov"
 
 		AC_SUBST([CODE_COVERAGE_CPPFLAGS])

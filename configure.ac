@@ -89,7 +89,6 @@ PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon xkbcommon-x11])
 PKG_CHECK_MODULES([CAIRO], [cairo])
 PKG_CHECK_MODULES([X11], [x11])
 
-SIMD_CFLAGS=" -funroll-loops -msse2 -std=c99 -pipe -O2"
 
 # Checks for programs.
 AC_PROG_AWK
@@ -102,6 +101,10 @@ AC_PROG_LN_S
 AM_PROG_AR
 
 AX_FLAGS_WARN_ALL
+AX_APPEND_FLAG([-msse4.1], [AM_CFLAGS])
+AX_APPEND_FLAG([-O2], [AM_CFLAGS])
+AX_APPEND_FLAG([-funroll-loops], [AM_CFLAGS])
+AX_APPEND_FLAG([-std=gnu99], [AM_CFLAGS])
 AX_CHECK_COMPILE_FLAG([-Wunused-value], [AX_APPEND_FLAG([-Wunused-value], [AM_CFLAGS])])
 AC_SUBST(AM_CFLAGS)
 

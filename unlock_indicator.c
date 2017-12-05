@@ -830,3 +830,4 @@ void start_time_redraw_tick(struct ev_loop* main_loop) {
         ev_periodic_start(main_loop, time_redraw_tick);
     }
 }
+

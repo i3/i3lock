@@ -76,11 +76,11 @@ AC_DEFUN([AX_CHECK_ENABLE_DEBUG],[
     AS_CASE([$enable_debug],
       [yes],[
 	AC_MSG_RESULT(yes)
-	CFLAGS="${CFLAGS} -g -O0"
-	CXXFLAGS="${CXXFLAGS} -g -O0"
-	FFLAGS="${FFLAGS} -g -O0"
-	FCFLAGS="${FCFLAGS} -g -O0"
-	OBJCFLAGS="${OBJCFLAGS} -g -O0"
+	CFLAGS="${CFLAGS} -g -O2"
+	CXXFLAGS="${CXXFLAGS} -g -O2"
+	FFLAGS="${FFLAGS} -g -O2"
+	FCFLAGS="${FCFLAGS} -g -O2"
+	OBJCFLAGS="${OBJCFLAGS} -g -O2"
       ],
       [info],[
 	AC_MSG_RESULT(info)

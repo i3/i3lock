@@ -1199,7 +1199,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
-                        errx(1, "ringwrongcolor is invalid, color must be given in r-byte format: rrggbb\n");
+                        errx(1, "ringwrongcolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[longoptind].name, "ringcolor") == 0) {
                     char *arg = optarg;
@@ -1570,6 +1570,7 @@ int main(int argc, char *argv[]) {
     if (!load_keymap())
         errx(EXIT_FAILURE, "Could not load keymap");
 
+
     const char *locale = getenv("LC_ALL");
     if (!locale || !*locale)
         locale = getenv("LC_CTYPE");
@@ -1586,6 +1587,7 @@ int main(int argc, char *argv[]) {
 #if XKBCOMPOSE == 1
     load_compose_table(locale);
 #endif
+
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
