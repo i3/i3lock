@@ -96,9 +96,10 @@ blur_image_surface (cairo_surface_t *surface, int sigma)
 }
 
 void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, int height) {
+		uint32_t *o_src = src;
     for (int row = 0; row < height; row++) {
         for (int column = 0; column < width; column++, src++) {
-            uint32_t rgbaIn[KERNEL_SIZE];
+            uint32_t rgbaIn[KERNEL_SIZE + 1];
 
             // handle borders
             int leftBorder = column < HALF_KERNEL;
@@ -119,8 +120,12 @@ void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, 
                 for (int k = 0; i < KERNEL_SIZE; i++, k++)
                     rgbaIn[i] = *(src - k);
             } else {
-                for (; i < KERNEL_SIZE; i++)
-                    rgbaIn[i] = *(src + i - HALF_KERNEL);
+                for (; i < KERNEL_SIZE; i++) {
+                    if ((long long) ((src + 4*i - HALF_KERNEL) + 1)
+                            > (long long) (o_src + (height * width)))
+                        break;
+              			rgbaIn[i] = *(src + i - HALF_KERNEL);
+								}
             }
 
             uint32_t acc[4] = {0};
