@@ -66,7 +66,7 @@ blur_image_surface (cairo_surface_t *surface, int radius)
 
     dst = (uint32_t*)cairo_image_surface_get_data (tmp);
     
-#ifdef __SSE4_1__
+#ifdef __SSE3__
     blur_impl_ssse3(src, dst, width, height, 4.5);
 #elif __SSE2__
     blur_impl_sse2(src, dst, width, height, 4.5);
