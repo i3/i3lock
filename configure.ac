@@ -34,7 +34,7 @@ AS_IF([test -d ${srcdir}/.git],
         VERSION="$(git -C ${srcdir} describe --tags --abbrev=0)"
         I3LOCK_VERSION="$(git -C ${srcdir} describe --tags --always) ($(git -C ${srcdir} log --pretty=format:%cd --date=short -n1), branch \\\"$(git -C ${srcdir} describe --tags --always --all | sed s:heads/::)\\\")"
         # Mirrors what libi3/is_debug_build.c does:
-        is_release=$(test $(echo "${I3LOCK_VERSION}" | cut -d '(' -f 1 | wc -m) -lt 11 && echo yes || echo no)
+        is_release=$(test $(echo "${I3LOCK_VERSION}" | cut -d '(' -f 1 | wc -m) -lt 12 && echo yes || echo no)
       ],
       [
         VERSION="$(cut -d '-' -f 1 ${srcdir}/I3LOCK_VERSION | cut -d ' ' -f 1)"
