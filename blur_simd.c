@@ -51,6 +51,7 @@ void blur_impl_sse2(uint32_t *src, uint32_t *dst, int width, int height, float s
 }
 
 void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel, int width, int height) {
+    uint32_t* o_src = src;
     for (int row = 0; row < height; row++) {
         for (int column = 0; column < width; column++, src++) {
             __m128i rgbaIn[REGISTERS_CNT];
@@ -59,7 +60,7 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
             int leftBorder = column < HALF_KERNEL;
             int rightBorder = column > width - HALF_KERNEL;
             if (leftBorder || rightBorder) {
-                uint32_t _rgbaIn[KERNEL_SIZE] ALIGN16;
+                uint32_t _rgbaIn[KERNEL_SIZE + 1] ALIGN16;
                 int i = 0;
                 if (leftBorder) {
                     // for kernel size 7x7 and column == 0, we have:
@@ -80,8 +81,22 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, float *kernel,
                 for (int k = 0; k < REGISTERS_CNT; k++)
                     rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
             } else {
-                for (int k = 0; k < REGISTERS_CNT; k++)
+                for (int k = 0; k < REGISTERS_CNT; k++) {
+#if 0
+                    printf("%p -> %p (%ld) || %p->%p\n", 
+                        o_src,
+                        o_src + (height * width),
+                        o_src + (height * width) - src,
+                        src + 4*k - HALF_KERNEL, 
+                        ((__m128i*)src + 4*k - HALF_KERNEL) + 1
+                    );
+#endif
+                    // if this copy would go out of bounds, break
+                    if ((long long) (((__m128i*) src + 4*k - HALF_KERNEL) + 1) 
+                            > (long long) (o_src + (height * width)))
+                        break;
                     rgbaIn[k] = _mm_loadu_si128((__m128i*)(src + 4*k - HALF_KERNEL));
+                }
             }
 
             // unpack each pixel, convert to float,
@@ -198,7 +213,9 @@ void blur_impl_horizontal_pass_ssse3(uint32_t *src, uint32_t *dst, int8_t *kerne
                 }
             } else {
                 for (int k = 0; k < REGISTERS_CNT; k++) {
-                    if ((long long)(((__m128i*) src + 4*k - HALF_KERNEL) + 1) > (long long)((o_src + (width * height)))) break;
+                    if ((long long) (((__m128i*) src + 4*k - HALF_KERNEL) + 1) 
+                            > (long long) (o_src + (height * width)))
+                        break;
 #if 0
                     printf("K: %d; p: %p -> %p\n", k, src+4*k - HALF_KERNEL, ((__m128i*) (src +4*k - HALF_KERNEL)) + 1);
                     printf("%p->%p, %p->%p (%ld)\n", (__m128i*) src + 4*k - HALF_KERNEL, ((__m128i*) src + 4*k - HALF_KERNEL) + 1, o_src, o_src + (width * height), o_src + (width * height) - src);
