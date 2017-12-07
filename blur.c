@@ -121,8 +121,8 @@ void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, 
                     rgbaIn[i] = *(src - k);
             } else {
                 for (; i < KERNEL_SIZE; i++) {
-                    if ((long long) ((src + 4*i - HALF_KERNEL) + 1)
-                            > (long long) (o_src + (height * width)))
+                    if ((uintptr_t) ((src + 4*i - HALF_KERNEL) + 1)
+                            > (uintptr_t) (o_src + (height * width)))
                         break;
               			rgbaIn[i] = *(src + i - HALF_KERNEL);
 								}

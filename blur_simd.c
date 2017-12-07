@@ -12,7 +12,7 @@
 
 // number of xmm registers needed to store input pixels for given kernel size
 #define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
-
+#ifdef __SSE2__
 void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int height) {
     uint32_t* o_src = src;
     for (int row = 0; row < height; row++) {
@@ -46,8 +46,8 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int
                     rgbaIn[k] = _mm_load_si128((__m128i*)(_rgbaIn + 4*k));
             } else {
                 for (int k = 0; k < REGISTERS_CNT; k++) {
-                    if ((long long) (((__m128i*) src + 4*k - HALF_KERNEL) + 1)
-                            > (long long) (o_src + (height * width)))
+                    if ((uintptr_t) (((__m128i*) src + 4*k - HALF_KERNEL) + 1)
+                            > (uintptr_t) (o_src + (height * width)))
                         break;
                     rgbaIn[k] = _mm_loadu_si128((__m128i*)(src + 4*k - HALF_KERNEL));
                 }
@@ -76,4 +76,4 @@ void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int
         }
     }
 }
-
+#endif
