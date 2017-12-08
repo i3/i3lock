@@ -60,6 +60,8 @@ Many little improvements have been made to i3lock over time:
      - `--radius=90` -- the radius of the circle indicator
      - `--ring-width=7` -- the width of the indicator ring
 
+	- The readme's list of options might be a bit out of date - please check the manpage, or look at the list of options in i3lock.c.
+
 - You can specify whether i3lock should bell upon a wrong password.
 
 - i3lock uses PAM and therefore is compatible with LDAP etc.
@@ -71,7 +73,7 @@ Before you build - check and see if there's a packaged version available for you
 
 If there's no packaged version available - think carefully, since you're using a forked screen locker at your own risk.
 
-If you don't understand what makefiles are and how they work, start reading [here](http://www.tldp.org/HOWTO/Software-Building-HOWTO-3.html). If you're building from source - make sure you're keeping up to date.
+i3lock now uses GNU autotools for building; you'll need to do something like `autoreconf -i && ./configure && make` to build.
 
 ### Required Packages
 - pkg-config
@@ -96,10 +98,9 @@ If you don't understand what makefiles are and how they work, start reading [her
     sudo apt-get install pkg-config libxcb1 libpam-dev libcairo-dev libxcb-composite0 libxcb-composite0-dev libxcb-xinerama0-dev libev-dev libx11-dev libx11-xcb-dev libxkbcommon0 libxkbcommon-x11-0 libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev libxcb-xkb-dev libxkbcommon-x11-dev libxkbcommon-dev
 
 ##### Aur Package
-Stable:
-https://aur.archlinux.org/packages/i3lock-color/
-Git:
-https://aur.archlinux.org/packages/i3lock-color-git
+[Stable](https://aur.archlinux.org/packages/i3lock-color/)
+
+[Git](https://aur.archlinux.org/packages/i3lock-color-git)
 
 Running i3lock
 -------------

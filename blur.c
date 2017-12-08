@@ -23,7 +23,6 @@
 
 #include <math.h>
 #include "blur.h"
-
 /* Performs a simple 2D Gaussian blur of standard devation @sigma surface @surface. */
 void
 blur_image_surface (cairo_surface_t *surface, int sigma)
@@ -72,7 +71,7 @@ blur_image_surface (cairo_surface_t *surface, int sigma)
     //
     // [1]: http://www.peterkovesi.com/papers/FastGaussianSmoothing.pdf
     // [2]: https://en.wikipedia.org/wiki/Gaussian_blur#Mathematics
-    
+
     int n = lrintf((sigma*sigma)/(SIGMA_AV*SIGMA_AV));
     if (n < 3) n = 3;
 
@@ -90,16 +89,17 @@ blur_image_surface (cairo_surface_t *surface, int sigma)
         blur_impl_horizontal_pass_generic(dst, src, height, width);
 #endif
     }
- 
+
     cairo_surface_destroy (tmp);
     cairo_surface_flush (surface);
     cairo_surface_mark_dirty (surface);
 }
 
 void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, int height) {
+		uint32_t *o_src = src;
     for (int row = 0; row < height; row++) {
         for (int column = 0; column < width; column++, src++) {
-            uint32_t rgbaIn[KERNEL_SIZE];
+            uint32_t rgbaIn[KERNEL_SIZE + 1];
 
             // handle borders
             int leftBorder = column < HALF_KERNEL;
@@ -120,8 +120,12 @@ void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, 
                 for (int k = 0; i < KERNEL_SIZE; i++, k++)
                     rgbaIn[i] = *(src - k);
             } else {
-                for (; i < KERNEL_SIZE; i++)
-                    rgbaIn[i] = *(src + i - HALF_KERNEL);
+                for (; i < KERNEL_SIZE; i++) {
+                    if ((uintptr_t) ((src + 4*i - HALF_KERNEL) + 1)
+                            > (uintptr_t) (o_src + (height * width)))
+                        break;
+              			rgbaIn[i] = *(src + i - HALF_KERNEL);
+								}
             }
 
             uint32_t acc[4] = {0};
@@ -143,3 +147,4 @@ void blur_impl_horizontal_pass_generic(uint32_t *src, uint32_t *dst, int width, 
         }
     }
 }
+

@@ -4,9 +4,9 @@
 #include <ev.h>
 
 typedef struct rgb {
-	uint32_t red;
-	uint32_t green;
-	uint32_t blue;
+	double red;
+	double green;
+	double blue;
 } rgb_t;
 
 typedef struct rgb_str {

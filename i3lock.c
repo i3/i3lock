@@ -6,6 +6,8 @@
  * See LICENSE for licensing information
  *
  */
+#include <config.h>
+
 #include <stdio.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -232,11 +234,15 @@ char* get_keylayoutname(int mode) {
 
     if (XkbGetNames(display, XkbGroupNamesMask, keyboard) != Success ) {
 		DEBUG("Error obtaining symbolic names");
+        XCloseDisplay(display);
+        XkbFreeClientMap(keyboard, 0, true);
         return NULL;
     }
 
     if(XkbGetState(display, XkbUseCoreKbd, &state) != Success) {
         DEBUG("Error getting keyboard state");
+        XCloseDisplay(display);
+        XkbFreeClientMap(keyboard, 0, true);
         return NULL;
     }
 
@@ -274,10 +280,12 @@ char* get_keylayoutname(int mode) {
         default:
             break;
     }
+    // note: this is called in option parsing, so this debug() may not trigger unless --debug is the first option
     DEBUG("answer after mode parsing: [%s]\n", answer);
 	// Free symbolic names structures
-	XkbFreeNames(keyboard, XkbGroupNamesMask, True);
-    // note: this is called in option parsing, so this debug() may not trigger unless --debug is the first option
+    XkbFreeClientMap(keyboard, 0, true);
+    XCloseDisplay(display);
+    display = NULL;
     return answer;
 }
 
@@ -351,7 +359,7 @@ static void clear_password_memory(void) {
     /* A volatile pointer to the password buffer to prevent the compiler from
      * optimizing this out. */
     volatile char *vpassword = password;
-    for (int c = 0; c < sizeof(password); c++)
+    for (size_t c = 0; c < sizeof(password); c++)
         /* We store a non-random pattern which consists of the (irrelevant)
          * index plus (!) the value of the beep variable. This prevents the
          * compiler from optimizing the calls away, since the value of 'beep'
@@ -665,7 +673,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             return;
     }
 
-    if ((input_position + 8) >= sizeof(password))
+    if ((input_position + 8) >= (int)sizeof(password))
         return;
 
 #if 0
@@ -1096,7 +1104,7 @@ int main(int argc, char *argv[]) {
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
-                errx(EXIT_SUCCESS, "version " VERSION " © 2010 Michael Stapelberg");
+                errx(EXIT_SUCCESS, "version " I3LOCK_VERSION " © 2010 Michael Stapelberg");
             case 'n':
                 dont_fork = true;
                 break;
@@ -1220,7 +1228,7 @@ int main(int argc, char *argv[]) {
                         arg++;
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
-                        errx(1, "ringwrongcolor is invalid, color must be given in r-byte format: rrggbb\n");
+                        errx(1, "ringwrongcolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
                 else if (strcmp(longopts[longoptind].name, "ringcolor") == 0) {
                     char *arg = optarg;
@@ -1652,6 +1660,7 @@ int main(int argc, char *argv[]) {
     if (!load_keymap())
         errx(EXIT_FAILURE, "Could not load keymap");
 
+
     const char *locale = getenv("LC_ALL");
     if (!locale || !*locale)
         locale = getenv("LC_CTYPE");
@@ -1668,6 +1677,7 @@ int main(int argc, char *argv[]) {
 #if XKBCOMPOSE == 1
     load_compose_table(locale);
 #endif
+
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
