@@ -51,5 +51,6 @@ void init_colors_once(void);
 void redraw_screen(void);
 void clear_indicator(void);
 void start_time_redraw_timeout(void);
-void* start_time_redraw_tick(void* arg);
+void* start_time_redraw_tick_pthread(void* arg);
+void start_time_redraw_tick(struct ev_loop* main_loop);
 #endif

@@ -133,6 +133,9 @@ extern xcb_screen_t *screen;
  * Local variables.
  ******************************************************************************/
 
+/* time stuff */
+static struct ev_periodic *time_redraw_tick;
+
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
 
@@ -969,7 +972,7 @@ void clear_indicator(void) {
     redraw_screen();
 }
 
-void* start_time_redraw_tick(void* arg) {
+void* start_time_redraw_tick_pthread(void* arg) {
     struct timespec *ts = (struct timespec *) arg;
     while(1) {
         nanosleep(ts, NULL);
@@ -977,3 +980,21 @@ void* start_time_redraw_tick(void* arg) {
     }
     return NULL;
 }
+
+static void time_redraw_cb(struct ev_loop *loop, ev_periodic *w, int revents) {
+    redraw_screen();
+}
+
+void start_time_redraw_tick(struct ev_loop* main_loop) {
+    if (time_redraw_tick) {
+        ev_periodic_set(time_redraw_tick, 0., refresh_rate, 0);
+        ev_periodic_again(main_loop, time_redraw_tick);
+    } else {
+        if (!(time_redraw_tick = calloc(sizeof(struct ev_periodic), 1))) {
+           return;
+        }
+        ev_periodic_init(time_redraw_tick, time_redraw_cb, 0., refresh_rate, 0);
+        ev_periodic_start(main_loop, time_redraw_tick);
+    }
+}
+

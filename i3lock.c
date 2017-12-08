@@ -182,6 +182,9 @@ bool skip_repeated_empty_password = false;
 
 // for the rendering thread, so we can clean it up
 pthread_t draw_thread;
+// main thread still sometimes calls redraw()
+// allow you to disable. handy if you use bar with lots of crap.
+bool redraw_thread = false;
 
 #define BAR_VERT 0
 #define BAR_FLAT 1
@@ -1097,6 +1100,8 @@ int main(int argc, char *argv[]) {
         {"bar-periodic-step", required_argument, NULL, 0},
         {"bar-position", required_argument, NULL, 0},
 
+        {"redraw-thread", no_argument, NULL, 0},
+
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -1579,9 +1584,10 @@ int main(int argc, char *argv[]) {
                     if (sscanf(arg, "%31s", bar_expr) != 1) {
                         errx(1, "bar-position must be of the form [pos] with a max length of 31\n");
                     }
-                
                 }
-                
+                else if (strcmp(longopts[longoptind].name, "redraw-thread") == 0) {
+                    redraw_thread = true;
+                }
 
                 break;
             case 'f':
@@ -1816,15 +1822,17 @@ int main(int argc, char *argv[]) {
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
 
-// boy i sure hope this doesnt change in the future
-#define NANOSECONDS_IN_SECOND 1000000000
     if (show_clock || bar_enabled) {
-        struct timespec ts;
-        double s;
-        double ns = modf(refresh_rate, &s);
-        ts.tv_sec = (time_t) s;
-        ts.tv_nsec = ns * NANOSECONDS_IN_SECOND;
-        (void) pthread_create(&draw_thread, NULL, start_time_redraw_tick, (void*) &ts);
+        if (redraw_thread) {
+            struct timespec ts;
+            double s;
+            double ns = modf(refresh_rate, &s);
+            ts.tv_sec = (time_t) s;
+            ts.tv_nsec = ns * NANOSECONDS_IN_SECOND;
+            (void) pthread_create(&draw_thread, NULL, start_time_redraw_tick_pthread, (void*) &ts);
+        } else {
+            start_time_redraw_tick(main_loop);
+        }
     }
     ev_loop(main_loop, 0);
 
