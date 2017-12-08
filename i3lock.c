@@ -45,7 +45,6 @@
 #endif
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
-#include <X11/XKBlib.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -132,6 +131,7 @@ double ring_width = 7.0;
 
 char* verif_text = "verifying…";
 char* wrong_text = "wrong!";
+int   keylayout_mode = -1;
 char* layout_text = NULL;
 
 /* opts for blurring */
@@ -219,51 +219,23 @@ void u8_dec(char *s, int *i) {
 }
 
 /*
- * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
- * Necessary so that we can properly let xkbcommon track the keyboard state and
- * translate keypresses to utf-8.
+ * fetches the keylayout name
+ *      -1 (do not)
  * arg: 0 (show full string returned)
  *      1 (show the text, sans parenthesis)
  *      2 (show just what's in the parenthesis)
+ *
+ * credit to the XKB/xcb implementation (no libx11) from https://gist.github.com/bluetech/6061368
+ * docs are really sparse, so finding some random implementation was nice
  */
-
-char* get_keylayoutname(int mode) {
-
-    Display *display;
-	XkbDescPtr keyboard;
-    XkbStateRec	state;
-    char* answer;
-    char* newans = NULL;
-    int res, i;
-
-	display = XkbOpenDisplay(getenv("DISPLAY"), NULL, NULL, NULL, NULL, &res);
-	if(!display) {
-        DEBUG("X server unreachable\n");
-        return NULL;
-    }
-
-    keyboard = XkbAllocKeyboard();
-
-    if (XkbGetNames(display, XkbGroupNamesMask, keyboard) != Success ) {
-		DEBUG("Error obtaining symbolic names");
-        XCloseDisplay(display);
-        XkbFreeClientMap(keyboard, 0, true);
-        return NULL;
-    }
-
-    if(XkbGetState(display, XkbUseCoreKbd, &state) != Success) {
-        DEBUG("Error getting keyboard state");
-        XCloseDisplay(display);
-        XkbFreeClientMap(keyboard, 0, true);
-        return NULL;
-    }
-
-    answer = XGetAtomName(display, keyboard->names->groups[state.group]);
+char* get_keylayoutname(int mode, xcb_connection_t* conn) {
+    if (mode < 0 || mode > 2) return NULL;
+    char* newans = NULL, *answer = xcb_get_key_group_names(conn);
     DEBUG("keylayout answer is: [%s]\n", answer);
     switch (mode) {
         case 1:
             // truncate the string at the first parens
-            for(i = 0; answer[i] != '\0'; ++i) {
+            for(int i = 0; answer[i] != '\0'; ++i) {
                 if (answer[i] == '(') {
                     if (i != 0 && answer[i - 1] == ' ') {
                         answer[i - 1] = '\0';
@@ -276,7 +248,7 @@ char* get_keylayoutname(int mode) {
             }
             break;
         case 2:
-            for(i = 0; answer[i] != '\0'; ++i) {
+            for(int i = 0; answer[i] != '\0'; ++i) {
                 if (answer[i] == '(') {
                     newans = &answer[i + 1];
                 } else if (answer[i] == ')' && newans != NULL) {
@@ -292,14 +264,16 @@ char* get_keylayoutname(int mode) {
         default:
             break;
     }
-    // note: this is called in option parsing, so this debug() may not trigger unless --debug is the first option
     DEBUG("answer after mode parsing: [%s]\n", answer);
 	// Free symbolic names structures
-    XkbFreeClientMap(keyboard, 0, true);
-    XCloseDisplay(display);
-    display = NULL;
     return answer;
 }
+
+/*
+ * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
+ * Necessary so that we can properly let xkbcommon track the keyboard state and
+ * translate keypresses to utf-8.
+ */
 
 static bool load_keymap(void) {
     if (xkb_context == NULL) {
@@ -1337,9 +1311,7 @@ int main(int argc, char *argv[]) {
                     // if layout is NULL, do nothing
                     // if not NULL, attempt to display stuff
                     // need to code some sane defaults for it
-                    layout_text = get_keylayoutname(atoi(optarg));
-                    if (layout_text)
-                        show_clock = true;
+                    keylayout_mode = atoi(optarg);
                 }
                 else if (strcmp(longopts[longoptind].name, "timestr") == 0) {
                     //read in to timestr
@@ -1645,8 +1617,10 @@ int main(int argc, char *argv[]) {
     int screennr;
     if ((conn = xcb_connect(NULL, &screennr)) == NULL ||
         xcb_connection_has_error(conn))
-        errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
+            errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
 
+
+    
     if (xkb_x11_setup_xkb_extension(conn,
                                     XKB_X11_MIN_MAJOR_XKB_VERSION,
                                     XKB_X11_MIN_MINOR_XKB_VERSION,
@@ -1656,7 +1630,10 @@ int main(int argc, char *argv[]) {
                                     &xkb_base_event,
                                     &xkb_base_error) != 1)
         errx(EXIT_FAILURE, "Could not setup XKB extension.");
-
+    
+    layout_text = get_keylayoutname(keylayout_mode, conn);
+    if (layout_text)
+        show_clock = true;
     static const xcb_xkb_map_part_t required_map_parts =
         (XCB_XKB_MAP_PART_KEY_TYPES |
          XCB_XKB_MAP_PART_KEY_SYMS |

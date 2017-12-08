@@ -3,6 +3,23 @@
 
 #include <xcb/xcb.h>
 
+#define all_name_details                                 \
+    (XCB_XKB_NAME_DETAIL_KEYCODES |                      \
+     XCB_XKB_NAME_DETAIL_GEOMETRY |                      \
+     XCB_XKB_NAME_DETAIL_SYMBOLS |                       \
+     XCB_XKB_NAME_DETAIL_PHYS_SYMBOLS |                  \
+     XCB_XKB_NAME_DETAIL_TYPES |                         \
+     XCB_XKB_NAME_DETAIL_COMPAT |                        \
+     XCB_XKB_NAME_DETAIL_KEY_TYPE_NAMES |                \
+     XCB_XKB_NAME_DETAIL_KT_LEVEL_NAMES |                \
+     XCB_XKB_NAME_DETAIL_INDICATOR_NAMES |               \
+     XCB_XKB_NAME_DETAIL_KEY_NAMES |                     \
+     XCB_XKB_NAME_DETAIL_KEY_ALIASES |                   \
+     XCB_XKB_NAME_DETAIL_VIRTUAL_MOD_NAMES |             \
+     XCB_XKB_NAME_DETAIL_GROUP_NAMES |                   \
+     XCB_XKB_NAME_DETAIL_RG_NAMES)
+
+
 extern xcb_connection_t *conn;
 extern xcb_screen_t *screen;
 
@@ -14,5 +31,6 @@ xcb_cursor_t create_cursor(xcb_connection_t *conn, xcb_screen_t *screen, xcb_win
 xcb_window_t find_focused_window(xcb_connection_t *conn, const xcb_window_t root);
 void set_focused_window(xcb_connection_t *conn, const xcb_window_t root, const xcb_window_t window);
 xcb_pixmap_t capture_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32_t* resolution);
+char* xcb_get_key_group_names(xcb_connection_t *conn);
 
 #endif

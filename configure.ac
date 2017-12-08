@@ -87,8 +87,6 @@ PKG_CHECK_MODULES([XCB_IMAGE], [xcb-image])
 PKG_CHECK_MODULES([XCB_UTIL], [xcb-event xcb-util xcb-atom])
 PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon xkbcommon-x11])
 PKG_CHECK_MODULES([CAIRO], [cairo])
-PKG_CHECK_MODULES([X11], [x11])
-
 
 # Checks for programs.
 AC_PROG_AWK
