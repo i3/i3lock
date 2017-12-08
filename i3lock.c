@@ -8,6 +8,9 @@
  */
 #include <config.h>
 
+#include <pthread.h>
+#include <math.h>
+
 #include <stdio.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -481,10 +484,9 @@ static void input_done(void) {
         return;
     }
 #endif
-
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
-
+    
     /* Get state of Caps and Num lock modifiers, to be displayed in
      * STATE_AUTH_WRONG state */
     xkb_mod_index_t idx, num_mods;
@@ -1560,7 +1562,7 @@ int main(int argc, char *argv[]) {
                         errx(1, "bar-color is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 
                 }
-                else if (strcmp(longopts[longoptind].name, "bar-perioidic-step") == 0) {
+                else if (strcmp(longopts[longoptind].name, "bar-periodic-step") == 0) {
                     int tmp = atoi(optarg);
                     if (tmp > 0)
                         bar_periodic_step = tmp;
@@ -1811,8 +1813,17 @@ int main(int argc, char *argv[]) {
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
+
+// boy i sure hope this doesnt change in the future
+#define NANOSECONDS_IN_SECOND 1000000000
     if (show_clock || bar_enabled) {
-        start_time_redraw_tick(main_loop);
+        pthread_t draw_thread;
+        struct timespec ts;
+        double s;
+        double ns = modf(refresh_rate, &s);
+        ts.tv_sec = (time_t) s;
+        ts.tv_nsec = ns * NANOSECONDS_IN_SECOND;
+        (void) pthread_create(&draw_thread, NULL, start_time_redraw_tick, (void*) &ts);
     }
     ev_loop(main_loop, 0);
 
