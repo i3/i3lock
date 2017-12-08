@@ -90,12 +90,15 @@ i3lock now uses GNU autotools for building; you'll need to do something like `au
 - libx11-xcb-dev
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
+- libjpeg-turbo >= 1.4.90
 
 (On centos/RHEL/etc, the packages tend to look like `cairo-devel` instead of `libcairo-dev`. Use `yum provides \*/<header.h>` to figure out what packages you need.)
 
 ##### Ubuntu
 
     sudo apt-get install pkg-config libxcb1 libpam-dev libcairo-dev libxcb-composite0 libxcb-composite0-dev libxcb-xinerama0-dev libev-dev libx11-dev libx11-xcb-dev libxkbcommon0 libxkbcommon-x11-0 libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev libxcb-xkb-dev libxkbcommon-x11-dev libxkbcommon-dev
+
+For JPEG lock image support, you'll also need `libjpeg-turbo8` version 1.4.90 or newer (Ubuntu 17.04 or later)
 
 ##### Aur Package
 [Stable](https://aur.archlinux.org/packages/i3lock-color/)
