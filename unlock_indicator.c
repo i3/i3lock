@@ -480,7 +480,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* After the user pressed any valid key or the backspace key, we
          * highlight a random part of the unlock indicator to confirm this
          * keypress. */
-        //TODO: figure out what to do with the bar indicator for this
         if (unlock_state == STATE_KEY_ACTIVE ||
             unlock_state == STATE_BACKSPACE_ACTIVE) {
             if (bar_enabled) {
@@ -489,7 +488,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 int index = rand() % num_bars;
                 bar_heights[index] = max_bar_height;
                 for(int i = 0; i < ((max_bar_height / bar_step) + 1); ++i) {
-                    int low_ind = (index - i) % num_bars;
+                    int low_ind = index - i;
+                    while (low_ind < 0) {
+                        low_ind += num_bars;
+                    }
                     int high_ind = (index + i) % num_bars;
                     int tmp_height = max_bar_height - (bar_step * i);
                     if (tmp_height < 0) tmp_height = 0;
@@ -499,43 +501,44 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                         bar_heights[high_ind] = tmp_height;
                     if (tmp_height == 0) break;
                 }
-            }
-            cairo_set_line_width(ctx, RING_WIDTH);
-            cairo_new_sub_path(ctx);
-            double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
-            cairo_arc(ctx,
-                      BUTTON_CENTER /* x */,
-                      BUTTON_CENTER /* y */,
-                      BUTTON_RADIUS /* radius */,
-                      highlight_start,
-                      highlight_start + (M_PI / 3.0));
-            if (unlock_state == STATE_KEY_ACTIVE) {
-                /* For normal keys, we use a lighter green. */ //lol no
-                cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
             } else {
-                /* For backspace, we use red. */ //lol no
-                cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+                cairo_set_line_width(ctx, RING_WIDTH);
+                cairo_new_sub_path(ctx);
+                double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
+                cairo_arc(ctx,
+                          BUTTON_CENTER /* x */,
+                          BUTTON_CENTER /* y */,
+                          BUTTON_RADIUS /* radius */,
+                          highlight_start,
+                          highlight_start + (M_PI / 3.0));
+                if (unlock_state == STATE_KEY_ACTIVE) {
+                    /* For normal keys, we use a lighter green. */ //lol no
+                    cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
+                } else {
+                    /* For backspace, we use red. */ //lol no
+                    cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+                }
+
+                cairo_stroke(ctx);
+
+                /* Draw two little separators for the highlighted part of the
+                 * unlock indicator. */
+                cairo_set_source_rgba(ctx, sep16.red, sep16.green, sep16.blue, sep16.alpha);
+                cairo_arc(ctx,
+                          BUTTON_CENTER /* x */,
+                          BUTTON_CENTER /* y */,
+                          BUTTON_RADIUS /* radius */,
+                          highlight_start /* start */,
+                          highlight_start + (M_PI / 128.0) /* end */);
+                cairo_stroke(ctx);
+                cairo_arc(ctx,
+                          BUTTON_CENTER /* x */,
+                          BUTTON_CENTER /* y */,
+                          BUTTON_RADIUS /* radius */,
+                          (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0) /* start */,
+                          highlight_start + (M_PI / 3.0) /* end */);
+                cairo_stroke(ctx);
             }
-
-            cairo_stroke(ctx);
-
-            /* Draw two little separators for the highlighted part of the
-             * unlock indicator. */
-            cairo_set_source_rgba(ctx, sep16.red, sep16.green, sep16.blue, sep16.alpha);
-            cairo_arc(ctx,
-                      BUTTON_CENTER /* x */,
-                      BUTTON_CENTER /* y */,
-                      BUTTON_RADIUS /* radius */,
-                      highlight_start /* start */,
-                      highlight_start + (M_PI / 128.0) /* end */);
-            cairo_stroke(ctx);
-            cairo_arc(ctx,
-                      BUTTON_CENTER /* x */,
-                      BUTTON_CENTER /* y */,
-                      BUTTON_RADIUS /* radius */,
-                      (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0) /* start */,
-                      highlight_start + (M_PI / 3.0) /* end */);
-            cairo_stroke(ctx);
         }
     }
 
@@ -671,7 +674,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_expr *te_layout_y_expr = te_compile(layout_y_expr, vars, NUM_VARS, &te_y_err);
     te_expr *te_bar_expr = te_compile(bar_expr, vars, NUM_VARS, &te_x_err);
 
-    if (xr_screens > 0) {
+    if (xr_screens > 0 && !bar_enabled) {
         /* Composite the unlock indicator in the middle of each screen. */
         // excuse me, just gonna hack something in right here
         if (screen_number != -1 && screen_number < xr_screens) {
@@ -768,7 +771,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 }
             }
         }
-    } else {
+    } else if (!bar_enabled) {
         /* We have no information about the screen sizes/positions, so we just
          * place the unlock indicator in the middle of the X root window and
          * hope for the best. */
@@ -802,43 +805,60 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
             cairo_fill(xcb_ctx);
         }
-    }
-    // oh boy, here we go!
-    // this really needs to be broken into functions or something :D
-    double bar_offset = te_eval(te_bar_expr);
-    if (bar_enabled) {
+    } else {
+        // oh boy, here we go!
+        // TODO: get this to play nicely with multiple monitors
+        // ideally it'd intelligently span both monitors
+        double bar_offset = te_eval(te_bar_expr);
         double x, y, width, height;
         double back_x = 0, back_y = 0, back_x2 = 0, back_y2 = 0, back_width = 0, back_height = 0;
         for(int i = 0; i < num_bars; ++i) {
             double cur_bar_height = bar_heights[i];
             
             if (cur_bar_height > 0) {
-                cairo_set_source_rgba(bar_ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
+                if (unlock_state == STATE_BACKSPACE_ACTIVE) {
+                    cairo_set_source_rgba(bar_ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+                } else {
+                    cairo_set_source_rgba(bar_ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
+                }
             } else {
-                cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                DEBUG("auth state is now %d\n", auth_state);
+                switch (auth_state) {
+                    case STATE_AUTH_VERIFY:
+                    case STATE_AUTH_LOCK:
+                        cairo_set_source_rgba(bar_ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
+                        break;
+                    case STATE_AUTH_WRONG:
+                    case STATE_I3LOCK_LOCK_FAILED:
+                        cairo_set_source_rgba(bar_ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
+                        break;
+                    default:
+                        cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                        break;
+                }
             }
 
             if (bar_orientation == BAR_VERT) {
-                width = (cur_bar_height < 0 ? bar_base_height : cur_bar_height);
+                width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
                 height = bar_width;
                 x = bar_offset;
                 y = i * bar_width;
                 if (bar_bidirectional) {
-                    width = (cur_bar_height < 0 ? bar_base_height : cur_bar_height) * 2;
+                    width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height) * 2;
                     x = bar_offset - (width / 2) + (bar_base_height / 2);
                 }
             } else {
                 width = bar_width;
-                height = (cur_bar_height < 0 ? bar_base_height : cur_bar_height);
+                height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
                 x = i * bar_width;
                 y = bar_offset;
                 if (bar_bidirectional) {
-                    height = (cur_bar_height < 0 ? bar_base_height : cur_bar_height) * 2;
+                    height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height) * 2;
                     y = bar_offset - (height / 2) + (bar_base_height / 2);
                 }
             }
             
-            if (cur_bar_height < bar_base_height) {
+            if (cur_bar_height < bar_base_height && cur_bar_height > 0) {
                 if (bar_orientation == BAR_VERT) {
                     back_x = bar_offset + cur_bar_height;
                     back_y = y;
@@ -863,12 +883,23 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     }
                 }
             }
-            
             cairo_rectangle(bar_ctx, x, y, width, height);
             cairo_fill(bar_ctx);
             if ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
                     || (!bar_bidirectional && (cur_bar_height < bar_base_height))) {
-                cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                switch (auth_state) {
+                    case STATE_AUTH_VERIFY:
+                    case STATE_AUTH_LOCK:
+                        cairo_set_source_rgba(bar_ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
+                        break;
+                    case STATE_AUTH_WRONG:
+                    case STATE_I3LOCK_LOCK_FAILED:
+                        cairo_set_source_rgba(bar_ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
+                        break;
+                    default:
+                        cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                        break;
+                }
                 cairo_rectangle(bar_ctx, back_x, back_y, back_width, back_height);
                 if (bar_bidirectional) {
                     cairo_rectangle(bar_ctx, back_x2, back_y2, back_width, back_height);
@@ -893,6 +924,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_free(te_date_y_expr);
     te_free(te_layout_x_expr);
     te_free(te_layout_y_expr);
+    te_free(te_bar_expr);
 
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(time_output);

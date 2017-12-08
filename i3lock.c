@@ -180,6 +180,8 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+// for the rendering thread, so we can clean it up
+pthread_t draw_thread;
 
 #define BAR_VERT 0
 #define BAR_FLAT 1
@@ -194,7 +196,7 @@ int num_bars = 0;
 int bar_width = 15;
 int bar_orientation = BAR_FLAT;
 
-char bar_base_color[9] = "00000033";
+char bar_base_color[9] = "000000ff";
 char bar_expr[32] = "0\0";
 bool bar_bidirectional = false;
 
@@ -1526,8 +1528,8 @@ int main(int argc, char *argv[]) {
                     bar_bidirectional = true;                    
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-width") == 0) {
-                    int width = atoi(optarg);
-                    if (width < 1) width = 15;
+                    bar_width = atoi(optarg);
+                    if (bar_width < 1) bar_width = 15;
                     // num_bars and bar_heights* initialized later when we grab display info
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-orientation") == 0) {
@@ -1817,7 +1819,6 @@ int main(int argc, char *argv[]) {
 // boy i sure hope this doesnt change in the future
 #define NANOSECONDS_IN_SECOND 1000000000
     if (show_clock || bar_enabled) {
-        pthread_t draw_thread;
         struct timespec ts;
         double s;
         double ns = modf(refresh_rate, &s);
