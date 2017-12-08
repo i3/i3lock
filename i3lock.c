@@ -188,20 +188,24 @@ bool redraw_thread = false;
 
 #define BAR_VERT 0
 #define BAR_FLAT 1
+#define BAR_DEFAULT 0
+#define BAR_REVERSED 1
+#define BAR_BIDIRECTIONAL 2
 // experimental bar stuff
 bool bar_enabled = false;
 double *bar_heights = NULL;
 double bar_step = 15;
-double bar_base_height = 15;
-double bar_periodic_step = 1;
-double max_bar_height = 50;
+double bar_base_height = 25;
+double bar_periodic_step = 15;
+double max_bar_height = 25;
 int num_bars = 0;
-int bar_width = 15;
+int bar_width = 150;
 int bar_orientation = BAR_FLAT;
 
 char bar_base_color[9] = "000000ff";
 char bar_expr[32] = "0\0";
 bool bar_bidirectional = false;
+bool bar_reversed = false;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -1090,7 +1094,7 @@ int main(int argc, char *argv[]) {
         {"ring-width", required_argument, NULL, 0},
         
         {"bar-indicator", no_argument, NULL, 0},
-        {"bar-bidirectional", no_argument, NULL, 0},
+        {"bar-direction", required_argument, NULL, 0},
         {"bar-width", required_argument, NULL, 0},
         {"bar-orientation", required_argument, NULL, 0},
         {"bar-step", required_argument, NULL, 0},
@@ -1529,12 +1533,23 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[longoptind].name, "bar-indicator") == 0) {
                     bar_enabled = true;                    
                 }
-                else if (strcmp(longopts[longoptind].name, "bar-bidirectional") == 0) {
-                    bar_bidirectional = true;                    
+                else if (strcmp(longopts[longoptind].name, "bar-direction") == 0) {
+                    int opt = atoi(optarg);
+                    switch(opt) {
+                        case BAR_REVERSED:
+                            bar_reversed = true;
+                            break;
+                        case BAR_BIDIRECTIONAL:
+                            bar_bidirectional = true;
+                            break;
+                        case BAR_DEFAULT:
+                        default:
+                            break;
+                    }
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-width") == 0) {
                     bar_width = atoi(optarg);
-                    if (bar_width < 1) bar_width = 15;
+                    if (bar_width < 1) bar_width = 150;
                     // num_bars and bar_heights* initialized later when we grab display info
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-orientation") == 0) {
@@ -1552,11 +1567,11 @@ int main(int argc, char *argv[]) {
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-max-height") == 0) {
                     max_bar_height = atoi(optarg);
-                    if (max_bar_height < 1) max_bar_height = 50;
+                    if (max_bar_height < 1) max_bar_height = 25;
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-base-width") == 0) {
                     bar_base_height = atoi(optarg);
-                    if (bar_base_height < 1) bar_base_height = 15;
+                    if (bar_base_height < 1) bar_base_height = 25;
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-color") == 0) {
                     char *arg = optarg;

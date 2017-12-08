@@ -182,6 +182,7 @@ extern int bar_orientation;
 extern char bar_base_color[9];
 extern char bar_expr[32];
 extern bool bar_bidirectional;
+extern bool bar_reversed;
 
 /*
  * Initialize all the color arrays once.
@@ -702,29 +703,27 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
             cairo_fill(xcb_ctx);
 
-            if (te_time_x_expr && te_time_y_expr) {
-                tx = 0;
-                ty = 0;
-                tx = te_eval(te_time_x_expr);
-                ty = te_eval(te_time_y_expr);
-                double time_x = tx;
-                double time_y = ty;
-                dx = te_eval(te_date_x_expr);
-                dy = te_eval(te_date_y_expr);
-                double date_x = dx;
-                double date_y = dy;
-                double layout_x = te_eval(te_layout_x_expr);
-                double layout_y = te_eval(te_layout_y_expr);
-                cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-                cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                cairo_fill(xcb_ctx);
-                cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-                cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                cairo_fill(xcb_ctx);
-                cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
-                cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                cairo_fill(xcb_ctx);
-            }
+            tx = 0;
+            ty = 0;
+            tx = te_eval(te_time_x_expr);
+            ty = te_eval(te_time_y_expr);
+            double time_x = tx;
+            double time_y = ty;
+            dx = te_eval(te_date_x_expr);
+            dy = te_eval(te_date_y_expr);
+            double date_x = dx;
+            double date_y = dy;
+            double layout_x = te_eval(te_layout_x_expr);
+            double layout_y = te_eval(te_layout_y_expr);
+            cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+            cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+            cairo_fill(xcb_ctx);
+            cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+            cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+            cairo_fill(xcb_ctx);
+            cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
+            cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+            cairo_fill(xcb_ctx);
         } else {
             for (int screen = 0; screen < xr_screens; screen++) {
                 w = xr_resolutions[screen].width;
@@ -812,6 +811,13 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         // oh boy, here we go!
         // TODO: get this to play nicely with multiple monitors
         // ideally it'd intelligently span both monitors
+        if (screen_number != -1 && screen_number < xr_screens) {
+            w = xr_resolutions[screen_number].width;
+            h = xr_resolutions[screen_number].height;
+        } else {
+            w = xr_resolutions[0].width;
+            h = xr_resolutions[0].height;
+        }
         double bar_offset = te_eval(te_bar_expr);
         double x, y, width, height;
         double back_x = 0, back_y = 0, back_x2 = 0, back_y2 = 0, back_width = 0, back_height = 0;
@@ -846,7 +852,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 height = bar_width;
                 x = bar_offset;
                 y = i * bar_width;
-                if (bar_bidirectional) {
+                if (bar_reversed) {
+                    x -= width;
+                }
+                else if (bar_bidirectional) {
                     width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height) * 2;
                     x = bar_offset - (width / 2) + (bar_base_height / 2);
                 }
@@ -855,7 +864,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
                 x = i * bar_width;
                 y = bar_offset;
-                if (bar_bidirectional) {
+                if (bar_reversed) {
+                    y -= height;
+                }
+                else if (bar_bidirectional) {
                     height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height) * 2;
                     y = bar_offset - (height / 2) + (bar_base_height / 2);
                 }
@@ -867,7 +879,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     back_y = y;
                     back_width = bar_base_height - cur_bar_height;
                     back_height = height;
-                    if (bar_bidirectional) {
+                    if (bar_reversed) {
+                       back_x = bar_offset - bar_base_height; 
+                    }
+                    else if (bar_bidirectional) {
                         back_x = bar_offset;
                         back_y2 = y;
                         back_width = (bar_base_height - (cur_bar_height * 2)) / 2;
@@ -878,7 +893,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     back_y = bar_offset + cur_bar_height;
                     back_width = width;
                     back_height = bar_base_height - cur_bar_height;
-                    if (bar_bidirectional) {
+                    if (bar_reversed) {
+                        back_y = bar_offset - bar_base_height;
+                    }
+                    else if (bar_bidirectional) {
                         back_x2 = x;
                         back_y = bar_offset;
                         back_height = (bar_base_height - (cur_bar_height * 2)) / 2;
@@ -917,6 +935,27 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             if (bar_heights[i] > 0)
                 bar_heights[i] -= bar_periodic_step;
         }
+        tx = 0;
+        ty = 0;
+        tx = te_eval(te_time_x_expr);
+        ty = te_eval(te_time_y_expr);
+        double time_x = tx;
+        double time_y = ty;
+        dx = te_eval(te_date_x_expr);
+        dy = te_eval(te_date_y_expr);
+        double date_x = dx;
+        double date_y = dy;
+        double layout_x = te_eval(te_layout_x_expr);
+        double layout_y = te_eval(te_layout_y_expr);
+        cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
+        cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+        cairo_fill(xcb_ctx);
+        cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
+        cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+        cairo_fill(xcb_ctx);
+        cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
+        cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
+        cairo_fill(xcb_ctx);
     }
     
     te_free(te_ind_x_expr);
