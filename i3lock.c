@@ -23,6 +23,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <err.h>
+#include <errno.h>
 #include <assert.h>
 #ifdef __OpenBSD__
 #include <bsd_auth.h>
@@ -52,6 +53,7 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "blur.h"
+#include "jpg.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -991,6 +993,7 @@ int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
+    JPEG_INFO jpg_info;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -1705,7 +1708,20 @@ int main(int argc, char *argv[]) {
 
     if (image_path) {
         /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
+        if (file_is_jpg(image_path)) {
+            if (debug_mode) {
+                fprintf(stderr, "Image looks like a jpeg, decoding\n");
+            }
+
+            unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
+            if (jpg_data != NULL) {
+                img = cairo_image_surface_create_for_data(jpg_data,
+                        CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
+                        jpg_info.stride);
+            }
+        } else {
+            img = cairo_image_surface_create_from_png(image_path);
+        }
         /* In case loading failed, we just pretend no -i was specified. */
         if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
             fprintf(stderr, "Could not load image \"%s\": %s\n",
