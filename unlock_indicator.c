@@ -251,6 +251,7 @@ void init_colors_once(void) {
     colorgen(&tmp, keyhlcolor, &keyhl16);
     colorgen(&tmp, bshlcolor, &bshl16);
     colorgen(&tmp, separatorcolor, &sep16);
+    colorgen(&tmp, bar_base_color, &bar16);
     colorgen_rgb(&tmp_rgb, color, &rgb16);
 }
 
@@ -814,9 +815,13 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (screen_number != -1 && screen_number < xr_screens) {
             w = xr_resolutions[screen_number].width;
             h = xr_resolutions[screen_number].height;
+            ix = w / 2;
+            iy = h / 2;
         } else {
             w = xr_resolutions[0].width;
             h = xr_resolutions[0].height;
+            ix = w / 2;
+            iy = h / 2;
         }
         double bar_offset = te_eval(te_bar_expr);
         double x, y, width, height;
@@ -831,7 +836,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     cairo_set_source_rgba(bar_ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
                 }
             } else {
-                DEBUG("auth state is now %d\n", auth_state);
                 switch (auth_state) {
                     case STATE_AUTH_VERIFY:
                     case STATE_AUTH_LOCK:
@@ -856,7 +860,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     x -= width;
                 }
                 else if (bar_bidirectional) {
-                    width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height) * 2;
+                    width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height * 2);
                     x = bar_offset - (width / 2) + (bar_base_height / 2);
                 }
             } else {
@@ -868,7 +872,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     y -= height;
                 }
                 else if (bar_bidirectional) {
-                    height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height) * 2;
+                    height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height * 2);
                     y = bar_offset - (height / 2) + (bar_base_height / 2);
                 }
             }
@@ -922,10 +926,24 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                         break;
                 }
                 cairo_rectangle(bar_ctx, back_x, back_y, back_width, back_height);
+                cairo_fill(bar_ctx);
                 if (bar_bidirectional) {
+                    switch (auth_state) {
+                        case STATE_AUTH_VERIFY:
+                        case STATE_AUTH_LOCK:
+                            cairo_set_source_rgba(bar_ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
+                            break;
+                        case STATE_AUTH_WRONG:
+                        case STATE_I3LOCK_LOCK_FAILED:
+                            cairo_set_source_rgba(bar_ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
+                            break;
+                        default:
+                            cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                            break;
+                    }
                     cairo_rectangle(bar_ctx, back_x2, back_y2, back_width, back_height);
-                }
                 cairo_fill(bar_ctx);                
+                }
             }
         }
         cairo_set_source_surface(xcb_ctx, bar_output, 0, 0);
