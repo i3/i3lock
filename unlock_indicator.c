@@ -14,8 +14,8 @@
 #include <xcb/xcb.h>
 #include <ev.h>
 #include <cairo.h>
+#include <cairo-ft.h>
 #include <cairo/cairo-xcb.h>
-
 #include "i3lock.h"
 #include "xcb.h"
 #include "unlock_indicator.h"
@@ -79,7 +79,10 @@ static xcb_visualtype_t *vistype;
  * indicator. */
 unlock_state_t unlock_state;
 auth_state_t auth_state;
-
+/* Cache the font we use after looking it up once, and reference count it
+ * fontconfig likes to get an _unsigned_ char*, so we'll store it as that */
+cairo_font_face_t *sans_serif = NULL;
+const unsigned char* font_face_name = (const unsigned char *) "sans-serif";
 /*
  * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
  * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
@@ -89,6 +92,83 @@ static double scaling_factor(void) {
     const int dpi = (double)screen->height_in_pixels * 25.4 /
                     (double)screen->height_in_millimeters;
     return (dpi / 96.0);
+}
+
+/*
+ * Returns the cairo_font_face_t for sans-serif
+ * if this thing returns NULL, then we're somehow on a system without a
+ * sans-serif font, or a system without fontconfig (but with cairo somehow)
+ * Reference counts and caches the font-face, so we don't have memory leaks
+ * (and so that we don't have to go through all the parsing each time)
+ */
+
+static cairo_font_face_t *get_font_face() {
+    if (cairo_font_face_get_reference_count(sans_serif)) {
+        return cairo_font_face_reference(sans_serif);
+    }
+
+    FcResult result;
+    FcBool res = FcInit();
+    if (!res) {
+        DEBUG("Fontconfig init failed. No fonts will be available...\n");
+        return NULL;
+    }
+
+    FcPattern *pattern = FcNameParse(font_face_name);
+    if (!pattern) {
+        DEBUG("no sans-serif font available\n");
+        return NULL;
+    }
+
+    FcDefaultSubstitute(pattern);
+    if (!FcConfigSubstitute(FcConfigGetCurrent(), pattern, FcMatchPattern)) {
+        DEBUG("config sub failed?\n");
+        return NULL;
+    }
+    FcPattern *tmp = FcFontMatch(FcConfigGetCurrent(), pattern, &result);
+    if (!tmp) {
+        DEBUG("no sans-serif font available\n");
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+
+    FcPatternDestroy(pattern);
+    pattern = tmp;
+    tmp = NULL;
+    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern);
+
+    FcPatternDestroy(pattern);
+    sans_serif = cairo_font_face_reference(face);
+    return face;
+}
+
+/*
+ * Draws the given text onto the cairo context, using glyphs
+ */
+
+static void draw_text(cairo_t *ctx, const char *text, double offset) {
+    cairo_status_t status;
+    cairo_text_extents_t extents;
+    cairo_glyph_t *glyphs = NULL;
+    int num_glyphs;
+    double x, y;
+
+    cairo_text_extents(ctx, text, &extents);
+    x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+    y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + offset;
+
+    status = cairo_scaled_font_text_to_glyphs(cairo_get_scaled_font(ctx),
+            x, y,
+            text, -1,
+            &glyphs, &num_glyphs,
+            NULL, NULL, NULL);
+    if (status == CAIRO_STATUS_SUCCESS) {
+        cairo_show_glyphs(ctx, glyphs, num_glyphs);
+        cairo_glyph_free(glyphs);
+    } else {
+        DEBUG("Failed to draw text [%s] with reason: %s\n",
+                text, cairo_status_to_string(status));
+    }
 }
 
 /*
@@ -203,63 +283,54 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         char buf[4];
 
         cairo_set_source_rgb(ctx, 0, 0, 0);
-        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
-        switch (auth_state) {
-            case STATE_AUTH_VERIFY:
-                text = "verifying…";
-                break;
-            case STATE_AUTH_LOCK:
-                text = "locking…";
-                break;
-            case STATE_AUTH_WRONG:
-                text = "wrong!";
-                break;
-            case STATE_I3LOCK_LOCK_FAILED:
-                text = "lock failed!";
-                break;
-            default:
-                if (show_failed_attempts && failed_attempts > 0) {
-                    if (failed_attempts > 999) {
-                        text = "> 999";
-                    } else {
-                        snprintf(buf, sizeof(buf), "%d", failed_attempts);
-                        text = buf;
+
+        cairo_font_face_t *face = get_font_face();
+
+        if (!face) {
+            DEBUG("failed to get font face\n");
+        } else {
+            cairo_set_font_face(ctx, face);
+            cairo_set_font_size(ctx, 28.0);
+
+            switch (auth_state) {
+                case STATE_AUTH_VERIFY:
+                    text = "verifying…";
+                    break;
+                case STATE_AUTH_LOCK:
+                    text = "locking…";
+                    break;
+                case STATE_AUTH_WRONG:
+                    text = "wrong!";
+                    break;
+                case STATE_I3LOCK_LOCK_FAILED:
+                    text = "lock failed!";
+                    break;
+                default:
+                    if (show_failed_attempts && failed_attempts > 0) {
+                        if (failed_attempts > 999) {
+                            text = "> 999";
+                        } else {
+                            snprintf(buf, sizeof(buf), "%d", failed_attempts);
+                            text = buf;
+                        }
+                        cairo_set_source_rgb(ctx, 1, 0, 0);
+                        cairo_set_font_size(ctx, 32.0);
                     }
-                    cairo_set_source_rgb(ctx, 1, 0, 0);
-                    cairo_set_font_size(ctx, 32.0);
-                }
-                break;
+                    break;
+            }
+
+            if (text ) {
+                draw_text(ctx, text, 0.0);
+            }
+
+            if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
+                cairo_set_font_size(ctx, 14.0);
+                draw_text(ctx, modifier_string, 28.0);
+            }
+
+            cairo_font_face_destroy(face);
+            face = NULL;
         }
-
-        if (text) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_text_extents(ctx, text, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
-        }
-
-        if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_set_font_size(ctx, 14.0);
-
-            cairo_text_extents(ctx, modifier_string, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, modifier_string);
-            cairo_close_path(ctx);
-        }
-
         /* After the user pressed any valid key or the backspace key, we
          * highlight a random part of the unlock indicator to confirm this
          * keypress. */
