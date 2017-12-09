@@ -7,12 +7,12 @@
  *
  */
 
-#include "blur.h"
-#include <xmmintrin.h>
 
 // number of xmm registers needed to store input pixels for given kernel size
-#define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
 #ifdef __SSE2__
+#include "blur.h"
+#define REGISTERS_CNT (KERNEL_SIZE + 4/2) / 4
+#include <xmmintrin.h>
 void blur_impl_horizontal_pass_sse2(uint32_t *src, uint32_t *dst, int width, int height) {
     uint32_t* o_src = src;
     for (int row = 0; row < height; row++) {
