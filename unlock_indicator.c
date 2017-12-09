@@ -924,7 +924,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     break;
             }
 
-            if (cur_bar_height >= 0 && ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
+            if (cur_bar_height != 0 && ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
                     || (!bar_bidirectional && (cur_bar_height < bar_base_height)))) {
                 cairo_rectangle(bar_ctx, back_x, back_y, back_width, back_height);
                 cairo_fill(bar_ctx);
