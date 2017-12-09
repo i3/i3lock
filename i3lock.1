@@ -296,8 +296,8 @@ ty - the computed y value of the timestring, for the current display.
 .RE
 
 .TP
-.B \-\-refresh\-rate=seconds
-The refresh rate of the indicator, given in seconds. This should automatically align itself, but is somewhat buggy currently.
+.B \-\-refresh\-rate=seconds-as-double
+The refresh rate of the indicator, given in seconds. This should automatically align itself, but is somewhat buggy currently. Values less than one will work, but may result in poor system performance.
 
 .TP
 .B \-\-veriftext="text"
@@ -318,6 +318,52 @@ The fontsize of the text listing all the active modifiers (caps lock, num lock, 
 .TP
 .B \-\-radius
 The radius of the circle. Defaults to 90.
+
+.TP
+.B \-\-bar\-indicator
+Replaces the usual ring indicator with a bar indicator, with a variety of options.
+
+.TP
+.B \-\-redraw\-thread
+Starts a separate thread for redrawing the screen. Potentially worse for security, but makes the bar indicator still do its usual periodic redraws when PAM is authenticating.
+
+.TP
+.B \-\-bar\-direction={0, 1, 2}
+Sets the direction the bars grow in. 0 is the default (downwards, or rightwards, depending on the bar orientation). 1 is the reverse, and 2 is both.
+
+.TP
+.B \-\-bar\-width=15
+Sets the width of the minibars in the bar.
+
+.TP
+.B \-\-bar\-orientation={vertical,horizontal}
+Sets whether the bar is vertically or horizontally oriented. Defaults to horizontal.
+
+.TP
+.B \-\-bar\-step
+Sets the step that each bar decreases by when a key is pressed. A random bar is set to its max height, and then each neighbor is set to (height - step*distance).
+
+.TP
+.B \-\-bar\-max\-height
+The maximum height a bar can get to. When a key is pressed, a random bar is set to this value, and then its neighbors are set to its height, minus the step value.
+
+.TP
+.B \-\-bar\-base\-width
+The thickness of the "base" bar that all the bars originate from. This bar also takes on the ring verif and wrong colors to give authentication feedback.
+
+.TP
+.B \-\-bar\-color
+Sets the default color of the bar base.
+
+.TP
+.B \-\-bar\-periodic\-step
+The value by which the bars decrease each time the screen is redrawn.
+
+.TP
+.B \-\-bar\-position
+Works similarly to the time/date/indicator expressions. If the bar is horizontal, this sets the vertical offset from the top edge. If it's vertically oriented, this sets the horizontal offset from the left edge.
+
+
 
 .SH DPMS
 
@@ -350,3 +396,5 @@ The \-I (-\-inactivity-timeout=seconds) was removed because it only makes sense 
 Michael Stapelberg <michael+i3lock at stapelberg dot de>
 
 Jan-Erik Rediger <badboy at archlinux.us>
+
+Pandora <pandora at techfo dot xyz>
