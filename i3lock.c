@@ -1743,9 +1743,28 @@ int main(int argc, char *argv[]) {
         cairo_set_source_surface(ctx, xcb_img, 0, 0);
         cairo_paint(ctx);
 
+        blur_image_surface(blur_img, blur_sigma);
+        if (img) {
+            if (!tile) {
+                cairo_set_source_surface(ctx, img, 0, 0);
+                cairo_paint(ctx);
+            } else {
+                /* create a pattern and fill a rectangle as big as the screen */
+                cairo_pattern_t *pattern;
+                pattern = cairo_pattern_create_for_surface(img);
+                cairo_set_source(ctx, pattern);
+                cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+                cairo_rectangle(ctx, 0, 0, last_resolution[0], last_resolution[1]);
+                cairo_fill(ctx);
+                cairo_pattern_destroy(pattern);
+            }
+            cairo_set_source_surface(ctx, img, 0, 0);
+            cairo_paint(ctx);
+            cairo_surface_destroy(img);
+            img = NULL;
+        }
         cairo_destroy(ctx);
         cairo_surface_destroy(xcb_img);
-        blur_image_surface(blur_img, blur_sigma);
     }
 
     /* Pixmap on which the image is rendered to (if any) */

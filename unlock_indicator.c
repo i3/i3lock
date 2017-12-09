@@ -310,8 +310,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (blur_img) {
             cairo_set_source_surface(xcb_ctx, blur_img, 0, 0);
             cairo_paint(xcb_ctx);
-        }
-        if (img) {
+        } else { // img can no longer be non-NULL if blur_img is not null
             if (!tile) {
                 cairo_set_source_surface(xcb_ctx, img, 0, 0);
                 cairo_paint(xcb_ctx);
