@@ -76,7 +76,15 @@ AC_SEARCH_LIBS([ev_run], [ev], , [AC_MSG_FAILURE([cannot find the required ev_ru
 
 AC_SEARCH_LIBS([shm_open], [rt])
 
-AC_SEARCH_LIBS([pam_authenticate], [pam])
+# Only disable PAM on OpenBSD where i3lock uses BSD Auth instead
+case "$host" in
+	*-openbsd*)
+	# Nothing yet.
+	;;
+	*)
+	AC_SEARCH_LIBS([pam_authenticate], [pam])
+	;;
+esac
 
 AC_SEARCH_LIBS([iconv_open], [iconv], , [AC_MSG_FAILURE([cannot find the required iconv_open() function despite trying to link with -liconv])])
 
