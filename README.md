@@ -47,6 +47,8 @@ Before you build - check and see if there's a packaged version available for you
 
 If there's no packaged version available - think carefully, since you're using a forked screen locker at your own risk.
 
+If you want to build a non-debug version, you should tag your build before configuring. For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info.
+
 i3lock now uses GNU autotools for building; you'll need to do something like `autoreconf -i && ./configure && make` to build.
 
 ### Required Packages
