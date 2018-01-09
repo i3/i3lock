@@ -108,36 +108,50 @@ static cairo_font_face_t *get_font_face() {
     }
 
     FcResult result;
-    FcBool res = FcInit();
-    if (!res) {
+    /*
+     * Loads the default config.
+     * On successive calls, does no work and just returns true.
+     */
+    if (!FcInit()) {
         DEBUG("Fontconfig init failed. No fonts will be available...\n");
         return NULL;
     }
-
+    /*
+     * converts a font face name to a pattern for that face name
+     */
     FcPattern *pattern = FcNameParse(font_face_name);
     if (!pattern) {
         DEBUG("no sans-serif font available\n");
         return NULL;
     }
 
+    /*
+     * Gets the default font for our pattern. (Gets the default sans-serif font face)
+     * Required to make the following FcFontMatch call for some FontConfig bookkeeping.
+     */
     FcDefaultSubstitute(pattern);
     if (!FcConfigSubstitute(FcConfigGetCurrent(), pattern, FcMatchPattern)) {
         DEBUG("config sub failed?\n");
         return NULL;
     }
-    FcPattern *tmp = FcFontMatch(FcConfigGetCurrent(), pattern, &result);
-    if (!tmp) {
+    /*
+     * Looks up the font pattern and does some internal RenderPrepare work,
+     * then returns the result.
+     */
+    FcPattern *pattern_ready = FcFontMatch(FcConfigGetCurrent(), pattern, &result);
+    FcPatternDestroy(pattern);
+    pattern = NULL;
+    if (!pattern_ready) {
         DEBUG("no sans-serif font available\n");
-        FcPatternDestroy(pattern);
         return NULL;
     }
 
-    FcPatternDestroy(pattern);
-    pattern = tmp;
-    tmp = NULL;
-    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern);
-
-    FcPatternDestroy(pattern);
+    /*
+     * Passes the given pattern into cairo, which loads it into a caito freetype font face.
+     * Increment its reference count and cache it.
+     */
+    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern_ready);
+    FcPatternDestroy(pattern_ready);
     sans_serif = cairo_font_face_reference(face);
     return face;
 }
