@@ -333,7 +333,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     break;
             }
 
-            if (text ) {
+            if (text) {
                 draw_text(ctx, text, 0.0);
             }
 
