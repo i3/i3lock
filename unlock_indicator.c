@@ -79,10 +79,10 @@ static xcb_visualtype_t *vistype;
  * indicator. */
 unlock_state_t unlock_state;
 auth_state_t auth_state;
-/* Cache the font we use after looking it up once, and reference count it
- * fontconfig likes to get an _unsigned_ char*, so we'll store it as that */
+
+/* Cache the font we use after looking it up once, and reference count it */
 cairo_font_face_t *sans_serif = NULL;
-const unsigned char* font_face_name = (const unsigned char *) "sans-serif";
+
 /*
  * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
  * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
@@ -103,8 +103,8 @@ static double scaling_factor(void) {
  */
 
 static cairo_font_face_t *get_font_face() {
-    if (cairo_font_face_get_reference_count(sans_serif)) {
-        return cairo_font_face_reference(sans_serif);
+    if (sans_serif) {
+        return sans_serif;
     }
 
     FcResult result;
@@ -113,13 +113,13 @@ static cairo_font_face_t *get_font_face() {
      * On successive calls, does no work and just returns true.
      */
     if (!FcInit()) {
-        DEBUG("Fontconfig init failed. No fonts will be available...\n");
+        DEBUG("Fontconfig init failed. No text will be shown.\n");
         return NULL;
     }
     /*
      * converts a font face name to a pattern for that face name
      */
-    FcPattern *pattern = FcNameParse(font_face_name);
+    FcPattern *pattern = FcNameParse((const unsigned char *)"sans-serif");
     if (!pattern) {
         DEBUG("no sans-serif font available\n");
         return NULL;
@@ -127,7 +127,8 @@ static cairo_font_face_t *get_font_face() {
 
     /*
      * Gets the default font for our pattern. (Gets the default sans-serif font face)
-     * Required to make the following FcFontMatch call for some FontConfig bookkeeping.
+     * Without these two calls, the FcFontMatch call will fail due to FcConfigGetCurrent()
+     * not giving it a valid/useful config.
      */
     FcDefaultSubstitute(pattern);
     if (!FcConfigSubstitute(FcConfigGetCurrent(), pattern, FcMatchPattern)) {
@@ -136,7 +137,7 @@ static cairo_font_face_t *get_font_face() {
     }
     /*
      * Looks up the font pattern and does some internal RenderPrepare work,
-     * then returns the result.
+     * then returns the resulting pattern that's ready for rendering.
      */
     FcPattern *pattern_ready = FcFontMatch(FcConfigGetCurrent(), pattern, &result);
     FcPatternDestroy(pattern);
@@ -147,7 +148,7 @@ static cairo_font_face_t *get_font_face() {
     }
 
     /*
-     * Passes the given pattern into cairo, which loads it into a caito freetype font face.
+     * Passes the given pattern into cairo, which loads it into a cairo freetype font face.
      * Increment its reference count and cache it.
      */
     cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern_ready);
@@ -172,16 +173,17 @@ static void draw_text(cairo_t *ctx, const char *text, double offset) {
     y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + offset;
 
     status = cairo_scaled_font_text_to_glyphs(cairo_get_scaled_font(ctx),
-            x, y,
-            text, -1,
-            &glyphs, &num_glyphs,
-            NULL, NULL, NULL);
-    if (status == CAIRO_STATUS_SUCCESS) {
+                                              x, y,
+                                              text, -1,
+                                              &glyphs, &num_glyphs,
+                                              NULL, NULL, NULL);
+    if (status != CAIRO_STATUS_SUCCESS) {
+        DEBUG("Failed to draw text [%s] with reason: %s\n",
+              text, cairo_status_to_string(status));
+        return;
+    } else {
         cairo_show_glyphs(ctx, glyphs, num_glyphs);
         cairo_glyph_free(glyphs);
-    } else {
-        DEBUG("Failed to draw text [%s] with reason: %s\n",
-                text, cairo_status_to_string(status));
     }
 }
 
@@ -342,7 +344,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 draw_text(ctx, modifier_string, 28.0);
             }
 
-            cairo_font_face_destroy(face);
             face = NULL;
         }
         /* After the user pressed any valid key or the backspace key, we
