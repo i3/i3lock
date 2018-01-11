@@ -80,8 +80,8 @@ static xcb_visualtype_t *vistype;
 unlock_state_t unlock_state;
 auth_state_t auth_state;
 
-/* Cache the font we use after looking it up once, and reference count it */
-cairo_font_face_t *sans_serif = NULL;
+/* Cache the font we use after looking it up once */
+static cairo_font_face_t *sans_serif = NULL;
 
 /*
  * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
@@ -101,13 +101,12 @@ static double scaling_factor(void) {
  * Reference counts and caches the font-face, so we don't have memory leaks
  * (and so that we don't have to go through all the parsing each time)
  */
-
-static cairo_font_face_t *get_font_face() {
+static cairo_font_face_t *get_font_face(void) {
     if (sans_serif) {
         return sans_serif;
     }
-
     FcResult result;
+
     /*
      * Loads the default config.
      * On successive calls, does no work and just returns true.
@@ -116,6 +115,7 @@ static cairo_font_face_t *get_font_face() {
         DEBUG("Fontconfig init failed. No text will be shown.\n");
         return NULL;
     }
+
     /*
      * converts a font face name to a pattern for that face name
      */
@@ -135,6 +135,7 @@ static cairo_font_face_t *get_font_face() {
         DEBUG("config sub failed?\n");
         return NULL;
     }
+
     /*
      * Looks up the font pattern and does some internal RenderPrepare work,
      * then returns the resulting pattern that's ready for rendering.
@@ -158,33 +159,18 @@ static cairo_font_face_t *get_font_face() {
 }
 
 /*
- * Draws the given text onto the cairo context, using glyphs
+ * Draws the given text onto the cairo context
  */
-
 static void draw_text(cairo_t *ctx, const char *text, double offset) {
-    cairo_status_t status;
     cairo_text_extents_t extents;
-    cairo_glyph_t *glyphs = NULL;
-    int num_glyphs;
     double x, y;
 
     cairo_text_extents(ctx, text, &extents);
     x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
     y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + offset;
 
-    status = cairo_scaled_font_text_to_glyphs(cairo_get_scaled_font(ctx),
-                                              x, y,
-                                              text, -1,
-                                              &glyphs, &num_glyphs,
-                                              NULL, NULL, NULL);
-    if (status != CAIRO_STATUS_SUCCESS) {
-        DEBUG("Failed to draw text [%s] with reason: %s\n",
-              text, cairo_status_to_string(status));
-        return;
-    } else {
-        cairo_show_glyphs(ctx, glyphs, num_glyphs);
-        cairo_glyph_free(glyphs);
-    }
+    cairo_move_to(ctx, x, y);
+    cairo_show_text(ctx, text);
 }
 
 /*
