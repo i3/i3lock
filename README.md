@@ -67,6 +67,21 @@ i3lock now uses GNU autotools for building; you'll need to do something like `au
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
 - libjpeg-turbo >= 1.4.90
+#### Required Packages (Fedora 27)
+- cairo-devel
+- libev
+- libev-devel
+- libjpeg-devel
+- libjpeg-turbo
+- libxcb
+- libxkbcommon
+- libxkbcommon-x11
+- libxkbcommon-x11-devel
+- pam-devel
+- pkg-config
+- xcb-util-devel
+- xcb-util-image
+- xcb-util-image-devel
 
 ##### Aur Package
 [Stable](https://aur.archlinux.org/packages/i3lock-color/)
