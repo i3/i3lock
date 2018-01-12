@@ -19,6 +19,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <err.h>
+#include <errno.h>
 #include <assert.h>
 #ifdef __OpenBSD__
 #include <bsd_auth.h>
@@ -632,6 +633,36 @@ void handle_screen_resize(void) {
     redraw_screen();
 }
 
+static bool verify_png_image(const char *image_path) {
+    if (!image_path) {
+        return false;
+    }
+
+    /* Check file exists and has correct PNG header */
+    FILE *png_file = fopen(image_path, "r");
+    if (png_file == NULL) {
+        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
+        return false;
+    }
+    unsigned char png_header[8];
+    memset(png_header, '\0', sizeof(png_header));
+    int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
+    fclose(png_file);
+    if (bytes_read != sizeof(png_header)) {
+        fprintf(stderr, "Could not read PNG header from \"%s\"\n", image_path);
+        return false;
+    }
+
+    // Check PNG header according to the specification, available at:
+    // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
+    static unsigned char PNG_REFERENCE_HEADER[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
+        fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
+        return false;
+    }
+    return true;
+}
+
 #ifndef __OpenBSD__
 /*
  * Callback function for PAM. We only react on password request callbacks.
@@ -1012,7 +1043,7 @@ int main(int argc, char *argv[]) {
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
-    if (image_path) {
+    if (verify_png_image(image_path)) {
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
         /* In case loading failed, we just pretend no -i was specified. */
@@ -1021,8 +1052,8 @@ int main(int argc, char *argv[]) {
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
         }
-        free(image_path);
     }
+    free(image_path);
 
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
