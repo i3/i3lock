@@ -472,8 +472,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             if (ksym == XKB_KEY_h && !ctrl)
                 break;
 
-            if (input_position == 0)
+            if (input_position == 0) {
+                START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
+                unlock_state = STATE_NOTHING_TO_DELETE;
+                redraw_screen();
                 return;
+            }
 
             /* decrement input_position to point to the previous glyph */
             u8_dec(password, &input_position);
