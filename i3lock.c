@@ -267,7 +267,7 @@ char* get_keylayoutname(int mode, xcb_connection_t* conn) {
             break;
     }
     DEBUG("answer after mode parsing: [%s]\n", answer);
-	// Free symbolic names structures
+    // Free symbolic names structures
     return answer;
 }
 
@@ -471,7 +471,7 @@ static void input_done(void) {
 #endif
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
-    
+
     /* Get state of Caps and Num lock modifiers, to be displayed in
      * STATE_AUTH_WRONG state */
     xkb_mod_index_t idx, num_mods;
@@ -1069,7 +1069,7 @@ int main(int argc, char *argv[]) {
         {"modsize", required_argument, NULL, 0},
         {"radius", required_argument, NULL, 0},
         {"ring-width", required_argument, NULL, 0},
-        
+
         {"bar-indicator", no_argument, NULL, 0},
         {"bar-direction", required_argument, NULL, 0},
         {"bar-width", required_argument, NULL, 0},
@@ -1506,7 +1506,7 @@ int main(int argc, char *argv[]) {
                     always_show_clock = true;
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-indicator") == 0) {
-                    bar_enabled = true;                    
+                    bar_enabled = true;
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-direction") == 0) {
                     int opt = atoi(optarg);
@@ -1557,7 +1557,7 @@ int main(int argc, char *argv[]) {
 
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bar_base_color) != 1)
                         errx(1, "bar-color is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                
+
                 }
                 else if (strcmp(longopts[longoptind].name, "bar-periodic-step") == 0) {
                     int tmp = atoi(optarg);
@@ -1623,7 +1623,7 @@ int main(int argc, char *argv[]) {
             errx(EXIT_FAILURE, "Could not connect to X11, maybe you need to set DISPLAY?");
 
 
-    
+
     if (xkb_x11_setup_xkb_extension(conn,
                                     XKB_X11_MIN_MAJOR_XKB_VERSION,
                                     XKB_X11_MIN_MINOR_XKB_VERSION,
@@ -1633,7 +1633,7 @@ int main(int argc, char *argv[]) {
                                     &xkb_base_event,
                                     &xkb_base_error) != 1)
         errx(EXIT_FAILURE, "Could not setup XKB extension.");
-    
+
     layout_text = get_keylayoutname(keylayout_mode, conn);
     if (layout_text)
         show_clock = true;
@@ -1667,6 +1667,8 @@ int main(int argc, char *argv[]) {
 
 
     const char *locale = getenv("LC_ALL");
+    if (!locale || !*locale)
+        locale = getenv("LC_TIME");
     if (!locale || !*locale)
         locale = getenv("LC_CTYPE");
     if (!locale || !*locale)
