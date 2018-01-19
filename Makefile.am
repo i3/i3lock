@@ -21,8 +21,9 @@ i3lock_CFLAGS = \
 	$(XCB_UTIL_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
 	$(CAIRO_CFLAGS) \
-	$(CODE_COVERAGE_CFLAGS) \
-	$(JPEG_CFLAGS)
+	$(FONTCONFIG_CFLAGS) \
+	$(JPEG_CFLAGS) \
+	$(CODE_COVERAGE_CFLAGS)
 
 i3lock_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -34,8 +35,9 @@ i3lock_LDADD = \
 	$(XCB_UTIL_LIBS) \
 	$(XKBCOMMON_LIBS) \
 	$(CAIRO_LIBS) \
-	$(CODE_COVERAGE_LDFLAGS) \
-	$(JPEG_LIBS)
+	$(JPEG_LIBS) \
+	$(FONTCONFIG_LIBS) \
+	$(CODE_COVERAGE_LDFLAGS)
 
 i3lock_SOURCES = \
 	cursors.h \
@@ -53,7 +55,8 @@ i3lock_SOURCES = \
 	blur.c \
 	blur.h \
 	jpg.c \
-	jpg.h
+	jpg.h \
+	fonts.h
 
 
 EXTRA_DIST = \

@@ -54,6 +54,7 @@
 #include "randr.h"
 #include "blur.h"
 #include "jpg.h"
+#include "fonts.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -110,10 +111,15 @@ int  layout_align = 0;
 
 char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
-char time_font[32] = "sans-serif\0";
-char date_font[32] = "sans-serif\0";
-char status_font[32] = "sans-serif\0";
-char layout_font[32] = "sans-serif\0";
+
+char* fonts[5] = {
+    "sans-serif\0", // verif_font
+    "sans-serif\0", // wrong_font
+    "sans-serif\0", // layout_font
+    "sans-serif\0", // time_font
+    "sans-serif\0", // date_font
+};
+
 char ind_x_expr[32] = "x + (w / 2)\0";
 char ind_y_expr[32] = "y + (h / 2)\0";
 char time_x_expr[32] = "ix - (cw / 2)\0";
@@ -1051,10 +1057,11 @@ int main(int argc, char *argv[]) {
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
         {"keylayout", required_argument, NULL, 0},
-        {"timefont", required_argument, NULL, 0},
-        {"datefont", required_argument, NULL, 0},
-        {"statusfont", required_argument, NULL, 0},
-        {"layoutfont", required_argument, NULL, 0},
+        {"time-font", required_argument, NULL, 0},
+        {"date-font", required_argument, NULL, 0},
+        {"verif-font", required_argument, NULL, 0},
+        {"wrong-font", required_argument, NULL, 0},
+        {"layout-font", required_argument, NULL, 0},
         {"timesize", required_argument, NULL, 0},
         {"datesize", required_argument, NULL, 0},
         {"layoutsize", required_argument, NULL, 0},
@@ -1330,34 +1337,40 @@ int main(int argc, char *argv[]) {
                     }
                     strcpy(date_format,optarg);
                 }
-                else if (strcmp(longopts[longoptind].name, "layoutfont") == 0) {
+                else if (strcmp(longopts[longoptind].name, "layout-font") == 0) {
                     //read in to time_font
                     if (strlen(optarg) > 31) {
                         errx(1, "layout font string can be at most 31 characters\n");
                     }
-                    strcpy(layout_font,optarg);
+                    strcpy(fonts[LAYOUT_FONT],optarg);
                 }
-                else if (strcmp(longopts[longoptind].name, "timefont") == 0) {
+                else if (strcmp(longopts[longoptind].name, "time-font") == 0) {
                     //read in to time_font
                     if (strlen(optarg) > 31) {
                         errx(1, "time font string can be at most 31 characters\n");
                     }
-                    strcpy(time_font,optarg);
+                    strcpy(fonts[TIME_FONT],optarg);
                 }
-                else if (strcmp(longopts[longoptind].name, "datefont") == 0) {
+                else if (strcmp(longopts[longoptind].name, "date-font") == 0) {
                     //read in to date_font
                     if (strlen(optarg) > 31) {
                         errx(1, "date font string can be at most 31 characters\n");
                     }
-                    strcpy(date_font,optarg);
+                    strcpy(fonts[DATE_FONT],optarg);
                 }
-                else if (strcmp(longopts[longoptind].name, "statusfont") == 0) {
-                    //read in to status_font
+                else if (strcmp(longopts[longoptind].name, "verif-font") == 0) {
                     if (strlen(optarg) > 31) {
-                        errx(1, "status font string can be at most 31 "
+                        errx(1, "verif font string can be at most 31 "
                                 "characters\n");
                     }
-                    strcpy(status_font,optarg);
+                    strcpy(fonts[VERIF_FONT],optarg);
+                }
+                else if (strcmp(longopts[longoptind].name, "wrong-font") == 0) {
+                    if (strlen(optarg) > 31) {
+                        errx(1, "wrong font string can be at most 31 "
+                                "characters\n");
+                    }
+                    strcpy(fonts[WRONG_FONT],optarg);
                 }
                 else if (strcmp(longopts[longoptind].name, "timesize") == 0) {
                     char *arg = optarg;

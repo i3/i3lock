@@ -14,6 +14,7 @@
 #include <xcb/xcb.h>
 #include <ev.h>
 #include <cairo.h>
+#include <cairo-ft.h>
 #include <cairo/cairo-xcb.h>
 
 #include "i3lock.h"
@@ -21,6 +22,7 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "tinyexpr.h"
+#include "fonts.h"
 
 /* clock stuff */
 #include <time.h>
@@ -30,6 +32,7 @@ extern double ring_width;
 
 #define BUTTON_RADIUS (circle_radius)
 #define RING_WIDTH (ring_width)
+// TODO: variable clock/button sizes, I guess
 #define BUTTON_SPACE (BUTTON_RADIUS + (RING_WIDTH / 2))
 #define BUTTON_CENTER (BUTTON_RADIUS + (RING_WIDTH / 2))
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
@@ -94,10 +97,7 @@ extern int  date_align;
 extern int  layout_align;
 extern char time_format[32];
 extern char date_format[32];
-extern char time_font[32];
-extern char date_font[32];
-extern char status_font[32];
-extern char layout_font[32];
+extern char *fonts[5];
 extern char ind_x_expr[32];
 extern char ind_y_expr[32];
 extern char time_x_expr[32];
@@ -113,9 +113,9 @@ extern double text_size;
 extern double modifier_size;
 extern double layout_size;
 
-extern char* verif_text;
-extern char* wrong_text;
-extern char* layout_text;
+extern char *verif_text;
+extern char *wrong_text;
+extern char *layout_text;
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -184,6 +184,87 @@ extern char bar_expr[32];
 extern bool bar_bidirectional;
 extern bool bar_reversed;
 
+static cairo_font_face_t *font_faces[5] = {
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+};
+
+static cairo_font_face_t *get_font_face(int which) {
+    if (font_faces[which]) {
+        return font_faces[which];
+    }
+    const unsigned char* face_name = (const unsigned char*) fonts[which];
+    FcResult result;
+        /*
+     * Loads the default config.
+     * On successive calls, does no work and just returns true.
+     */
+    if (!FcInit()) {
+        DEBUG("Fontconfig init failed. No text will be shown.\n");
+        return NULL;
+    }
+
+    /*
+     * converts a font face name to a pattern for that face name
+     */
+    FcPattern *pattern = FcNameParse(face_name);
+    if (!pattern) {
+        DEBUG("no sans-serif font available\n");
+        return NULL;
+    }
+
+    /*
+     * Gets the default font for our pattern. (Gets the default sans-serif font face)
+     * Without these two calls, the FcFontMatch call will fail due to FcConfigGetCurrent()
+     * not giving it a valid/useful config.
+     */
+    FcDefaultSubstitute(pattern);
+    if (!FcConfigSubstitute(FcConfigGetCurrent(), pattern, FcMatchPattern)) {
+        DEBUG("config sub failed?\n");
+        return NULL;
+    }
+
+    /*
+     * Looks up the font pattern and does some internal RenderPrepare work,
+     * then returns the resulting pattern that's ready for rendering.
+     */
+    FcPattern *pattern_ready = FcFontMatch(FcConfigGetCurrent(), pattern, &result);
+    FcPatternDestroy(pattern);
+    pattern = NULL;
+    if (!pattern_ready) {
+        DEBUG("no sans-serif font available\n");
+        return NULL;
+    }
+
+    /*
+     * Passes the given pattern into cairo, which loads it into a cairo freetype font face.
+     * Increment its reference count and cache it.
+     */
+    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern_ready);
+    FcPatternDestroy(pattern_ready);
+    font_faces[which] = cairo_font_face_reference(face);
+    return face;
+}
+
+/*
+ * Draws the given text onto the cairo context
+ */
+// TODO: centering
+// TODO: pass in font, font size?
+static void draw_text(cairo_t *ctx, const char *text, double x, double y) {
+    cairo_text_extents_t extents;
+
+    cairo_text_extents(ctx, text, &extents);
+    //x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+    //y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + offset;
+
+    cairo_move_to(ctx, x, y);
+    cairo_show_text(ctx, text);
+}
+
 /*
  * Initialize all the color arrays once.
  * Called once after options are parsed.
@@ -204,13 +285,13 @@ extern bool bar_reversed;
                                  (strtol(colorstring_tmparr[3], NULL, 16))};
  */
 
-void set_color(char* dest, const char* src, int offset) {
+static void set_color(char* dest, const char* src, int offset) {
     dest[0] = src[offset];
     dest[1] = src[offset + 1];
     dest[2] = '\0';
 }
 
-void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
+static void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
     set_color(tmp->red, src, 0);
     set_color(tmp->green, src, 2);
     set_color(tmp->blue, src, 4);
@@ -222,7 +303,7 @@ void colorgen(rgba_str_t* tmp, const char* src, rgba_t* dest) {
     dest->alpha = strtol(tmp->alpha, NULL, 16) / 255.0;
 }
 
-void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
+static void colorgen_rgb(rgb_str_t* tmp, const char* src, rgb_t* dest) {
     set_color(tmp->red, src, 0);
     set_color(tmp->green, src, 2);
     set_color(tmp->blue, src, 4);
@@ -288,20 +369,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
      * depending on the amount of screens) unlock indicators on.
      * create two more surfaces for time and date display
      */
-    cairo_surface_t *output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, button_diameter_physical, button_diameter_physical);
+    cairo_surface_t *output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, resolution[0], resolution[1]);
     cairo_t *ctx = cairo_create(output);
 
-    cairo_surface_t *time_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
-    cairo_t *time_ctx = cairo_create(time_output);
-
-    cairo_surface_t *date_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
-    cairo_t *date_ctx = cairo_create(date_output);
-
-    cairo_surface_t *layout_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, clock_width_physical, clock_height_physical);
-    cairo_t *layout_ctx = cairo_create(layout_output);
-
-    cairo_surface_t *bar_output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, resolution[0], resolution[1]);
-    cairo_t *bar_ctx = cairo_create(bar_output);
+//    cairo_set_font_face(ctx, get_font_face(0));
 
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
@@ -330,14 +401,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
-
-
-    /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
-    time_t rawtime;
-    struct tm* timeinfo;
-    bool unlock_indic_text = false;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
+        
+    char *text = NULL;
 
     if (unlock_indicator &&
         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
@@ -417,21 +482,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_set_line_width(ctx, 10.0);
 
         /* Display a (centered) text of the current PAM state. */
-        char *text = NULL;
 
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
         cairo_set_source_rgba(ctx, text16.red, text16.green, text16.blue, text16.alpha);
-        cairo_select_font_face(ctx, status_font, CAIRO_FONT_SLANT_NORMAL,
-                CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_font_face_t *status_face = get_font_face(WRONG_FONT);
         cairo_set_font_size(ctx, text_size);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
                 text = verif_text;
+                status_face = get_font_face(VERIF_FONT);
                 break;
             case STATE_AUTH_LOCK:
                 text = "locking…";
+                status_face = get_font_face(VERIF_FONT);
                 break;
             case STATE_AUTH_WRONG:
                 text = wrong_text;
@@ -450,20 +515,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     cairo_set_font_size(ctx, 32.0);
                 }
                 break;
-        }
-
-        if (text) {
-            unlock_indic_text = true;
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_text_extents(ctx, text, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
         }
 
         if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
@@ -545,99 +596,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             }
         }
     }
+    
+    /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
+    // if (show_clock && time)
+    
+    char time_str[40] = {0};
+    char date_str[40] = {0};
 
-    if (show_clock && (!unlock_indic_text || always_show_clock)) {
-        char *text = NULL;
-        char *date = NULL;
-        char time_text[40] = {0};
-        char date_text[40] = {0};
-        // common vars for each if block
-        double x, y;
-        cairo_text_extents_t extents;
+    if (show_clock) {
+        time_t rawtime;
+        struct tm* timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
 
-        strftime(time_text, 40, time_format, timeinfo);
-        strftime(date_text, 40, date_format, timeinfo);
-        text = time_text;
-        date = date_text;
-
-        if (text) {
-            cairo_set_font_size(time_ctx, time_size);
-            cairo_select_font_face(time_ctx, time_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(time_ctx, time16.red, time16.green, time16.blue, time16.alpha);
-
-            cairo_text_extents(time_ctx, text, &extents);
-            switch(time_align) {
-                case 1:
-                    x = 0;
-                    break;
-                case 2:
-                    x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
-                    break;
-                case 0:
-                default:
-                    x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-                    break;
-            }
-
-            y = CLOCK_HEIGHT/2;
-
-            cairo_move_to(time_ctx, x, y);
-            cairo_show_text(time_ctx, text);
-            cairo_close_path(time_ctx);
-        }
-
-        if (date) {
-            cairo_select_font_face(date_ctx, date_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(date_ctx, date16.red, date16.green, date16.blue, date16.alpha);
-            cairo_set_font_size(date_ctx, date_size);
-
-            cairo_text_extents(date_ctx, date, &extents);
-
-            switch(date_align) {
-                case 1:
-                    x = 0;
-                    break;
-                case 2:
-                    x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
-                    break;
-                case 0:
-                default:
-                    x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-                    break;
-            }
-
-            y = CLOCK_HEIGHT/2;
-
-            cairo_move_to(date_ctx, x, y);
-            cairo_show_text(date_ctx, date);
-            cairo_close_path(date_ctx);
-        }
-        if (layout_text) {
-            cairo_select_font_face(layout_ctx, layout_font, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-            cairo_set_source_rgba(layout_ctx, layout16.red, layout16.green, layout16.blue, layout16.alpha);
-            cairo_set_font_size(layout_ctx, layout_size);
-
-            cairo_text_extents(layout_ctx, layout_text, &extents);
-            switch(layout_align) {
-                case 1:
-                    x = 0;
-                    break;
-                case 2:
-                    x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
-                    break;
-                case 0:
-                default:
-                    x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-                    break;
-            }
-
-            y = CLOCK_HEIGHT/2;
-
-            cairo_move_to(layout_ctx, x, y);
-            cairo_show_text(layout_ctx, layout_text);
-            cairo_close_path(layout_ctx);
-
-        }
+        strftime(time_str, 40, time_format, timeinfo);
+        strftime(date_str, 40, date_format, timeinfo);
     }
 
     double ix, iy;
@@ -699,9 +672,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             x = ix - (button_diameter_physical / 2);
             y = iy - (button_diameter_physical / 2);
-            cairo_set_source_surface(xcb_ctx, output, x, y);
-            cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-            cairo_fill(xcb_ctx);
 
             tx = 0;
             ty = 0;
@@ -715,15 +685,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             double date_y = dy;
             double layout_x = te_eval(te_layout_x_expr);
             double layout_y = te_eval(te_layout_y_expr);
-            cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-            cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-            cairo_fill(xcb_ctx);
-            cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-            cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-            cairo_fill(xcb_ctx);
-            cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
-            cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-            cairo_fill(xcb_ctx);
         } else {
             for (int screen = 0; screen < xr_screens; screen++) {
                 w = xr_resolutions[screen].width;
@@ -742,9 +703,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 }
                 x = ix - (button_diameter_physical / 2);
                 y = iy - (button_diameter_physical / 2);
-                cairo_set_source_surface(xcb_ctx, output, x, y);
-                cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-                cairo_fill(xcb_ctx);
                 if (te_time_x_expr && te_time_y_expr) {
                     tx = 0;
                     ty = 0;
@@ -758,15 +716,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     double date_y = dy;
                     double layout_x = te_eval(te_layout_x_expr);
                     double layout_y = te_eval(te_layout_y_expr);
-                    cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-                    cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                    cairo_fill(xcb_ctx);
-                    cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-                    cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                    cairo_fill(xcb_ctx);
-                    cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
-                    cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-                    cairo_fill(xcb_ctx);
                 } else {
                     DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
                     DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
@@ -783,9 +732,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         iy = last_resolution[1] / 2;
         x = ix - (button_diameter_physical / 2);
         y = iy - (button_diameter_physical / 2);
-        cairo_set_source_surface(xcb_ctx, output, x, y);
-        cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
-        cairo_fill(xcb_ctx);
         if (te_time_x_expr && te_time_y_expr) {
             tx = te_eval(te_time_x_expr);
             ty = te_eval(te_time_y_expr);
@@ -797,15 +743,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             double date_y = dy;
             double layout_x = te_eval(te_layout_x_expr);
             double layout_y = te_eval(te_layout_y_expr);
-            cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-            cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-            cairo_fill(xcb_ctx);
-            cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-            cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-            cairo_fill(xcb_ctx);
-            cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
-            cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-            cairo_fill(xcb_ctx);
         }
     } else {
         // oh boy, here we go!
@@ -823,29 +760,29 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             iy = h / 2;
         }
         double bar_offset = te_eval(te_bar_expr);
-        double x, y, width, height;
+        double width, height;
         double back_x = 0, back_y = 0, back_x2 = 0, back_y2 = 0, back_width = 0, back_height = 0;
         for(int i = 0; i < num_bars; ++i) {
             double cur_bar_height = bar_heights[i];
 
             if (cur_bar_height > 0) {
                 if (unlock_state == STATE_BACKSPACE_ACTIVE) {
-                    cairo_set_source_rgba(bar_ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+                    cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
                 } else {
-                    cairo_set_source_rgba(bar_ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
+                    cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
                 }
             } else {
                 switch (auth_state) {
                     case STATE_AUTH_VERIFY:
                     case STATE_AUTH_LOCK:
-                        cairo_set_source_rgba(bar_ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
+                        cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
                         break;
                     case STATE_AUTH_WRONG:
                     case STATE_I3LOCK_LOCK_FAILED:
-                        cairo_set_source_rgba(bar_ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
+                        cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
                         break;
                     default:
-                        cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                        cairo_set_source_rgba(ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
                         break;
                 }
             }
@@ -907,35 +844,32 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     }
                 }
             }
-            cairo_rectangle(bar_ctx, x, y, width, height);
-            cairo_fill(bar_ctx);
+            cairo_rectangle(ctx, x, y, width, height);
+            cairo_fill(ctx);
             switch (auth_state) {
                 case STATE_AUTH_VERIFY:
                 case STATE_AUTH_LOCK:
-                    cairo_set_source_rgba(bar_ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
+                    cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
                     break;
                 case STATE_AUTH_WRONG:
                 case STATE_I3LOCK_LOCK_FAILED:
-                    cairo_set_source_rgba(bar_ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
+                    cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
                     break;
                 default:
-                    cairo_set_source_rgba(bar_ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                    cairo_set_source_rgba(ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
                     break;
             }
 
             if (cur_bar_height > 0 && cur_bar_height < bar_base_height &&  ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
                     || (!bar_bidirectional && (cur_bar_height < bar_base_height)))) {
-                cairo_rectangle(bar_ctx, back_x, back_y, back_width, back_height);
-                cairo_fill(bar_ctx);
+                cairo_rectangle(ctx, back_x, back_y, back_width, back_height);
+                cairo_fill(ctx);
                 if (bar_bidirectional) {
-                    cairo_rectangle(bar_ctx, back_x2, back_y2, back_width, back_height);
-                    cairo_fill(bar_ctx);
+                    cairo_rectangle(ctx, back_x2, back_y2, back_width, back_height);
+                    cairo_fill(ctx);
                 }
             }
         }
-        cairo_set_source_surface(xcb_ctx, bar_output, 0, 0);
-        cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
-        cairo_fill(xcb_ctx);
         for(int i = 0; i < num_bars; ++i) {
             if (bar_heights[i] > 0)
                 bar_heights[i] -= bar_periodic_step;
@@ -952,16 +886,100 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         double date_y = dy;
         double layout_x = te_eval(te_layout_x_expr);
         double layout_y = te_eval(te_layout_y_expr);
-        cairo_set_source_surface(xcb_ctx, time_output, time_x, time_y);
-        cairo_rectangle(xcb_ctx, time_x, time_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-        cairo_fill(xcb_ctx);
-        cairo_set_source_surface(xcb_ctx, date_output, date_x, date_y);
-        cairo_rectangle(xcb_ctx, date_x, date_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-        cairo_fill(xcb_ctx);
-        cairo_set_source_surface(xcb_ctx, layout_output, layout_x, layout_y);
-        cairo_rectangle(xcb_ctx, layout_x, layout_y, CLOCK_WIDTH, CLOCK_HEIGHT);
-        cairo_fill(xcb_ctx);
     }
+    // draw text
+    cairo_text_extents_t extents;
+    if (text) {
+        cairo_text_extents(ctx, text, &extents);
+        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+        y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, text);
+        cairo_close_path(ctx);
+    }
+    // common vars for each if block
+    if (*time_str) {
+        cairo_set_font_size(ctx, time_size);
+        cairo_font_face_t *time_face = get_font_face(TIME_FONT);
+        cairo_set_source_rgba(ctx, time16.red, time16.green, time16.blue, time16.alpha);
+
+        cairo_text_extents(ctx, time_str, &extents);
+        switch(time_align) {
+            case 1:
+                x = 0;
+                break;
+            case 2:
+                x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
+                break;
+            case 0:
+            default:
+                x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+                break;
+        }
+
+        y = CLOCK_HEIGHT/2;
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, time_str);
+        cairo_close_path(ctx);
+    }
+
+    if (*date_str) {
+        cairo_font_face_t *date_face = get_font_face(DATE_FONT);
+        cairo_set_source_rgba(ctx, date16.red, date16.green, date16.blue, date16.alpha);
+        cairo_set_font_size(ctx, date_size);
+
+        cairo_text_extents(ctx, date_str, &extents);
+
+        switch(date_align) {
+            case 1:
+                x = 0;
+                break;
+            case 2:
+                x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
+                break;
+            case 0:
+            default:
+                x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+                break;
+        }
+
+        y = CLOCK_HEIGHT/2;
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, date_str);
+        cairo_close_path(ctx);
+    }
+    if (layout_text && *layout_text) {
+        cairo_font_face_t *layout_face = get_font_face(LAYOUT_FONT);
+        cairo_set_source_rgba(ctx, layout16.red, layout16.green, layout16.blue, layout16.alpha);
+        cairo_set_font_size(ctx, layout_size);
+
+        cairo_text_extents(ctx, layout_text, &extents);
+        switch(layout_align) {
+            case 1:
+                x = 0;
+                break;
+            case 2:
+                x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
+                break;
+            case 0:
+            default:
+                x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
+                break;
+        }
+
+        y = CLOCK_HEIGHT/2;
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, layout_text);
+        cairo_close_path(ctx);
+    }
+        
+    cairo_set_source_surface(xcb_ctx, output, 0, 0);
+    cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+    cairo_fill(xcb_ctx);
 
     te_free(te_ind_x_expr);
     te_free(te_ind_y_expr);
@@ -974,16 +992,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_free(te_bar_expr);
 
     cairo_surface_destroy(xcb_output);
-    cairo_surface_destroy(time_output);
-    cairo_surface_destroy(date_output);
-    cairo_surface_destroy(layout_output);
-    cairo_surface_destroy(bar_output);
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
-    cairo_destroy(time_ctx);
-    cairo_destroy(date_ctx);
-    cairo_destroy(layout_ctx);
-    cairo_destroy(bar_ctx);
     cairo_destroy(xcb_ctx);
     return bg_pixmap;
 }
