@@ -14,7 +14,6 @@
 #include <xcb/xcb.h>
 #include <ev.h>
 #include <cairo.h>
-#include <cairo-ft.h>
 #include <cairo/cairo-xcb.h>
 
 #include "i3lock.h"
@@ -32,7 +31,6 @@ extern double ring_width;
 
 #define BUTTON_RADIUS (circle_radius)
 #define RING_WIDTH (ring_width)
-// TODO: variable clock/button sizes, I guess
 #define BUTTON_SPACE (BUTTON_RADIUS + (RING_WIDTH / 2))
 #define BUTTON_CENTER (BUTTON_RADIUS + (RING_WIDTH / 2))
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
@@ -77,7 +75,8 @@ extern char ringvercolor[9];
 extern char ringwrongcolor[9];
 extern char ringcolor[9];
 extern char linecolor[9];
-extern char textcolor[9];
+extern char verifcolor[9];
+extern char wrongcolor[9];
 extern char layoutcolor[9];
 extern char timecolor[9];
 extern char datecolor[9];
@@ -92,9 +91,12 @@ extern float refresh_rate;
 extern bool show_clock;
 extern bool always_show_clock;
 extern bool show_indicator;
+extern int  verif_align;
+extern int  wrong_align;
 extern int  time_align;
 extern int  date_align;
 extern int  layout_align;
+extern int  modif_align;
 extern char time_format[32];
 extern char date_format[32];
 extern char *fonts[5];
@@ -106,10 +108,15 @@ extern char date_x_expr[32];
 extern char date_y_expr[32];
 extern char layout_x_expr[32];
 extern char layout_y_expr[32];
+extern char status_x_expr[32];
+extern char status_y_expr[32];
+extern char modif_x_expr[32];
+extern char modif_y_expr[32];
 
 extern double time_size;
 extern double date_size;
-extern double text_size;
+extern double verif_size;
+extern double wrong_size;
 extern double modifier_size;
 extern double layout_size;
 
@@ -152,7 +159,8 @@ rgba_t ringver16;
 rgba_t ringwrong16;
 rgba_t ring16;
 rgba_t line16;
-rgba_t text16;
+rgba_t verif16;
+rgba_t wrong16;
 rgba_t layout16;
 rgba_t time16;
 rgba_t date16;
@@ -191,6 +199,19 @@ static cairo_font_face_t *font_faces[5] = {
     NULL,
     NULL,
 };
+
+/*
+ * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
+ * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
+ *
+ */
+static double scaling_factor(void) {
+    const int dpi = (double) screen->height_in_pixels * 25.4 /
+                    (double) screen->height_in_millimeters;
+    return (dpi / 96.0);
+}
+
+
 
 static cairo_font_face_t *get_font_face(int which) {
     if (font_faces[which]) {
@@ -252,17 +273,251 @@ static cairo_font_face_t *get_font_face(int which) {
 /*
  * Draws the given text onto the cairo context
  */
-// TODO: centering
-// TODO: pass in font, font size?
-static void draw_text(cairo_t *ctx, const char *text, double x, double y) {
+static void draw_text(cairo_t *ctx, text_t text) {
+    if (!text.show) return;
     cairo_text_extents_t extents;
 
-    cairo_text_extents(ctx, text, &extents);
-    //x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-    //y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + offset;
+    cairo_set_font_face(ctx, text.font);
+    cairo_set_font_size(ctx, text.size);
 
-    cairo_move_to(ctx, x, y);
-    cairo_show_text(ctx, text);
+    cairo_text_extents(ctx, text.str, &extents);
+
+    double x;
+
+    switch(text.align) {
+        case 1:
+            x = text.x;
+            break;
+        case 2:
+            x= text.x - (extents.width + extents.x_bearing);
+            break;
+        case 0:
+        default:
+            x = text.x - ((extents.width / 2) + (extents.x_bearing / 2));
+            break;
+    }
+
+    cairo_set_source_rgba(ctx, text.color.red, text.color.green, text.color.blue, text.color.alpha);
+    cairo_move_to(ctx, x, text.y);
+    cairo_show_text(ctx, text.str);
+
+    cairo_stroke(ctx);
+}
+
+static void draw_bar(cairo_t *ctx, double x, double y, double bar_offset) {
+    // oh boy, here we go!
+    // TODO: get this to play nicely with multiple monitors
+    // ideally it'd intelligently span both monitors
+    double width, height;
+    double back_x = 0, back_y = 0, back_x2 = 0, back_y2 = 0, back_width = 0, back_height = 0;
+    for(int i = 0; i < num_bars; ++i) {
+        double cur_bar_height = bar_heights[i];
+
+        if (cur_bar_height > 0) {
+            if (unlock_state == STATE_BACKSPACE_ACTIVE) {
+                cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+            } else {
+                cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
+            }
+        } else {
+            switch (auth_state) {
+                case STATE_AUTH_VERIFY:
+                case STATE_AUTH_LOCK:
+                    cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
+                    break;
+                case STATE_AUTH_WRONG:
+                case STATE_I3LOCK_LOCK_FAILED:
+                    cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
+                    break;
+                default:
+                    cairo_set_source_rgba(ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                    break;
+            }
+        }
+
+        if (bar_orientation == BAR_VERT) {
+            width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
+            height = bar_width;
+            x = bar_offset;
+            y = i * bar_width;
+            if (bar_reversed) {
+                x -= width;
+            }
+            else if (bar_bidirectional) {
+                width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height * 2);
+                x = bar_offset - (width / 2) + (bar_base_height / 2);
+            }
+        } else {
+            width = bar_width;
+            height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
+            x = i * bar_width;
+            y = bar_offset;
+            if (bar_reversed) {
+                y -= height;
+            }
+            else if (bar_bidirectional) {
+                height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height * 2);
+                y = bar_offset - (height / 2) + (bar_base_height / 2);
+            }
+        }
+
+        if (cur_bar_height < bar_base_height && cur_bar_height > 0) {
+            if (bar_orientation == BAR_VERT) {
+                back_x = bar_offset + cur_bar_height;
+                back_y = y;
+                back_width = bar_base_height - cur_bar_height;
+                back_height = height;
+                if (bar_reversed) {
+                   back_x = bar_offset - bar_base_height;
+                }
+                else if (bar_bidirectional) {
+                    back_x = bar_offset;
+                    back_y2 = y;
+                    back_width = (bar_base_height - (cur_bar_height * 2)) / 2;
+                    back_x2 = bar_offset + (cur_bar_height * 2) + back_width;
+                }
+            } else {
+                back_x = x;
+                back_y = bar_offset + cur_bar_height;
+                back_width = width;
+                back_height = bar_base_height - cur_bar_height;
+                if (bar_reversed) {
+                    back_y = bar_offset - bar_base_height;
+                }
+                else if (bar_bidirectional) {
+                    back_x2 = x;
+                    back_y = bar_offset;
+                    back_height = (bar_base_height - (cur_bar_height * 2)) / 2;
+                    back_y2= bar_offset + (cur_bar_height * 2) + back_height;
+                }
+            }
+        }
+        cairo_rectangle(ctx, x, y, width, height);
+        cairo_fill(ctx);
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
+                cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
+                break;
+            case STATE_AUTH_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
+                cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
+                break;
+            default:
+                cairo_set_source_rgba(ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
+                break;
+        }
+
+        if (cur_bar_height > 0 && cur_bar_height < bar_base_height &&  ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
+                || (!bar_bidirectional && (cur_bar_height < bar_base_height)))) {
+            cairo_rectangle(ctx, back_x, back_y, back_width, back_height);
+            cairo_fill(ctx);
+            if (bar_bidirectional) {
+                cairo_rectangle(ctx, back_x2, back_y2, back_width, back_height);
+                cairo_fill(ctx);
+            }
+        }
+    }
+    for(int i = 0; i < num_bars; ++i) {
+        if (bar_heights[i] > 0)
+            bar_heights[i] -= bar_periodic_step;
+    }
+}
+
+
+static void draw_indic(cairo_t *ctx, double ind_x, double ind_y) {
+    if (unlock_indicator &&
+        (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
+        cairo_scale(ctx, scaling_factor(), scaling_factor());
+        /* Draw a (centered) circle with transparent background. */
+        cairo_set_line_width(ctx, RING_WIDTH);
+        cairo_arc(ctx, ind_x, ind_y, BUTTON_RADIUS, 0, 2 * M_PI);
+
+        /* Use the appropriate color for the different PAM states
+         * (currently verifying, wrong password, or default) */
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
+                cairo_set_source_rgba(ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
+                break;
+            case STATE_AUTH_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
+                cairo_set_source_rgba(ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
+                break;
+            default:
+                cairo_set_source_rgba(ctx, inside16.red, inside16.green, inside16.blue, inside16.alpha);
+                break;
+        }
+        cairo_fill_preserve(ctx);
+
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
+                cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
+                if (internal_line_source == 1) {
+                  line16.red = ringver16.red;
+                  line16.green = ringver16.green;
+                  line16.blue = ringver16.blue;
+                  line16.alpha = ringver16.alpha;
+                }
+                break;
+            case STATE_AUTH_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
+                cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
+                if (internal_line_source == 1) {
+                  line16.red = ringwrong16.red;
+                  line16.green = ringwrong16.green;
+                  line16.blue = ringwrong16.blue;
+                  line16.alpha = ringwrong16.alpha;
+                }
+                break;
+            case STATE_AUTH_IDLE:
+                cairo_set_source_rgba(ctx, ring16.red, ring16.green, ring16.blue, ring16.alpha);
+                if (internal_line_source == 1) {
+                  line16.red = ring16.red;
+                  line16.green = ring16.green;
+                  line16.blue = ring16.blue;
+                  line16.alpha = ring16.alpha;
+                }
+                break;
+        }
+        cairo_stroke(ctx);
+
+        /* Draw an inner separator line. */
+        if (internal_line_source != 2) { //pretty sure this only needs drawn if it's being drawn over the inside?
+            cairo_set_source_rgba(ctx, line16.red, line16.green, line16.blue, line16.alpha);
+            cairo_set_line_width(ctx, 2.0);
+            cairo_arc(ctx, ind_x, ind_y, BUTTON_RADIUS - 5, 0, 2 * M_PI);
+            cairo_stroke(ctx);
+        }
+        if (unlock_state == STATE_KEY_ACTIVE || unlock_state == STATE_BACKSPACE_ACTIVE) {
+            cairo_set_line_width(ctx, RING_WIDTH);
+            cairo_new_sub_path(ctx);
+            double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
+            cairo_arc(ctx, ind_x, ind_y, BUTTON_RADIUS,
+                      highlight_start, highlight_start + (M_PI / 3.0));
+            if (unlock_state == STATE_KEY_ACTIVE) {
+                /* For normal keys, we use a lighter green. */
+                cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
+            } else {
+                /* For backspace, we use red. */
+                cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+            }
+
+            cairo_stroke(ctx);
+
+            /* Draw two little separators for the highlighted part of the
+             * unlock indicator. */
+            cairo_set_source_rgba(ctx, sep16.red, sep16.green, sep16.blue, sep16.alpha);
+            cairo_arc(ctx, ind_x, ind_y, BUTTON_RADIUS,
+                      highlight_start, highlight_start + (M_PI / 128.0));
+            cairo_stroke(ctx);
+            cairo_arc(ctx, ind_x, ind_y, BUTTON_RADIUS,
+                      (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0),
+                      highlight_start + (M_PI / 3.0));
+            cairo_stroke(ctx);
+        }
+    }
 }
 
 /*
@@ -325,7 +580,8 @@ void init_colors_once(void) {
     colorgen(&tmp, ringwrongcolor, &ringwrong16);
     colorgen(&tmp, ringcolor, &ring16);
     colorgen(&tmp, linecolor, &line16);
-    colorgen(&tmp, textcolor, &text16);
+    colorgen(&tmp, verifcolor, &verif16);
+    colorgen(&tmp, wrongcolor, &wrong16);
     colorgen(&tmp, layoutcolor, &layout16);
     colorgen(&tmp, timecolor, &time16);
     colorgen(&tmp, datecolor, &date16);
@@ -336,17 +592,7 @@ void init_colors_once(void) {
     colorgen_rgb(&tmp_rgb, color, &rgb16);
 }
 
-/*
- * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
- * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
- *
- */
-static double scaling_factor(void) {
-    const int dpi = (double) screen->height_in_pixels * 25.4 /
-                    (double) screen->height_in_millimeters;
-    return (dpi / 96.0);
-}
-
+// init_fonts_once() ?
 
 /*
  * Draws global image with fill color onto a pixmap with the given
@@ -356,8 +602,6 @@ static double scaling_factor(void) {
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
     int button_diameter_physical = ceil(scaling_factor() * BUTTON_DIAMETER);
-    int clock_width_physical = ceil(scaling_factor() * CLOCK_WIDTH);
-    int clock_height_physical = ceil(scaling_factor() * CLOCK_HEIGHT);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor(), button_diameter_physical);
 
@@ -401,218 +645,135 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
-        
-    char *text = NULL;
+
+    /*
+     * gen text
+     * calc vars
+     * process if keystroke or not
+     * draw indicator
+     * draw text
+     */
+
+    // generate all the text to render
+    text_t status_text;
+    status_text.show = false;
+    status_text.font = NULL;
+
+    text_t mod_text;
+    mod_text.show = false;
+    mod_text.font = NULL;
+
+    text_t keylayout_text;
+    keylayout_text.show = false;
+    keylayout_text.font = NULL;
+
+    text_t time_text;
+    time_text.show = false;
+    time_text.font = NULL;
+
+    text_t date_text;
+    date_text.show = false;
+    date_text.font = NULL;
 
     if (unlock_indicator &&
         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
-        cairo_scale(ctx, scaling_factor(), scaling_factor());
-        /* Draw a (centered) circle with transparent background. */
-        cairo_set_line_width(ctx, RING_WIDTH);
-        cairo_arc(ctx,
-                  BUTTON_CENTER /* x */,
-                  BUTTON_CENTER /* y */,
-                  BUTTON_RADIUS /* radius */,
-                  0 /* start */,
-                  2 * M_PI /* end */);
-
-        /* Use the appropriate color for the different PAM states
-         * (currently verifying, wrong password, or default) */
-        switch (auth_state) {
-            case STATE_AUTH_VERIFY:
-            case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
-                break;
-            case STATE_AUTH_WRONG:
-            case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
-                break;
-            default:
-                cairo_set_source_rgba(ctx, inside16.red, inside16.green, inside16.blue, inside16.alpha);
-                break;
-        }
-        cairo_fill_preserve(ctx);
 
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-            case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
-                if (internal_line_source == 1) {
-                  line16.red = ringver16.red;
-                  line16.green = ringver16.green;
-                  line16.blue = ringver16.blue;
-                  line16.alpha = ringver16.alpha;
-                }
-                break;
-            case STATE_AUTH_WRONG:
-            case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
-                if (internal_line_source == 1) {
-                  line16.red = ringwrong16.red;
-                  line16.green = ringwrong16.green;
-                  line16.blue = ringwrong16.blue;
-                  line16.alpha = ringwrong16.alpha;
-                }
-                break;
-            case STATE_AUTH_IDLE:
-                cairo_set_source_rgba(ctx, ring16.red, ring16.green, ring16.blue, ring16.alpha);
-                if (internal_line_source == 1) {
-                  line16.red = ring16.red;
-                  line16.green = ring16.green;
-                  line16.blue = ring16.blue;
-                  line16.alpha = ring16.alpha;
-                }
-                break;
-        }
-        cairo_stroke(ctx);
-
-        /* Draw an inner separator line. */
-        if (internal_line_source != 2) { //pretty sure this only needs drawn if it's being drawn over the inside?
-          cairo_set_source_rgba(ctx, line16.red, line16.green, line16.blue, line16.alpha);
-          cairo_set_line_width(ctx, 2.0);
-          cairo_arc(ctx,
-                    BUTTON_CENTER /* x */,
-                    BUTTON_CENTER /* y */,
-                    BUTTON_RADIUS - 5 /* radius */,
-                    0,
-                    2 * M_PI);
-          cairo_stroke(ctx);
-        }
-
-        cairo_set_line_width(ctx, 10.0);
-
-        /* Display a (centered) text of the current PAM state. */
-
-        /* We don't want to show more than a 3-digit number. */
-        char buf[4];
-
-        cairo_set_source_rgba(ctx, text16.red, text16.green, text16.blue, text16.alpha);
-        cairo_font_face_t *status_face = get_font_face(WRONG_FONT);
-        cairo_set_font_size(ctx, text_size);
-        switch (auth_state) {
-            case STATE_AUTH_VERIFY:
-                text = verif_text;
-                status_face = get_font_face(VERIF_FONT);
+                status_text.show = true;
+                strncpy(status_text.str, verif_text, sizeof(status_text.str));
+                status_text.font = get_font_face(VERIF_FONT);
+                status_text.color = verif16;
+                status_text.size = verif_size;
+                status_text.align = verif_align;
                 break;
             case STATE_AUTH_LOCK:
-                text = "locking…";
-                status_face = get_font_face(VERIF_FONT);
+                status_text.show = true;
+                strncpy(status_text.str, "locking…", sizeof(status_text.str));
+                status_text.font = get_font_face(VERIF_FONT);
+                status_text.color = verif16;
+                status_text.size = verif_size;
+                status_text.align = verif_align;
                 break;
             case STATE_AUTH_WRONG:
-                text = wrong_text;
+                status_text.show = true;
+                strncpy(status_text.str, wrong_text, sizeof(status_text.str));
+                status_text.font = get_font_face(WRONG_FONT);
+                status_text.color = wrong16;
+                status_text.size = wrong_size;
+                status_text.align = wrong_align;
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
-                text = "lock failed!";
+                status_text.show = true;
+                strncpy(status_text.str, "lock failed!", sizeof(status_text.str));
+                status_text.font = get_font_face(WRONG_FONT);
+                status_text.color = wrong16;
+                status_text.size = wrong_size;
+                status_text.align = wrong_align;
                 break;
             default:
                 if (show_failed_attempts && failed_attempts > 0) {
+                    status_text.show = true;
+                    status_text.font = get_font_face(WRONG_FONT);
+                    status_text.color = wrong16;
+                    status_text.size = wrong_size;
+                    status_text.align = wrong_align;
+                    // TODO: variable for this
+                    status_text.size = 32.0;
                     if (failed_attempts > 999) {
-                        text = "> 999";
+                        strncpy(status_text.str, "> 999", sizeof(status_text.str));
                     } else {
-                        snprintf(buf, sizeof(buf), "%d", failed_attempts);
-                        text = buf;
+                        snprintf(status_text.str, sizeof(status_text.str), "%d", failed_attempts);
                     }
-                    cairo_set_font_size(ctx, 32.0);
                 }
                 break;
         }
-
-        if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_set_font_size(ctx, modifier_size);
-
-            cairo_text_extents(ctx, modifier_string, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, modifier_string);
-            cairo_close_path(ctx);
-        }
-
-        /* After the user pressed any valid key or the backspace key, we
-         * highlight a random part of the unlock indicator to confirm this
-         * keypress. */
-        if (unlock_state == STATE_KEY_ACTIVE ||
-            unlock_state == STATE_BACKSPACE_ACTIVE) {
-            if (bar_enabled) {
-                // note: might be biased to cause more hits on lower indices
-                // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
-                int index = rand() % num_bars;
-                bar_heights[index] = max_bar_height;
-                for(int i = 0; i < ((max_bar_height / bar_step) + 1); ++i) {
-                    int low_ind = index - i;
-                    while (low_ind < 0) {
-                        low_ind += num_bars;
-                    }
-                    int high_ind = (index + i) % num_bars;
-                    int tmp_height = max_bar_height - (bar_step * i);
-                    if (tmp_height < 0) tmp_height = 0;
-                    if (bar_heights[low_ind] < tmp_height)
-                        bar_heights[low_ind] = tmp_height;
-                    if (bar_heights[high_ind] < tmp_height)
-                        bar_heights[high_ind] = tmp_height;
-                    if (tmp_height == 0) break;
-                }
-            } else {
-                cairo_set_line_width(ctx, RING_WIDTH);
-                cairo_new_sub_path(ctx);
-                double highlight_start = (rand() % (int)(2 * M_PI * 100)) / 100.0;
-                cairo_arc(ctx,
-                          BUTTON_CENTER /* x */,
-                          BUTTON_CENTER /* y */,
-                          BUTTON_RADIUS /* radius */,
-                          highlight_start,
-                          highlight_start + (M_PI / 3.0));
-                if (unlock_state == STATE_KEY_ACTIVE) {
-                    /* For normal keys, we use a lighter green. */ //lol no
-                    cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
-                } else {
-                    /* For backspace, we use red. */ //lol no
-                    cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
-                }
-
-                cairo_stroke(ctx);
-
-                /* Draw two little separators for the highlighted part of the
-                 * unlock indicator. */
-                cairo_set_source_rgba(ctx, sep16.red, sep16.green, sep16.blue, sep16.alpha);
-                cairo_arc(ctx,
-                          BUTTON_CENTER /* x */,
-                          BUTTON_CENTER /* y */,
-                          BUTTON_RADIUS /* radius */,
-                          highlight_start /* start */,
-                          highlight_start + (M_PI / 128.0) /* end */);
-                cairo_stroke(ctx);
-                cairo_arc(ctx,
-                          BUTTON_CENTER /* x */,
-                          BUTTON_CENTER /* y */,
-                          BUTTON_RADIUS /* radius */,
-                          (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0) /* start */,
-                          highlight_start + (M_PI / 3.0) /* end */);
-                cairo_stroke(ctx);
-            }
-        }
     }
-    
-    /* https://github.com/ravinrabbid/i3lock-clock/commit/0de3a411fa5249c3a4822612c2d6c476389a1297 */
-    // if (show_clock && time)
-    
-    char time_str[40] = {0};
-    char date_str[40] = {0};
 
-    if (show_clock) {
+    if (modifier_string) {
+        mod_text.show = true;
+        strncpy(mod_text.str, modifier_string, sizeof(mod_text.str));
+        mod_text.size = modifier_size;
+        mod_text.font = get_font_face(WRONG_FONT);
+        mod_text.align = modif_align;
+
+        mod_text.color = wrong16;
+    }
+
+    if (layout_text) {
+        keylayout_text.show = true;
+        strncpy(keylayout_text.str, layout_text, sizeof(mod_text.str));
+        keylayout_text.size = layout_size;
+        keylayout_text.font = get_font_face(LAYOUT_FONT);
+        keylayout_text.color = layout16;
+        keylayout_text.align = layout_align;
+    }
+
+    if (show_clock && (!status_text.show || always_show_clock)) {
         time_t rawtime;
         struct tm* timeinfo;
         time(&rawtime);
         timeinfo = localtime(&rawtime);
 
-        strftime(time_str, 40, time_format, timeinfo);
-        strftime(date_str, 40, date_format, timeinfo);
+        strftime(time_text.str, 40, time_format, timeinfo);
+        if (*time_text.str) {
+            time_text.show = true;
+            time_text.size = time_size;
+            time_text.color = time16;
+            time_text.font = get_font_face(TIME_FONT);
+            time_text.align = time_align;
+        }
+        strftime(date_text.str, 40, date_format, timeinfo);
+        if (*date_text.str) {
+            date_text.show = true;
+            date_text.size = date_size;
+            date_text.color = date16;
+            date_text.font = get_font_face(DATE_FONT);
+            date_text.align = date_align;
+        }
     }
 
+    // initialize positioning vars
     double ix, iy;
     double x, y;
     double screen_x, screen_y;
@@ -622,10 +783,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     double dx = 0;
     double dy = 0;
 
-    double clock_width = CLOCK_WIDTH;
-    double clock_height = CLOCK_HEIGHT;
-
     double radius = BUTTON_RADIUS;
+    double bar_offset = 0;
 
     int te_x_err;
     int te_y_err;
@@ -636,10 +795,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         {"ix", &ix}, {"iy", &iy},
         {"tx", &tx}, {"ty", &ty},
         {"dx", &dx}, {"dy", &dy},
-        {"cw", &clock_width}, {"ch", &clock_height}, // pretty sure this is fine.
         {"r", &radius}
     };
-#define NUM_VARS 13
+#define NUM_VARS 11
 
     te_expr *te_ind_x_expr = te_compile(ind_x_expr, vars, NUM_VARS, &te_x_err);
     te_expr *te_ind_y_expr = te_compile(ind_y_expr, vars, NUM_VARS, &te_y_err);
@@ -649,79 +807,57 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_expr *te_date_y_expr = te_compile(date_y_expr, vars, NUM_VARS, &te_y_err);
     te_expr *te_layout_x_expr = te_compile(layout_x_expr, vars, NUM_VARS, &te_x_err);
     te_expr *te_layout_y_expr = te_compile(layout_y_expr, vars, NUM_VARS, &te_y_err);
+    te_expr *te_status_x_expr = te_compile(status_x_expr, vars, NUM_VARS, &te_x_err);
+    te_expr *te_status_y_expr = te_compile(status_y_expr, vars, NUM_VARS, &te_y_err);
+    te_expr *te_modif_x_expr = te_compile(modif_x_expr, vars, NUM_VARS, &te_x_err);
+    te_expr *te_modif_y_expr = te_compile(modif_y_expr, vars, NUM_VARS, &te_y_err);
     te_expr *te_bar_expr = te_compile(bar_expr, vars, NUM_VARS, &te_x_err);
 
+    double time_x = 0, time_y = 0,
+           date_x = 0, date_y = 0,
+           mod_x = 0, mod_y = 0,
+           layout_x = 0, layout_y = 0,
+           status_x = 0, status_y = 0;
+
+    if (screen_number < 0 || !(screen_number < xr_screens)) {
+        screen_number = 0;
+    }
+
     if (xr_screens > 0 && !bar_enabled) {
-        /* Composite the unlock indicator in the middle of each screen. */
-        // excuse me, just gonna hack something in right here
-        if (screen_number != -1 && screen_number < xr_screens) {
-            w = xr_resolutions[screen_number].width;
-            h = xr_resolutions[screen_number].height;
-            screen_x = xr_resolutions[screen_number].x;
-            screen_y = xr_resolutions[screen_number].y;
-            if (te_ind_x_expr && te_ind_y_expr) {
-                ix = 0;
-                iy = 0;
-                ix = te_eval(te_ind_x_expr);
-                iy = te_eval(te_ind_y_expr);
-            }
-            else {
-                ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
-                iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
-            }
-
-            x = ix - (button_diameter_physical / 2);
-            y = iy - (button_diameter_physical / 2);
-
-            tx = 0;
-            ty = 0;
-            tx = te_eval(te_time_x_expr);
-            ty = te_eval(te_time_y_expr);
-            double time_x = tx;
-            double time_y = ty;
-            dx = te_eval(te_date_x_expr);
-            dy = te_eval(te_date_y_expr);
-            double date_x = dx;
-            double date_y = dy;
-            double layout_x = te_eval(te_layout_x_expr);
-            double layout_y = te_eval(te_layout_y_expr);
-        } else {
-            for (int screen = 0; screen < xr_screens; screen++) {
-                w = xr_resolutions[screen].width;
-                h = xr_resolutions[screen].height;
-                screen_x = xr_resolutions[screen].x;
-                screen_y = xr_resolutions[screen].y;
-                if (te_ind_x_expr && te_ind_y_expr) {
-                    ix = 0;
-                    iy = 0;
-                    ix = te_eval(te_ind_x_expr);
-                    iy = te_eval(te_ind_y_expr);
-                }
-                else {
-                    ix = xr_resolutions[screen].x + (xr_resolutions[screen].width / 2);
-                    iy = xr_resolutions[screen].y + (xr_resolutions[screen].height / 2);
-                }
-                x = ix - (button_diameter_physical / 2);
-                y = iy - (button_diameter_physical / 2);
-                if (te_time_x_expr && te_time_y_expr) {
-                    tx = 0;
-                    ty = 0;
-                    tx = te_eval(te_time_x_expr);
-                    ty = te_eval(te_time_y_expr);
-                    double time_x = tx;
-                    double time_y = ty;
-                    dx = te_eval(te_date_x_expr);
-                    dy = te_eval(te_date_y_expr);
-                    double date_x = dx;
-                    double date_y = dy;
-                    double layout_x = te_eval(te_layout_x_expr);
-                    double layout_y = te_eval(te_layout_y_expr);
-                } else {
-                    DEBUG("error codes for exprs are %d, %d\n", te_x_err, te_y_err);
-                    DEBUG("exprs: %s, %s\n", time_x_expr, time_y_expr);
-                }
-            }
+        w = xr_resolutions[screen_number].width;
+        h = xr_resolutions[screen_number].height;
+        screen_x = xr_resolutions[screen_number].x;
+        screen_y = xr_resolutions[screen_number].y;
+        if (te_ind_x_expr && te_ind_y_expr) {
+            ix = 0;
+            iy = 0;
+            ix = te_eval(te_ind_x_expr);
+            iy = te_eval(te_ind_y_expr);
         }
+        else {
+            ix = xr_resolutions[screen_number].x + (xr_resolutions[screen_number].width / 2);
+            iy = xr_resolutions[screen_number].y + (xr_resolutions[screen_number].height / 2);
+        }
+
+        x = ix - (button_diameter_physical / 2);
+        y = iy - (button_diameter_physical / 2);
+
+        tx = 0;
+        ty = 0;
+        tx = te_eval(te_time_x_expr);
+        ty = te_eval(te_time_y_expr);
+        time_x = tx;
+        time_y = ty;
+        dx = te_eval(te_date_x_expr);
+        dy = te_eval(te_date_y_expr);
+        date_x = dx;
+        date_y = dy;
+        layout_x = te_eval(te_layout_x_expr);
+        layout_y = te_eval(te_layout_y_expr);
+        status_x = te_eval(te_status_x_expr);
+        status_y = te_eval(te_status_y_expr);
+        mod_x = te_eval(te_modif_x_expr);
+        mod_y = te_eval(te_modif_y_expr);
     } else if (!bar_enabled) {
         /* We have no information about the screen sizes/positions, so we just
          * place the unlock indicator in the middle of the X root window and
@@ -735,251 +871,43 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         if (te_time_x_expr && te_time_y_expr) {
             tx = te_eval(te_time_x_expr);
             ty = te_eval(te_time_y_expr);
-            double time_x = tx;
-            double time_y = ty;
+            time_x = tx;
+            time_y = ty;
             dx = te_eval(te_date_x_expr);
             dy = te_eval(te_date_y_expr);
-            double date_x = dx;
-            double date_y = dy;
-            double layout_x = te_eval(te_layout_x_expr);
-            double layout_y = te_eval(te_layout_y_expr);
+            date_x = dx;
+            date_y = dy;
+            layout_x = te_eval(te_layout_x_expr);
+            layout_y = te_eval(te_layout_y_expr);
+            status_x = te_eval(te_status_x_expr);
+            status_y = te_eval(te_status_y_expr);
+            mod_x = te_eval(te_modif_x_expr);
+            mod_y = te_eval(te_modif_y_expr);
         }
     } else {
-        // oh boy, here we go!
-        // TODO: get this to play nicely with multiple monitors
-        // ideally it'd intelligently span both monitors
-        if (screen_number != -1 && screen_number < xr_screens) {
-            w = xr_resolutions[screen_number].width;
-            h = xr_resolutions[screen_number].height;
-            ix = w / 2;
-            iy = h / 2;
-        } else {
-            w = xr_resolutions[0].width;
-            h = xr_resolutions[0].height;
-            ix = w / 2;
-            iy = h / 2;
-        }
-        double bar_offset = te_eval(te_bar_expr);
-        double width, height;
-        double back_x = 0, back_y = 0, back_x2 = 0, back_y2 = 0, back_width = 0, back_height = 0;
-        for(int i = 0; i < num_bars; ++i) {
-            double cur_bar_height = bar_heights[i];
+        w = xr_resolutions[screen_number].width;
+        h = xr_resolutions[screen_number].height;
+        ix = w / 2;
+        iy = h / 2;
 
-            if (cur_bar_height > 0) {
-                if (unlock_state == STATE_BACKSPACE_ACTIVE) {
-                    cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
-                } else {
-                    cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
-                }
-            } else {
-                switch (auth_state) {
-                    case STATE_AUTH_VERIFY:
-                    case STATE_AUTH_LOCK:
-                        cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
-                        break;
-                    case STATE_AUTH_WRONG:
-                    case STATE_I3LOCK_LOCK_FAILED:
-                        cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
-                        break;
-                    default:
-                        cairo_set_source_rgba(ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
-                        break;
-                }
-            }
-
-            if (bar_orientation == BAR_VERT) {
-                width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
-                height = bar_width;
-                x = bar_offset;
-                y = i * bar_width;
-                if (bar_reversed) {
-                    x -= width;
-                }
-                else if (bar_bidirectional) {
-                    width = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height * 2);
-                    x = bar_offset - (width / 2) + (bar_base_height / 2);
-                }
-            } else {
-                width = bar_width;
-                height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height);
-                x = i * bar_width;
-                y = bar_offset;
-                if (bar_reversed) {
-                    y -= height;
-                }
-                else if (bar_bidirectional) {
-                    height = (cur_bar_height <= 0 ? bar_base_height : cur_bar_height * 2);
-                    y = bar_offset - (height / 2) + (bar_base_height / 2);
-                }
-            }
-
-            if (cur_bar_height < bar_base_height && cur_bar_height > 0) {
-                if (bar_orientation == BAR_VERT) {
-                    back_x = bar_offset + cur_bar_height;
-                    back_y = y;
-                    back_width = bar_base_height - cur_bar_height;
-                    back_height = height;
-                    if (bar_reversed) {
-                       back_x = bar_offset - bar_base_height;
-                    }
-                    else if (bar_bidirectional) {
-                        back_x = bar_offset;
-                        back_y2 = y;
-                        back_width = (bar_base_height - (cur_bar_height * 2)) / 2;
-                        back_x2 = bar_offset + (cur_bar_height * 2) + back_width;
-                    }
-                } else {
-                    back_x = x;
-                    back_y = bar_offset + cur_bar_height;
-                    back_width = width;
-                    back_height = bar_base_height - cur_bar_height;
-                    if (bar_reversed) {
-                        back_y = bar_offset - bar_base_height;
-                    }
-                    else if (bar_bidirectional) {
-                        back_x2 = x;
-                        back_y = bar_offset;
-                        back_height = (bar_base_height - (cur_bar_height * 2)) / 2;
-                        back_y2= bar_offset + (cur_bar_height * 2) + back_height;
-                    }
-                }
-            }
-            cairo_rectangle(ctx, x, y, width, height);
-            cairo_fill(ctx);
-            switch (auth_state) {
-                case STATE_AUTH_VERIFY:
-                case STATE_AUTH_LOCK:
-                    cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
-                    break;
-                case STATE_AUTH_WRONG:
-                case STATE_I3LOCK_LOCK_FAILED:
-                    cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
-                    break;
-                default:
-                    cairo_set_source_rgba(ctx, bar16.red, bar16.green, bar16.blue, bar16.alpha);
-                    break;
-            }
-
-            if (cur_bar_height > 0 && cur_bar_height < bar_base_height &&  ((bar_bidirectional && ((cur_bar_height * 2) < bar_base_height))
-                    || (!bar_bidirectional && (cur_bar_height < bar_base_height)))) {
-                cairo_rectangle(ctx, back_x, back_y, back_width, back_height);
-                cairo_fill(ctx);
-                if (bar_bidirectional) {
-                    cairo_rectangle(ctx, back_x2, back_y2, back_width, back_height);
-                    cairo_fill(ctx);
-                }
-            }
-        }
-        for(int i = 0; i < num_bars; ++i) {
-            if (bar_heights[i] > 0)
-                bar_heights[i] -= bar_periodic_step;
-        }
+        bar_offset = te_eval(te_bar_expr);
         tx = 0;
         ty = 0;
         tx = te_eval(te_time_x_expr);
         ty = te_eval(te_time_y_expr);
-        double time_x = tx;
-        double time_y = ty;
+        time_x = tx;
+        time_y = ty;
         dx = te_eval(te_date_x_expr);
         dy = te_eval(te_date_y_expr);
-        double date_x = dx;
-        double date_y = dy;
-        double layout_x = te_eval(te_layout_x_expr);
-        double layout_y = te_eval(te_layout_y_expr);
+        date_x = dx;
+        date_y = dy;
+        layout_x = te_eval(te_layout_x_expr);
+        layout_y = te_eval(te_layout_y_expr);
+        status_x = te_eval(te_status_x_expr);
+        status_y = te_eval(te_status_y_expr);
+        mod_x = te_eval(te_modif_x_expr);
+        mod_y = te_eval(te_modif_y_expr);
     }
-    // draw text
-    cairo_text_extents_t extents;
-    if (text) {
-        cairo_text_extents(ctx, text, &extents);
-        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-        y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
-
-        cairo_move_to(ctx, x, y);
-        cairo_show_text(ctx, text);
-        cairo_close_path(ctx);
-    }
-    // common vars for each if block
-    if (*time_str) {
-        cairo_set_font_size(ctx, time_size);
-        cairo_font_face_t *time_face = get_font_face(TIME_FONT);
-        cairo_set_source_rgba(ctx, time16.red, time16.green, time16.blue, time16.alpha);
-
-        cairo_text_extents(ctx, time_str, &extents);
-        switch(time_align) {
-            case 1:
-                x = 0;
-                break;
-            case 2:
-                x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
-                break;
-            case 0:
-            default:
-                x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-                break;
-        }
-
-        y = CLOCK_HEIGHT/2;
-
-        cairo_move_to(ctx, x, y);
-        cairo_show_text(ctx, time_str);
-        cairo_close_path(ctx);
-    }
-
-    if (*date_str) {
-        cairo_font_face_t *date_face = get_font_face(DATE_FONT);
-        cairo_set_source_rgba(ctx, date16.red, date16.green, date16.blue, date16.alpha);
-        cairo_set_font_size(ctx, date_size);
-
-        cairo_text_extents(ctx, date_str, &extents);
-
-        switch(date_align) {
-            case 1:
-                x = 0;
-                break;
-            case 2:
-                x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
-                break;
-            case 0:
-            default:
-                x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-                break;
-        }
-
-        y = CLOCK_HEIGHT/2;
-
-        cairo_move_to(ctx, x, y);
-        cairo_show_text(ctx, date_str);
-        cairo_close_path(ctx);
-    }
-    if (layout_text && *layout_text) {
-        cairo_font_face_t *layout_face = get_font_face(LAYOUT_FONT);
-        cairo_set_source_rgba(ctx, layout16.red, layout16.green, layout16.blue, layout16.alpha);
-        cairo_set_font_size(ctx, layout_size);
-
-        cairo_text_extents(ctx, layout_text, &extents);
-        switch(layout_align) {
-            case 1:
-                x = 0;
-                break;
-            case 2:
-                x = CLOCK_WIDTH - ((extents.width) + extents.x_bearing);
-                break;
-            case 0:
-            default:
-                x = CLOCK_WIDTH/2 - ((extents.width / 2) + extents.x_bearing);
-                break;
-        }
-
-        y = CLOCK_HEIGHT/2;
-
-        cairo_move_to(ctx, x, y);
-        cairo_show_text(ctx, layout_text);
-        cairo_close_path(ctx);
-    }
-        
-    cairo_set_source_surface(xcb_ctx, output, 0, 0);
-    cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
-    cairo_fill(xcb_ctx);
 
     te_free(te_ind_x_expr);
     te_free(te_ind_y_expr);
@@ -989,7 +917,63 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_free(te_date_y_expr);
     te_free(te_layout_x_expr);
     te_free(te_layout_y_expr);
+    te_free(te_status_x_expr);
+    te_free(te_status_y_expr);
+    te_free(te_modif_x_expr);
+    te_free(te_modif_y_expr);
     te_free(te_bar_expr);
+
+    status_text.x = status_x;
+    status_text.y = status_y;
+
+    keylayout_text.x = layout_x;
+    keylayout_text.y = layout_y;
+
+    mod_text.x = mod_x;
+    mod_text.y = mod_y;
+
+    time_text.x = time_x;
+    time_text.y = time_y;
+    date_text.x = date_x;
+    date_text.y = date_y;
+
+    // indicator stuff
+    if (!bar_enabled) {
+        draw_indic(ctx, ix, iy);
+    } else {
+        if (unlock_state == STATE_KEY_ACTIVE ||
+            unlock_state == STATE_BACKSPACE_ACTIVE) {
+            // note: might be biased to cause more hits on lower indices
+            // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
+            int index = rand() % num_bars;
+            bar_heights[index] = max_bar_height;
+            for(int i = 0; i < ((max_bar_height / bar_step) + 1); ++i) {
+                int low_ind = index - i;
+                while (low_ind < 0) {
+                    low_ind += num_bars;
+                }
+                int high_ind = (index + i) % num_bars;
+                int tmp_height = max_bar_height - (bar_step * i);
+                if (tmp_height < 0) tmp_height = 0;
+                if (bar_heights[low_ind] < tmp_height)
+                    bar_heights[low_ind] = tmp_height;
+                if (bar_heights[high_ind] < tmp_height)
+                    bar_heights[high_ind] = tmp_height;
+                if (tmp_height == 0) break;
+            }
+        }
+        draw_bar(ctx, x, y, bar_offset);
+    }
+
+    draw_text(ctx, status_text);
+    draw_text(ctx, keylayout_text);
+    draw_text(ctx, mod_text);
+    draw_text(ctx, time_text);
+    draw_text(ctx, date_text);
+
+    cairo_set_source_surface(xcb_ctx, output, 0, 0);
+    cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+    cairo_fill(xcb_ctx);
 
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(output);
@@ -1051,4 +1035,3 @@ void start_time_redraw_tick(struct ev_loop* main_loop) {
         ev_periodic_start(main_loop, time_redraw_tick);
     }
 }
-

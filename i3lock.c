@@ -76,7 +76,8 @@ char ringvercolor[9] = "3300faff";
 char ringwrongcolor[9] = "7d3300ff";
 char ringcolor[9] = "337d00ff";
 char linecolor[9] = "000000ff";
-char textcolor[9] = "000000ff";
+char verifcolor[9] = "000000ff";
+char wrongcolor[9] = "000000ff";
 char layoutcolor[9] = "000000ff";
 char timecolor[9] = "000000ff";
 char datecolor[9] = "000000ff";
@@ -85,7 +86,7 @@ char bshlcolor[9] = "db3300ff";
 char separatorcolor[9] = "000000ff";
 
 /* int defining which display the lock indicator should be shown on. If -1, then show on all displays.*/
-int screen_number = -1;
+int screen_number = 0;
 /* default is to use the supplied line color, 1 will be ring color, 2 will be to use the inside color for ver/wrong/etc */
 int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
@@ -105,33 +106,47 @@ bool composite = false;
  * 1 = left
  * 2 = right
  */
-int  time_align = 0;
-int  date_align = 0;
-int  layout_align = 0;
+int verif_align = 0;
+int wrong_align = 0;
+int time_align = 0;
+int date_align = 0;
+int layout_align = 0;
+int modif_align = 0;
 
 char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
 
+char verif_font[32] = "sans-serif\0";
+char wrong_font[32] = "sans-serif\0";
+char layout_font[32] = "sans-serif\0";
+char time_font[32] = "sans-serif\0";
+char date_font[32] = "sans-serif\0";
+
 char* fonts[5] = {
-    "sans-serif\0", // verif_font
-    "sans-serif\0", // wrong_font
-    "sans-serif\0", // layout_font
-    "sans-serif\0", // time_font
-    "sans-serif\0", // date_font
+    verif_font,
+    wrong_font,
+    layout_font,
+    time_font,
+    date_font
 };
 
 char ind_x_expr[32] = "x + (w / 2)\0";
 char ind_y_expr[32] = "y + (h / 2)\0";
-char time_x_expr[32] = "ix - (cw / 2)\0";
-char time_y_expr[32] = "iy - (ch / 2)\0";
+char time_x_expr[32] = "ix\0";
+char time_y_expr[32] = "iy\0";
 char date_x_expr[32] = "tx\0";
 char date_y_expr[32] = "ty+30\0";
 char layout_x_expr[32] = "dx\0";
 char layout_y_expr[32] = "dy+30\0";
+char status_x_expr[32] = "ix\0";
+char status_y_expr[32] = "iy\0";
+char modif_x_expr[32] = "ix\0";
+char modif_y_expr[32] = "iy+28\0";
 
 double time_size = 32.0;
 double date_size = 14.0;
-double text_size = 28.0;
+double verif_size = 28.0;
+double wrong_size = 28.0;
 double modifier_size = 14.0;
 double layout_size = 14.0;
 double circle_radius = 90.0;
@@ -1031,8 +1046,9 @@ int main(int argc, char *argv[]) {
         {"ringwrongcolor", required_argument, NULL, 0},   // --r-w
         {"ringcolor", required_argument, NULL, 0},        // --r-c
         {"linecolor", required_argument, NULL, 0},        // --l-c
-        {"textcolor", required_argument, NULL, 0},        // --t-c
-        {"layoutcolor", required_argument, NULL, 0},        // --t-c
+        {"verifcolor", required_argument, NULL, 0},
+        {"wrongcolor", required_argument, NULL, 0},
+        {"layoutcolor", required_argument, NULL, 0},
         {"timecolor", required_argument, NULL, 0},
         {"datecolor", required_argument, NULL, 0},
         {"keyhlcolor", required_argument, NULL, 0},       // --k-c
@@ -1050,9 +1066,12 @@ int main(int argc, char *argv[]) {
         {"refresh-rate", required_argument, NULL, 0},
         {"composite", no_argument, NULL, 0},
 
+        {"verif-align", required_argument, NULL, 0},
+        {"wrong-align", required_argument, NULL, 0},
         {"time-align", required_argument, NULL, 0},
         {"date-align", required_argument, NULL, 0},
         {"layout-align", required_argument, NULL, 0},
+        {"modif-align", required_argument, NULL, 0},
 
         {"timestr", required_argument, NULL, 0},
         {"datestr", required_argument, NULL, 0},
@@ -1068,11 +1087,14 @@ int main(int argc, char *argv[]) {
         {"timepos", required_argument, NULL, 0},
         {"datepos", required_argument, NULL, 0},
         {"layoutpos", required_argument, NULL, 0},
+        {"statuspos", required_argument, NULL, 0},
+        {"modifpos", required_argument, NULL, 0},
         {"indpos", required_argument, NULL, 0},
 
         {"veriftext", required_argument, NULL, 0},
         {"wrongtext", required_argument, NULL, 0},
-        {"textsize", required_argument, NULL, 0},
+        {"verifsize", required_argument, NULL, 0},
+        {"wrongsize", required_argument, NULL, 0},
         {"modsize", required_argument, NULL, 0},
         {"radius", required_argument, NULL, 0},
         {"ring-width", required_argument, NULL, 0},
@@ -1247,15 +1269,25 @@ int main(int argc, char *argv[]) {
                     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", linecolor) != 1)
                         errx(1, "linecolor is invalid, color must be given in 4-byte format: rrggbb\n");
                 }
-                else if (strcmp(longopts[longoptind].name, "textcolor") == 0) {
+                else if (strcmp(longopts[longoptind].name, "verifcolor") == 0) {
                     char *arg = optarg;
 
                     /* Skip # if present */
                     if (arg[0] == '#')
                         arg++;
 
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", textcolor) != 1)
-                        errx(1, "textcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", verifcolor) != 1)
+                        errx(1, "verifcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "wrongcolor") == 0) {
+                    char *arg = optarg;
+
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", wrongcolor) != 1)
+                        errx(1, "wrongcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
                 }
                 else if (strcmp(longopts[longoptind].name, "layoutcolor") == 0) {
                     char *arg = optarg;
@@ -1440,6 +1472,28 @@ int main(int argc, char *argv[]) {
                         errx(1, "layoutpos must be of the form x:y\n");
                     }
                 }
+                else if (strcmp(longopts[longoptind].name, "statuspos") == 0) {
+                    //read in to time_x_expr and time_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "status position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", status_x_expr, status_y_expr) != 2) {
+                        errx(1, "statuspos must be of the form x:y\n");
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "modifpos") == 0) {
+                    //read in to time_x_expr and time_y_expr
+                    if (strlen(optarg) > 31) {
+                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                        errx(1, "modif position string can be at most 31 characters\n");
+                    }
+                    char* arg = optarg;
+                    if (sscanf(arg, "%30[^:]:%30[^:]", modif_x_expr, modif_y_expr) != 2) {
+                        errx(1, "modifpos must be of the form x:y\n");
+                    }
+                }
                 else if (strcmp(longopts[longoptind].name, "refresh-rate") == 0) {
                     char* arg = optarg;
                     refresh_rate = strtof(arg, NULL);
@@ -1457,14 +1511,24 @@ int main(int argc, char *argv[]) {
                 else if (strcmp(longopts[longoptind].name, "wrongtext") == 0) {
                     wrong_text = optarg;
                 }
-                else if (strcmp(longopts[longoptind].name, "textsize") == 0) {
+                else if (strcmp(longopts[longoptind].name, "verifsize") == 0) {
                     char *arg = optarg;
 
-                    if (sscanf(arg, "%lf", &text_size) != 1)
-                        errx(1, "textsize must be a number\n");
-                    if (text_size < 1) {
-                        fprintf(stderr, "textsize must be a positive integer; ignoring...\n");
-                        text_size = 28.0;
+                    if (sscanf(arg, "%lf", &verif_size) != 1)
+                        errx(1, "verifsize must be a number\n");
+                    if (verif_size < 1) {
+                        fprintf(stderr, "verifsize must be a positive integer; ignoring...\n");
+                        verif_size = 28.0;
+                    }
+                }
+                else if (strcmp(longopts[longoptind].name, "wrongsize") == 0) {
+                    char *arg = optarg;
+
+                    if (sscanf(arg, "%lf", &wrong_size) != 1)
+                        errx(1, "wrongsize must be a number\n");
+                    if (wrong_size < 1) {
+                        fprintf(stderr, "wrongsize must be a positive integer; ignoring...\n");
+                        wrong_size = 28.0;
                     }
                 }
                 else if (strcmp(longopts[longoptind].name, "modsize") == 0) {
@@ -1498,6 +1562,16 @@ int main(int argc, char *argv[]) {
                     else {
                         ring_width = new_width;
                     }
+                }
+                else if (strcmp(longopts[longoptind].name, "verif-align") == 0) {
+                    int opt = atoi(optarg);
+                    if (opt < 0 || opt > 2) opt = 0;
+                    verif_align = opt;
+                }
+                else if (strcmp(longopts[longoptind].name, "wrong-align") == 0) {
+                    int opt = atoi(optarg);
+                    if (opt < 0 || opt > 2) opt = 0;
+                    wrong_align = opt;
                 }
                 else if (strcmp(longopts[longoptind].name, "time-align") == 0) {
                     int opt = atoi(optarg);

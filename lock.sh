@@ -19,7 +19,8 @@ V='#bb00bbbb'  # verifying
 --linecolor=$B        \
 --separatorcolor=$D   \
 \
---textcolor=$T        \
+--verifcolor=$T        \
+--wrongcolor=$T        \
 --timecolor=$T        \
 --datecolor=$T        \
 --layoutcolor=$T      \
