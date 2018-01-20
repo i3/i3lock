@@ -445,6 +445,10 @@ static void draw_indic(cairo_t *ctx, double ind_x, double ind_y) {
                 cairo_set_source_rgba(ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
                 break;
             default:
+                if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    cairo_set_source_rgba(ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
+                    break;
+                }
                 cairo_set_source_rgba(ctx, inside16.red, inside16.green, inside16.blue, inside16.alpha);
                 break;
         }
@@ -472,6 +476,16 @@ static void draw_indic(cairo_t *ctx, double ind_x, double ind_y) {
                 }
                 break;
             case STATE_AUTH_IDLE:
+                if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
+                    if (internal_line_source == 1) {
+                        line16.red = ringwrong16.red;
+                        line16.green = ringwrong16.green;
+                        line16.blue = ringwrong16.blue;
+                        line16.alpha = ringwrong16.alpha;
+                    }
+                    break;
+                }
                 cairo_set_source_rgba(ctx, ring16.red, ring16.green, ring16.blue, ring16.alpha);
                 if (internal_line_source == 1) {
                   line16.red = ring16.red;
@@ -712,6 +726,15 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 status_text.align = wrong_align;
                 break;
             default:
+                if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    status_text.show = true;
+                    strncpy(status_text.str, "no input", sizeof(status_text.str));
+                    status_text.font = get_font_face(WRONG_FONT);
+                    status_text.color = wrong16;
+                    status_text.size = wrong_size;
+                    status_text.align = wrong_align;
+                    break;
+                }
                 if (show_failed_attempts && failed_attempts > 0) {
                     status_text.show = true;
                     status_text.font = get_font_face(WRONG_FONT);
