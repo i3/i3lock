@@ -1085,6 +1085,8 @@ int main(int argc, char *argv[]) {
         {"verif-font", required_argument, NULL, 0},
         {"wrong-font", required_argument, NULL, 0},
         {"layout-font", required_argument, NULL, 0},
+        {"verifsize", required_argument, NULL, 0},
+        {"wrongsize", required_argument, NULL, 0},
         {"timesize", required_argument, NULL, 0},
         {"datesize", required_argument, NULL, 0},
         {"layoutsize", required_argument, NULL, 0},
@@ -1097,8 +1099,6 @@ int main(int argc, char *argv[]) {
 
         {"veriftext", required_argument, NULL, 0},
         {"wrongtext", required_argument, NULL, 0},
-        {"verifsize", required_argument, NULL, 0},
-        {"wrongsize", required_argument, NULL, 0},
         {"modsize", required_argument, NULL, 0},
         {"radius", required_argument, NULL, 0},
         {"ring-width", required_argument, NULL, 0},

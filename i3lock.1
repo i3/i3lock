@@ -197,8 +197,16 @@ Sets the color of the ring 'highlight' strokes that appear upon backspace.
 Sets the color of the 'separtor', which is at both ends of the ring highlights.
 
 .TP
-.B \-\-textcolor=rrggbbaa
-Sets the color of the status text ("verifying...", "wrong!", etc).
+.B \-\-verifcolor=rrggbbaa
+Sets the color of the status text while verifying.
+
+.TP
+.B \-\-wrongcolor=rrggbbaa
+Sets the color of the status text when "wrong".
+
+.TP
+.B \-\-layoutcolor=rrggbbaa
+Sets the color of the keyboard layout text.
 
 .TP
 .B \-\-indpos="x position:y position"
@@ -228,14 +236,6 @@ Sets the color of the time in the clock.
 Sets the format used for generating the time string. See strftime(3) for a full list of format specifiers.
 
 .TP
-.B \-\-timefont=sans-serif
-Sets the font used to render the time string.
-
-.TP
-.B \-\-timesize=number
-Sets the font size for rendering the time string. Defaults to 32.
-
-.TP
 .B \-\-timepos="x position:y position"
 Sets the position for the time string. All the variables from \-\-indpos may be used, in addition to:
 
@@ -253,8 +253,8 @@ ch - the clock height.
 .RE
 
 .TP
-.B \-\-time\-align, \-\-date\-align, \-\-layout\-align
-Sets the text alignment of the time, date, and keyboard layout. Values are:
+.B \-\-time\-align, \-\-date\-align, \-\-layout\-align, \-\-verif\-align, \-\-wrong\-align, \-\-modif\-align
+Sets the text alignment of the time, date, keylayout, verification text, wrong text, and modifier text.
 
 .RS
 .RS
@@ -274,13 +274,14 @@ Sets the color of the date in the clock.
 .TP
 .B \-\-datestr="%A, %m %Y"
 Sets the format used for generating the date string. See strftime(3) for a full list of format specifiers.
-.TP
-.B \-\-datefont=sans-serif
-Sets the font used to render the date string.
 
 .TP
-.B \-\-datesize=number
-Sets the font size for rendering the date string. Defaults to 14.
+.B \-\-{time, date, layout, verif, wrong}\-font=sans-serif
+Sets the font used to render various strings.
+
+.TP
+.B \-\-{time, date, layout, verif, wrong}size=number
+Sets the font size used to render various strings.
 
 .TP
 .B \-\-datepos="x position:y position"
@@ -308,16 +309,12 @@ Sets the string to be shown while verifying the password/input/key/etc. Defaults
 Sets the string to be shown upon entering an incorrect password. Defaults to "wrong!".
 
 .TP
-.B \-\-textsize=number
-The fontsize of the status text. Defaults to 28.
-
-.TP
-.B \-\-modsize=number
-The fontsize of the text listing all the active modifiers (caps lock, num lock, etc). Defaults to 14.
-
-.TP
 .B \-\-radius
 The radius of the circle. Defaults to 90.
+
+.TP
+.B \-\-ring\-width
+The width of the ring unlock indicator. Defaults to 7.0.
 
 .TP
 .B \-\-bar\-indicator
