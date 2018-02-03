@@ -605,6 +605,51 @@ te_expr *compile_expression(const char *const from, const char *expression, cons
     return expr;
 }
 
+DrawData create_draw_data() {
+    DrawData draw_data;
+    memset(&draw_data, 0, sizeof(DrawData));
+
+    return draw_data;
+}
+
+void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
+    // indicator stuff
+    if (!bar_enabled) {
+        draw_indic(ctx, draw_data->indicator_x, draw_data->indicator_y);
+    } else {
+        if (unlock_state == STATE_KEY_ACTIVE ||
+            unlock_state == STATE_BACKSPACE_ACTIVE) {
+            // note: might be biased to cause more hits on lower indices
+            // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
+            int index = rand() % num_bars;
+            bar_heights[index] = max_bar_height;
+            for (int i = 0; i < ((max_bar_height / bar_step) + 1); ++i) {
+                int low_ind = index - i;
+                while (low_ind < 0) {
+                    low_ind += num_bars;
+                }
+                int high_ind = (index + i) % num_bars;
+                int tmp_height = max_bar_height - (bar_step * i);
+                if (tmp_height < 0)
+                    tmp_height = 0;
+                if (bar_heights[low_ind] < tmp_height)
+                    bar_heights[low_ind] = tmp_height;
+                if (bar_heights[high_ind] < tmp_height)
+                    bar_heights[high_ind] = tmp_height;
+                if (tmp_height == 0)
+                    break;
+            }
+        }
+        draw_bar(ctx, draw_data->bar_x, draw_data->bar_y, draw_data->bar_offset);
+    }
+
+    draw_text(ctx, draw_data->status_text);
+    draw_text(ctx, draw_data->keylayout_text);
+    draw_text(ctx, draw_data->mod_text);
+    draw_text(ctx, draw_data->time_text);
+    draw_text(ctx, draw_data->date_text);
+}
+
 /*
  * Draws global image with fill color onto a pixmap with the given
  * resolution and returns it.
@@ -663,85 +708,65 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
      * draw indicator
      * draw text
      */
-
-    // generate all the text to render
-    text_t status_text;
-    status_text.show = false;
-    status_text.font = NULL;
-
-    text_t mod_text;
-    mod_text.show = false;
-    mod_text.font = NULL;
-
-    text_t keylayout_text;
-    keylayout_text.show = false;
-    keylayout_text.font = NULL;
-
-    text_t time_text;
-    time_text.show = false;
-    time_text.font = NULL;
-
-    text_t date_text;
-    date_text.show = false;
-    date_text.font = NULL;
+    DrawData draw_data = create_draw_data();
 
     if (unlock_indicator &&
         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-                status_text.show = true;
-                strncpy(status_text.str, verif_text, sizeof(status_text.str));
-                status_text.font = get_font_face(VERIF_FONT);
-                status_text.color = verif16;
-                status_text.size = verif_size;
-                status_text.align = verif_align;
+                draw_data.status_text.show = true;
+                strncpy(draw_data.status_text.str, verif_text, sizeof(draw_data.status_text.str));
+                draw_data.status_text.font = get_font_face(VERIF_FONT);
+                draw_data.status_text.color = verif16;
+                draw_data.status_text.size = verif_size;
+                draw_data.status_text.align = verif_align;
                 break;
             case STATE_AUTH_LOCK:
-                status_text.show = true;
-                strncpy(status_text.str, "locking…", sizeof(status_text.str));
-                status_text.font = get_font_face(VERIF_FONT);
-                status_text.color = verif16;
-                status_text.size = verif_size;
-                status_text.align = verif_align;
+                draw_data.status_text.show = true;
+                strncpy(draw_data.status_text.str, "locking…", sizeof(draw_data.status_text.str));
+                draw_data.status_text.font = get_font_face(VERIF_FONT);
+                draw_data.status_text.color = verif16;
+                draw_data.status_text.size = verif_size;
+                draw_data.status_text.align = verif_align;
                 break;
             case STATE_AUTH_WRONG:
-                status_text.show = true;
-                strncpy(status_text.str, wrong_text, sizeof(status_text.str));
-                status_text.font = get_font_face(WRONG_FONT);
-                status_text.color = wrong16;
-                status_text.size = wrong_size;
-                status_text.align = wrong_align;
+                draw_data.status_text.show = true;
+                strncpy(draw_data.status_text.str, wrong_text, sizeof(draw_data.status_text.str));
+                draw_data.status_text.font = get_font_face(WRONG_FONT);
+                draw_data.status_text.color = wrong16;
+                draw_data.status_text.size = wrong_size;
+                draw_data.status_text.align = wrong_align;
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
-                status_text.show = true;
-                strncpy(status_text.str, "lock failed!", sizeof(status_text.str));
-                status_text.font = get_font_face(WRONG_FONT);
-                status_text.color = wrong16;
-                status_text.size = wrong_size;
-                status_text.align = wrong_align;
+                draw_data.status_text.show = true;
+                strncpy(draw_data.status_text.str, "lock failed!", sizeof(draw_data.status_text.str));
+                draw_data.status_text.font = get_font_face(WRONG_FONT);
+                draw_data.status_text.color = wrong16;
+                draw_data.status_text.size = wrong_size;
+                draw_data.status_text.align = wrong_align;
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    status_text.show = true;
-                    strncpy(status_text.str, "no input", sizeof(status_text.str));
-                    status_text.font = get_font_face(WRONG_FONT);
-                    status_text.color = wrong16;
-                    status_text.size = wrong_size;
-                    status_text.align = wrong_align;
+                    draw_data.status_text.show = true;
+                    strncpy(draw_data.status_text.str, "no input", sizeof(draw_data.status_text.str));
+                    draw_data.status_text.font = get_font_face(WRONG_FONT);
+                    draw_data.status_text.color = wrong16;
+                    draw_data.status_text.size = wrong_size;
+                    draw_data.status_text.align = wrong_align;
                     break;
                 }
                 if (show_failed_attempts && failed_attempts > 0) {
-                    status_text.show = true;
-                    status_text.font = get_font_face(WRONG_FONT);
-                    status_text.color = wrong16;
-                    status_text.size = wrong_size;
-                    status_text.align = wrong_align;
+                    draw_data.status_text.show = true;
+                    draw_data.status_text.font = get_font_face(WRONG_FONT);
+                    draw_data.status_text.color = wrong16;
+                    draw_data.status_text.size = wrong_size;
+                    draw_data.status_text.align = wrong_align;
                     // TODO: variable for this
-                    status_text.size = 32.0;
+                    draw_data.status_text.size = 32.0;
                     if (failed_attempts > 999) {
-                        strncpy(status_text.str, "> 999", sizeof(status_text.str));
+                        strncpy(draw_data.status_text.str, "> 999", sizeof(draw_data.status_text.str));
                     } else {
-                        snprintf(status_text.str, sizeof(status_text.str), "%d", failed_attempts);
+                        snprintf(draw_data.status_text.str, sizeof(draw_data.status_text.str), "%d", failed_attempts);
                     }
                 }
                 break;
@@ -749,45 +774,45 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     }
 
     if (modifier_string) {
-        mod_text.show = true;
-        strncpy(mod_text.str, modifier_string, sizeof(mod_text.str));
-        mod_text.size = modifier_size;
-        mod_text.font = get_font_face(WRONG_FONT);
-        mod_text.align = modif_align;
+        draw_data.mod_text.show = true;
+        strncpy(draw_data.mod_text.str, modifier_string, sizeof(draw_data.mod_text.str));
+        draw_data.mod_text.size = modifier_size;
+        draw_data.mod_text.font = get_font_face(WRONG_FONT);
+        draw_data.mod_text.align = modif_align;
 
-        mod_text.color = wrong16;
+        draw_data.mod_text.color = wrong16;
     }
 
     if (layout_text) {
-        keylayout_text.show = true;
-        strncpy(keylayout_text.str, layout_text, sizeof(mod_text.str));
-        keylayout_text.size = layout_size;
-        keylayout_text.font = get_font_face(LAYOUT_FONT);
-        keylayout_text.color = layout16;
-        keylayout_text.align = layout_align;
+        draw_data.keylayout_text.show = true;
+        strncpy(draw_data.keylayout_text.str, layout_text, sizeof(draw_data.mod_text.str));
+        draw_data.keylayout_text.size = layout_size;
+        draw_data.keylayout_text.font = get_font_face(LAYOUT_FONT);
+        draw_data.keylayout_text.color = layout16;
+        draw_data.keylayout_text.align = layout_align;
     }
 
-    if (show_clock && (!status_text.show || always_show_clock)) {
+    if (show_clock && (!draw_data.status_text.show || always_show_clock)) {
         time_t rawtime;
         struct tm *timeinfo;
         time(&rawtime);
         timeinfo = localtime(&rawtime);
 
-        strftime(time_text.str, 40, time_format, timeinfo);
-        if (*time_text.str) {
-            time_text.show = true;
-            time_text.size = time_size;
-            time_text.color = time16;
-            time_text.font = get_font_face(TIME_FONT);
-            time_text.align = time_align;
+        strftime(draw_data.time_text.str, 40, time_format, timeinfo);
+        if (*draw_data.time_text.str) {
+            draw_data.time_text.show = true;
+            draw_data.time_text.size = time_size;
+            draw_data.time_text.color = time16;
+            draw_data.time_text.font = get_font_face(TIME_FONT);
+            draw_data.time_text.align = time_align;
         }
-        strftime(date_text.str, 40, date_format, timeinfo);
-        if (*date_text.str) {
-            date_text.show = true;
-            date_text.size = date_size;
-            date_text.color = date16;
-            date_text.font = get_font_face(DATE_FONT);
-            date_text.align = date_align;
+        strftime(draw_data.date_text.str, 40, date_format, timeinfo);
+        if (*draw_data.date_text.str) {
+            draw_data.date_text.show = true;
+            draw_data.date_text.size = date_size;
+            draw_data.date_text.color = date16;
+            draw_data.date_text.font = get_font_face(DATE_FONT);
+            draw_data.date_text.align = date_align;
         }
     }
 
@@ -795,16 +820,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     double screen_x = 0, screen_y = 0,
            width = 0, height = 0;
 
-    double mod_x = 0, mod_y = 0,
-           date_x = 0, date_y = 0,
-           bar_x = 0, bar_y = 0,
-           layout_x = 0, layout_y = 0,
-           status_x = 0, status_y = 0,
-           time_x = 0, time_y = 0,
-           indicator_x = 0, indicator_y = 0;
-
     double radius = (circle_radius + ring_width);
-    double bar_offset = 0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor, button_diameter_physical);
@@ -816,12 +832,12 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
          {"h", &height},
          {"x", &screen_x},
          {"y", &screen_y},
-         {"ix", &indicator_x},
-         {"iy", &indicator_y},
-         {"tx", &time_x},
-         {"ty", &time_y},
-         {"dx", &date_x},
-         {"dy", &date_y},
+         {"ix", &draw_data.indicator_x},
+         {"iy", &draw_data.indicator_y},
+         {"tx", &draw_data.time_text.x},
+         {"ty", &draw_data.time_text.y},
+         {"dx", &draw_data.date_text.x},
+         {"dy", &draw_data.date_text.y},
          {"r", &radius}};
 
     te_expr *te_ind_x_expr = compile_expression("--indpos", ind_x_expr, vars, vars_size);
@@ -838,75 +854,87 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_expr *te_modif_y_expr = compile_expression("--modifpos", modif_y_expr, vars, vars_size);
     te_expr *te_bar_expr = compile_expression("--bar-position", bar_expr, vars, vars_size);
 
-    if (screen_number < 0 || !(screen_number < xr_screens)) {
-        screen_number = 0;
-    }
-
-    if (xr_screens > 0 && !bar_enabled) {
-        width = xr_resolutions[screen_number].width / scaling_factor;
-        height = xr_resolutions[screen_number].height / scaling_factor;
-        screen_x = xr_resolutions[screen_number].x / scaling_factor;
-        screen_y = xr_resolutions[screen_number].y / scaling_factor;
-        if (te_ind_x_expr && te_ind_y_expr) {
-            indicator_x = te_eval(te_ind_x_expr);
-            indicator_y = te_eval(te_ind_y_expr);
-        } else {
-            indicator_x = screen_x + (width / 2);
-            indicator_y = screen_y + (height / 2);
+    if (xr_screens > 0) {
+        if (screen_number < 0 || screen_number > xr_screens) {
+            screen_number = 0;
         }
-        bar_x = indicator_x - (button_diameter_physical / 2);
-        bar_y = indicator_y - (button_diameter_physical / 2);
-        time_x = te_eval(te_time_x_expr);
-        time_y = te_eval(te_time_y_expr);
-        date_x = te_eval(te_date_x_expr);
-        date_y = te_eval(te_date_y_expr);
-        layout_x = te_eval(te_layout_x_expr);
-        layout_y = te_eval(te_layout_y_expr);
-        status_x = te_eval(te_status_x_expr);
-        status_y = te_eval(te_status_y_expr);
-        mod_x = te_eval(te_modif_x_expr);
-        mod_y = te_eval(te_modif_y_expr);
-    } else if (!bar_enabled) {
+
+        int current_screen = screen_number == 0 ? 0 : screen_number - 1;
+        const int end_screen = screen_number == 0 ? xr_screens : screen_number;
+        for (; current_screen < end_screen; current_screen++) {
+            draw_data.indicator_x = 0;
+            draw_data.indicator_y = 0;
+            draw_data.time_text.x = 0;
+            draw_data.time_text.y = 0;
+            draw_data.date_text.x = 0;
+            draw_data.date_text.y = 0;
+
+            width = xr_resolutions[current_screen].width / scaling_factor;
+            height = xr_resolutions[current_screen].height / scaling_factor;
+            screen_x = xr_resolutions[current_screen].x / scaling_factor;
+            screen_y = xr_resolutions[current_screen].y / scaling_factor;
+            if (te_ind_x_expr && te_ind_y_expr) {
+                draw_data.indicator_x = te_eval(te_ind_x_expr);
+                draw_data.indicator_y = te_eval(te_ind_y_expr);
+            } else {
+                draw_data.indicator_x = screen_x + width / 2;
+                draw_data.indicator_y = screen_y + height / 2;
+            }
+            draw_data.bar_x = draw_data.indicator_x - (button_diameter_physical / 2);
+            draw_data.bar_y = draw_data.indicator_y - (button_diameter_physical / 2);
+            draw_data.bar_offset = te_eval(te_bar_expr);
+            draw_data.time_text.x = te_eval(te_time_x_expr);
+            draw_data.time_text.y = te_eval(te_time_y_expr);
+            draw_data.date_text.x = te_eval(te_date_x_expr);
+            draw_data.date_text.y = te_eval(te_date_y_expr);
+            draw_data.keylayout_text.x = te_eval(te_layout_x_expr);
+            draw_data.keylayout_text.y = te_eval(te_layout_y_expr);
+            draw_data.status_text.x = te_eval(te_status_x_expr);
+            draw_data.status_text.y = te_eval(te_status_y_expr);
+            draw_data.mod_text.x = te_eval(te_modif_x_expr);
+            draw_data.mod_text.y = te_eval(te_modif_y_expr);
+
+            DEBUG("Indicator at %fx%f on screen %d\n", draw_data.indicator_x, draw_data.indicator_y, current_screen + 1);
+            DEBUG("Bar at %fx%f on screen %d\n", draw_data.bar_x, draw_data.bar_y, current_screen + 1);
+            DEBUG("Time at %fx%f on screen %d\n", draw_data.time_text.x, draw_data.time_text.y, current_screen + 1);
+            DEBUG("Date at %fx%f on screen %d\n", draw_data.date_text.x, draw_data.date_text.y, current_screen + 1);
+            DEBUG("Layout at %fx%f on screen %d\n", draw_data.keylayout_text.x, draw_data.keylayout_text.y, current_screen + 1);
+            DEBUG("Status at %fx%f on screen %d\n", draw_data.status_text.x, draw_data.status_text.y, current_screen + 1);
+            DEBUG("Mod at %fx%f on screen %d\n", draw_data.mod_text.x, draw_data.mod_text.y, current_screen + 1);
+            // scale_draw_data(&draw_data, scaling_factor);
+            draw_elements(ctx, &draw_data);
+        }
+    } else {
         /* We have no information about the screen sizes/positions, so we just
          * place the unlock indicator in the middle of the X root window and
          * hope for the best. */
         width = last_resolution[0] / scaling_factor;
         height = last_resolution[1] / scaling_factor;
-        indicator_x = width / 2;
-        indicator_y = height / 2;
-        bar_x = indicator_x - (button_diameter_physical / 2);
-        bar_y = indicator_y - (button_diameter_physical / 2);
-        if (te_time_x_expr && te_time_y_expr) {
-            time_x = te_eval(te_time_x_expr);
-            time_y = te_eval(te_time_y_expr);
-            date_x = te_eval(te_date_x_expr);
-            date_y = te_eval(te_date_y_expr);
-            layout_x = te_eval(te_layout_x_expr);
-            layout_y = te_eval(te_layout_y_expr);
-            status_x = te_eval(te_status_x_expr);
-            status_y = te_eval(te_status_y_expr);
-            mod_x = te_eval(te_modif_x_expr);
-            mod_y = te_eval(te_modif_y_expr);
-        }
-    } else {
-        width = xr_resolutions[screen_number].width / scaling_factor;
-        height = xr_resolutions[screen_number].height / scaling_factor;
-        indicator_x = width / 2;
-        indicator_y = height / 2;
-        bar_x = indicator_x - (button_diameter_physical / 2);
-        bar_y = indicator_y - (button_diameter_physical / 2);
+        draw_data.indicator_x = width / 2;
+        draw_data.indicator_y = height / 2;
+        draw_data.bar_x = draw_data.indicator_x - (button_diameter_physical / 2);
+        draw_data.bar_y = draw_data.indicator_y - (button_diameter_physical / 2);
 
-        bar_offset = te_eval(te_bar_expr);
-        time_x = te_eval(te_time_x_expr);
-        time_y = te_eval(te_time_y_expr);
-        date_x = te_eval(te_date_x_expr);
-        date_y = te_eval(te_date_y_expr);
-        layout_x = te_eval(te_layout_x_expr);
-        layout_y = te_eval(te_layout_y_expr);
-        status_x = te_eval(te_status_x_expr);
-        status_y = te_eval(te_status_y_expr);
-        mod_x = te_eval(te_modif_x_expr);
-        mod_y = te_eval(te_modif_y_expr);
+        draw_data.time_text.x = te_eval(te_time_x_expr);
+        draw_data.time_text.y = te_eval(te_time_y_expr);
+        draw_data.date_text.x = te_eval(te_date_x_expr);
+        draw_data.date_text.y = te_eval(te_date_y_expr);
+        draw_data.keylayout_text.x = te_eval(te_layout_x_expr);
+        draw_data.keylayout_text.y = te_eval(te_layout_y_expr);
+        draw_data.status_text.x = te_eval(te_status_x_expr);
+        draw_data.status_text.y = te_eval(te_status_y_expr);
+        draw_data.mod_text.x = te_eval(te_modif_x_expr);
+        draw_data.mod_text.y = te_eval(te_modif_y_expr);
+
+        DEBUG("Indicator at %fx%f\n", draw_data.indicator_x, draw_data.indicator_y);
+        DEBUG("Bar at %fx%f\n", draw_data.bar_x, draw_data.bar_y);
+        DEBUG("Time at %fx%f\n", draw_data.time_text.x, draw_data.time_text.y);
+        DEBUG("Date at %fx%f\n", draw_data.date_text.x, draw_data.date_text.y);
+        DEBUG("Layout at %fx%f\n", draw_data.keylayout_text.x, draw_data.keylayout_text.y);
+        DEBUG("Status at %fx%f\n", draw_data.status_text.x, draw_data.status_text.y);
+        DEBUG("Mod at %fx%f\n", draw_data.mod_text.x, draw_data.mod_text.y);
+
+        draw_elements(ctx, &draw_data);
     }
 
     te_free(te_ind_x_expr);
@@ -922,64 +950,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_free(te_modif_x_expr);
     te_free(te_modif_y_expr);
     te_free(te_bar_expr);
-
-    DEBUG("Indicator at %fx%f\n", indicator_x, indicator_y);
-    DEBUG("Bar at %fx%f\n", bar_x, bar_y);
-    DEBUG("Time at %fx%f\n", time_x, time_y);
-    DEBUG("Date at %fx%f\n", date_x, date_y);
-    DEBUG("Layout at %fx%f\n", layout_x, layout_y);
-    DEBUG("Status at %fx%f\n", status_x, status_y);
-    DEBUG("Mod at %fx%f\n", mod_x, mod_y);
-
-    status_text.x = status_x;
-    status_text.y = status_y;
-
-    keylayout_text.x = layout_x;
-    keylayout_text.y = layout_y;
-
-    mod_text.x = mod_x;
-    mod_text.y = mod_y;
-
-    time_text.x = time_x;
-    time_text.y = time_y;
-    date_text.x = date_x;
-    date_text.y = date_y;
-
-    // indicator stuff
-    if (!bar_enabled) {
-        draw_indic(ctx, indicator_x, indicator_y);
-    } else {
-        if (unlock_state == STATE_KEY_ACTIVE ||
-            unlock_state == STATE_BACKSPACE_ACTIVE) {
-            // note: might be biased to cause more hits on lower indices
-            // maybe see about doing ((double) rand() / RAND_MAX) * num_bars
-            int index = rand() % num_bars;
-            bar_heights[index] = max_bar_height;
-            for (int i = 0; i < ((max_bar_height / bar_step) + 1); ++i) {
-                int low_ind = index - i;
-                while (low_ind < 0) {
-                    low_ind += num_bars;
-                }
-                int high_ind = (index + i) % num_bars;
-                int tmp_height = max_bar_height - (bar_step * i);
-                if (tmp_height < 0)
-                    tmp_height = 0;
-                if (bar_heights[low_ind] < tmp_height)
-                    bar_heights[low_ind] = tmp_height;
-                if (bar_heights[high_ind] < tmp_height)
-                    bar_heights[high_ind] = tmp_height;
-                if (tmp_height == 0)
-                    break;
-            }
-        }
-        draw_bar(ctx, bar_x, bar_y, bar_offset);
-    }
-
-    draw_text(ctx, status_text);
-    draw_text(ctx, keylayout_text);
-    draw_text(ctx, mod_text);
-    draw_text(ctx, time_text);
-    draw_text(ctx, date_text);
 
     cairo_set_source_surface(xcb_ctx, output, 0, 0);
     cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
