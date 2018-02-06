@@ -203,7 +203,7 @@ static cairo_font_face_t *font_faces[5] = {
  *
  */
 static double calculate_scaling_factor(void) {
-    const double dpi = (double)screen->height_in_pixels * 25.4 /
+    const int dpi = (double)screen->height_in_pixels * 25.4 /
                        (double)screen->height_in_millimeters;
     return dpi / 96.0;
 }
@@ -262,6 +262,7 @@ static cairo_font_face_t *get_font_face(int which) {
     cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern_ready);
     FcPatternDestroy(pattern_ready);
     font_faces[which] = cairo_font_face_reference(face);
+    FcFini();
     return face;
 }
 
@@ -595,7 +596,7 @@ void init_colors_once(void) {
     colorgen_rgb(&tmp_rgb, color, &rgb16);
 }
 
-te_expr *compile_expression(const char *const from, const char *expression, const te_variable *variables, int var_count) {
+static te_expr *compile_expression(const char *const from, const char *expression, const te_variable *variables, int var_count) {
     int te_err = 0;
     te_expr *expr = te_compile(expression, variables, var_count, &te_err);
     if (te_err) {
@@ -605,14 +606,14 @@ te_expr *compile_expression(const char *const from, const char *expression, cons
     return expr;
 }
 
-DrawData create_draw_data() {
+static DrawData create_draw_data() {
     DrawData draw_data;
     memset(&draw_data, 0, sizeof(DrawData));
 
     return draw_data;
 }
 
-void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
+static void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
     // indicator stuff
     if (!bar_enabled) {
         draw_indic(ctx, draw_data->indicator_x, draw_data->indicator_y);
@@ -822,7 +823,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     double radius = (circle_radius + ring_width);
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
-    DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
+    DEBUG("scaling_factor is %f, physical diameter is %d px\n",
           scaling_factor, button_diameter_physical);
 
     // variable mapping for evaluating the clock position expression
