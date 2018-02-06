@@ -155,6 +155,7 @@ static cairo_font_face_t *get_font_face(void) {
     cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(pattern_ready);
     FcPatternDestroy(pattern_ready);
     sans_serif = cairo_font_face_reference(face);
+    FcFini();
     return face;
 }
 
