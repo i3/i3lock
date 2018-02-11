@@ -807,8 +807,7 @@ static void raise_loop(xcb_window_t window) {
     xcb_generic_event_t *event;
     int screens;
 
-    if ((conn = xcb_connect(NULL, &screens)) == NULL ||
-        xcb_connection_has_error(conn))
+    if (xcb_connection_has_error((conn = xcb_connect(NULL, &screens))) > 0)
         errx(EXIT_FAILURE, "Cannot open display\n");
 
     /* We need to know about the window being obscured or getting destroyed. */
