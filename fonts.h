@@ -1,6 +1,11 @@
+#ifndef FONTS_H
+#define FONTS_H
+
 #include <cairo.h>
 #include <cairo-ft.h>
 #include <stdbool.h>
+
+#include "rgba.h"
 
 #define VERIF_FONT  0
 #define WRONG_FONT  1
@@ -21,3 +26,5 @@ typedef struct text {
 
     int align;
 } text_t;
+
+#endif

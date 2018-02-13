@@ -2,32 +2,9 @@
 #define _UNLOCK_INDICATOR_H
 
 #include <ev.h>
+#include <xcb/xcb.h>
 
-typedef struct rgb {
-	double red;
-	double green;
-	double blue;
-} rgb_t;
-
-typedef struct rgb_str {
-	char red[3];
-	char green[3];
-	char blue[3];
-} rgb_str_t;
-
-typedef struct rgba {
-	double red;
-	double green;
-	double blue;
-	double alpha;
-} rgba_t;
-
-typedef struct rgba_str {
-	char red[3];
-	char green[3];
-	char blue[3];
-	char alpha[3];
-} rgba_str_t;
+#include "fonts.h"
 
 typedef enum {
     STATE_STARTED = 0,           /* default state */
@@ -46,6 +23,19 @@ typedef enum {
     STATE_AUTH_WRONG = 3,         /* the password was wrong */
     STATE_I3LOCK_LOCK_FAILED = 4, /* i3lock failed to load */
 } auth_state_t;
+
+typedef struct {
+    text_t status_text;
+    text_t mod_text;
+    text_t keylayout_text;
+    text_t time_text;
+    text_t date_text;
+
+    double indicator_x, indicator_y;
+
+    double bar_x, bar_y;
+    double bar_offset;
+} DrawData;
 
 xcb_pixmap_t draw_image(uint32_t* resolution);
 void init_colors_once(void);
