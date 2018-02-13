@@ -296,6 +296,7 @@ char* get_keylayoutname(int mode, xcb_connection_t* conn) {
  * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
  * Necessary so that we can properly let xkbcommon track the keyboard state and
  * translate keypresses to utf-8.
+ *
  */
 
 static bool load_keymap(void) {
@@ -490,6 +491,7 @@ static void input_done(void) {
         return;
     }
 #endif
+
     if (debug_mode)
         fprintf(stderr, "Authentication failure\n");
 
@@ -825,6 +827,36 @@ void handle_screen_resize(void) {
     redraw_screen();
 }
 
+static bool verify_png_image(const char *image_path) {
+    if (!image_path) {
+        return false;
+    }
+
+    /* Check file exists and has correct PNG header */
+    FILE *png_file = fopen(image_path, "r");
+    if (png_file == NULL) {
+        DEBUG("Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
+        return false;
+    }
+    unsigned char png_header[8];
+    memset(png_header, '\0', sizeof(png_header));
+    int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
+    fclose(png_file);
+    if (bytes_read != sizeof(png_header)) {
+        DEBUG("Could not read PNG header from \"%s\"\n", image_path);
+        return false;
+    }
+
+    // Check PNG header according to the specification, available at:
+    // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
+    static unsigned char PNG_REFERENCE_HEADER[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
+        DEBUG("File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
+        return false;
+    }
+    return true;
+}
+
 #ifndef __OpenBSD__
 /*
  * Callback function for PAM. We only react on password request callbacks.
@@ -969,8 +1001,7 @@ static void raise_loop(xcb_window_t window) {
     xcb_generic_event_t *event;
     int screens;
 
-    if ((conn = xcb_connect(NULL, &screens)) == NULL ||
-        xcb_connection_has_error(conn))
+    if (xcb_connection_has_error((conn = xcb_connect(NULL, &screens))) > 0)
         errx(EXIT_FAILURE, "Cannot open display\n");
 
     /* We need to know about the window being obscured or getting destroyed. */
@@ -1798,31 +1829,25 @@ int main(int argc, char *argv[]) {
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
     init_colors_once();
-
-    if (image_path) {
+    if (verify_png_image(image_path)) {
         /* Create a pixmap to render on, fill it with the background color */
-        if (file_is_jpg(image_path)) {
-            if (debug_mode) {
-                fprintf(stderr, "Image looks like a jpeg, decoding\n");
-            }
-
-            unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
+        img = cairo_image_surface_create_from_png(image_path);
+    } else if (file_is_jpg(image_path)) {
+        DEBUG("Image looks like a jpeg, decoding\n");
+        unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
             if (jpg_data != NULL) {
                 img = cairo_image_surface_create_for_data(jpg_data,
                         CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
                         jpg_info.stride);
             }
-        } else {
-            img = cairo_image_surface_create_from_png(image_path);
-        }
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
-            img = NULL;
-        }
-        free(image_path);
     }
+    /* In case loading failed, we just pretend no -i was specified. */
+    if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+        fprintf(stderr, "Could not load image \"%s\": %s\n",
+                image_path, cairo_status_to_string(cairo_surface_status(img)));
+        img = NULL;
+    }
+    free(image_path);
 
     xcb_pixmap_t* blur_pixmap = NULL;
     if (blur) {
