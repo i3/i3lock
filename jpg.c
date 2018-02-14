@@ -14,6 +14,7 @@
  * Checks if the file is a JPEG by looking for a valid JPEG header.
  */
 bool file_is_jpg(char* file_path) {
+    if (!file_path) return false;
     FILE* image_file;
     uint16_t file_header;
     size_t read_count;

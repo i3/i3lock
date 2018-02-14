@@ -1842,7 +1842,7 @@ int main(int argc, char *argv[]) {
             }
     }
     /* In case loading failed, we just pretend no -i was specified. */
-    if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+    if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
         fprintf(stderr, "Could not load image \"%s\": %s\n",
                 image_path, cairo_status_to_string(cairo_surface_status(img)));
         img = NULL;
