@@ -23,11 +23,19 @@ V='#bb00bbbb'  # verifying
 \
 --clock \
 --force-clock \
---timepos 125:h-110 \
+--timepos 5:h-80 \
 --timecolor 880088ff \
---datepos 5:ty \
---datecolor 770077ff \
+--datepos tx:ty+15 \
+--datecolor 990099ff \
 --date-align 1 \
 --time-align 1 \
 --ringvercolor 8800ff88 \
---ringwrongcolor ff008888
+--ringwrongcolor ff008888 \
+--statuspos 5:h-16 \
+--verif-align 1 \
+--wrong-align 1 \
+--verifcolor ffffffff \
+--wrongcolor ffffffff \
+--modifpos -50:-50 \
+\
+--screen 1

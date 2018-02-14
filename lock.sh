@@ -27,7 +27,7 @@ V='#bb00bbbb'  # verifying
 --keyhlcolor=$W       \
 --bshlcolor=$W        \
 \
---screen 0            \
+--screen 1            \
 --blur 5              \
 --clock               \
 --indicator           \

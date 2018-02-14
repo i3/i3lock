@@ -786,7 +786,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (layout_text) {
         draw_data.keylayout_text.show = true;
-        strncpy(draw_data.keylayout_text.str, layout_text, sizeof(draw_data.mod_text.str));
+        strncpy(draw_data.keylayout_text.str, layout_text, sizeof(draw_data.keylayout_text.str));
         draw_data.keylayout_text.size = layout_size;
         draw_data.keylayout_text.font = get_font_face(LAYOUT_FONT);
         draw_data.keylayout_text.color = layout16;
