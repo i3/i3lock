@@ -879,8 +879,10 @@ int main(int argc, char *argv[]) {
         {"show-failed-attempts", no_argument, NULL, 'f'},
         {NULL, no_argument, NULL, 0}};
 
-    if ((pw = getpwuid(getuid())) == NULL)
+    if ((pw = getpwuid(getuid())) == NULL && errno != 0)
         err(EXIT_FAILURE, "getpwuid() failed");
+    else
+        errx(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
