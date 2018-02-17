@@ -154,6 +154,7 @@ double ring_width = 7.0;
 
 char* verif_text = "verifying…";
 char* wrong_text = "wrong!";
+char* noinput_text = "no input";
 int   keylayout_mode = -1;
 char* layout_text = NULL;
 
@@ -1130,6 +1131,7 @@ int main(int argc, char *argv[]) {
 
         {"veriftext", required_argument, NULL, 0},
         {"wrongtext", required_argument, NULL, 0},
+        {"noinputtext", required_argument, NULL, 0},
         {"modsize", required_argument, NULL, 0},
         {"radius", required_argument, NULL, 0},
         {"ring-width", required_argument, NULL, 0},
@@ -1545,6 +1547,9 @@ int main(int argc, char *argv[]) {
                 }
                 else if (strcmp(longopts[longoptind].name, "wrongtext") == 0) {
                     wrong_text = optarg;
+                }
+                else if (strcmp(longopts[longoptind].name, "noinputtext") == 0) {
+                    noinput_text = optarg;
                 }
                 else if (strcmp(longopts[longoptind].name, "verifsize") == 0) {
                     char *arg = optarg;
