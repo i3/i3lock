@@ -119,6 +119,7 @@ extern double layout_size;
 
 extern char *verif_text;
 extern char *wrong_text;
+extern char *noinput_text;
 extern char *layout_text;
 
 /* Whether the failed attempts should be displayed. */
@@ -749,7 +750,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
                     draw_data.status_text.show = true;
-                    strncpy(draw_data.status_text.str, "no input", sizeof(draw_data.status_text.str));
+                    strncpy(draw_data.status_text.str, noinput_text, sizeof(draw_data.status_text.str));
                     draw_data.status_text.font = get_font_face(WRONG_FONT);
                     draw_data.status_text.color = wrong16;
                     draw_data.status_text.size = wrong_size;
