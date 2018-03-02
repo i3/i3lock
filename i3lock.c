@@ -1065,7 +1065,7 @@ int main(int argc, char *argv[]) {
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL, 'p'},
-        {"debug", no_argument, NULL, 0},
+        {"debug", no_argument, NULL, 999},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
@@ -1073,81 +1073,98 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+
         /* options for unlock indicator colors */
-        // defining a lot of different chars here for the options -- TODO find a nicer way for this, maybe not offering single character options at all
-        {"insidevercolor", required_argument, NULL, 0},   // --i-v
-        {"insidewrongcolor", required_argument, NULL, 0}, // --i-w
-        {"insidecolor", required_argument, NULL, 0},      // --i-c
-        {"ringvercolor", required_argument, NULL, 0},     // --r-v
-        {"ringwrongcolor", required_argument, NULL, 0},   // --r-w
-        {"ringcolor", required_argument, NULL, 0},        // --r-c
-        {"linecolor", required_argument, NULL, 0},        // --l-c
-        {"verifcolor", required_argument, NULL, 0},
-        {"wrongcolor", required_argument, NULL, 0},
-        {"layoutcolor", required_argument, NULL, 0},
-        {"timecolor", required_argument, NULL, 0},
-        {"datecolor", required_argument, NULL, 0},
-        {"keyhlcolor", required_argument, NULL, 0},       // --k-c
-        {"bshlcolor", required_argument, NULL, 0},        // --b-c
-        {"separatorcolor", required_argument, NULL, 0},
+        {"insidevercolor", required_argument, NULL, 300},
+        {"insidewrongcolor", required_argument, NULL, 301},
+        {"insidecolor", required_argument, NULL, 302},
+        {"ringvercolor", required_argument, NULL, 303},
+        {"ringwrongcolor", required_argument, NULL, 304},
+        {"ringcolor", required_argument, NULL, 305},
+        {"linecolor", required_argument, NULL, 306},
+        {"verifcolor", required_argument, NULL, 307},
+        {"wrongcolor", required_argument, NULL, 308},
+        {"layoutcolor", required_argument, NULL, 309},
+        {"timecolor", required_argument, NULL, 310},
+        {"datecolor", required_argument, NULL, 311},
+        {"keyhlcolor", required_argument, NULL, 312},
+        {"bshlcolor", required_argument, NULL, 313},
+        {"separatorcolor", required_argument, NULL, 314},
+
         {"line-uses-ring", no_argument, NULL, 'r'},
         {"line-uses-inside", no_argument, NULL, 's'},
-        /* s for in_s_ide; ideally I'd use -I but that's used for timeout, which should use -T, but compatibility argh
-         * note: `I` has been deprecated for a while, so I might just remove that and reshuffle that? */
+
         {"screen", required_argument, NULL, 'S'},
         {"blur", required_argument, NULL, 'B'},
         {"clock", no_argument, NULL, 'k'},
-        {"force-clock", no_argument, NULL, 0},
-        {"indicator", no_argument, NULL, 0},
-        {"refresh-rate", required_argument, NULL, 0},
-        {"composite", no_argument, NULL, 0},
+        {"force-clock", no_argument, NULL, 400},
+        {"indicator", no_argument, NULL, 401},
+        {"radius", required_argument, NULL, 402},
+        {"ring-width", required_argument, NULL, 403},
 
-        {"verif-align", required_argument, NULL, 0},
-        {"wrong-align", required_argument, NULL, 0},
-        {"time-align", required_argument, NULL, 0},
-        {"date-align", required_argument, NULL, 0},
-        {"layout-align", required_argument, NULL, 0},
-        {"modif-align", required_argument, NULL, 0},
+        // alignment
 
-        {"timestr", required_argument, NULL, 0},
-        {"datestr", required_argument, NULL, 0},
-        {"keylayout", required_argument, NULL, 0},
-        {"time-font", required_argument, NULL, 0},
-        {"date-font", required_argument, NULL, 0},
-        {"verif-font", required_argument, NULL, 0},
-        {"wrong-font", required_argument, NULL, 0},
-        {"layout-font", required_argument, NULL, 0},
-        {"verifsize", required_argument, NULL, 0},
-        {"wrongsize", required_argument, NULL, 0},
-        {"timesize", required_argument, NULL, 0},
-        {"datesize", required_argument, NULL, 0},
-        {"layoutsize", required_argument, NULL, 0},
-        {"timepos", required_argument, NULL, 0},
-        {"datepos", required_argument, NULL, 0},
-        {"layoutpos", required_argument, NULL, 0},
-        {"statuspos", required_argument, NULL, 0},
-        {"modifpos", required_argument, NULL, 0},
-        {"indpos", required_argument, NULL, 0},
+        {"time-align", required_argument, NULL, 500},
+        {"date-align", required_argument, NULL, 501},
+        {"verif-align", required_argument, NULL, 502},
+        {"wrong-align", required_argument, NULL, 503},
+        {"layout-align", required_argument, NULL, 504},
+        {"modif-align", required_argument, NULL, 505},
 
-        {"veriftext", required_argument, NULL, 0},
-        {"wrongtext", required_argument, NULL, 0},
-        {"noinputtext", required_argument, NULL, 0},
-        {"modsize", required_argument, NULL, 0},
-        {"radius", required_argument, NULL, 0},
-        {"ring-width", required_argument, NULL, 0},
+        // string stuff
 
-        {"bar-indicator", no_argument, NULL, 0},
-        {"bar-direction", required_argument, NULL, 0},
-        {"bar-width", required_argument, NULL, 0},
-        {"bar-orientation", required_argument, NULL, 0},
-        {"bar-step", required_argument, NULL, 0},
-        {"bar-max-height", required_argument, NULL, 0},
-        {"bar-base-width", required_argument, NULL, 0},
-        {"bar-color", required_argument, NULL, 0},
-        {"bar-periodic-step", required_argument, NULL, 0},
-        {"bar-position", required_argument, NULL, 0},
+        {"timestr", required_argument, NULL, 510},
+        {"datestr", required_argument, NULL, 511},
+        {"veriftext", required_argument, NULL, 512},
+        {"wrongtext", required_argument, NULL, 513},
+        {"keylayout", required_argument, NULL, 514},
+        {"noinputtext", required_argument, NULL, 515},
 
-        {"redraw-thread", no_argument, NULL, 0},
+        // fonts
+
+        {"time-font", required_argument, NULL, 520},
+        {"date-font", required_argument, NULL, 521},
+        {"verif-font", required_argument, NULL, 522},
+        {"wrong-font", required_argument, NULL, 523},
+        {"layout-font", required_argument, NULL, 524},
+
+        // text size
+
+        {"timesize", required_argument, NULL, 530},
+        {"datesize", required_argument, NULL, 531},
+        {"verifsize", required_argument, NULL, 532},
+        {"wrongsize", required_argument, NULL, 533},
+        {"layoutsize", required_argument, NULL, 534},
+        {"modsize", required_argument, NULL, 535},
+
+        // text/indicator positioning
+
+        {"timepos", required_argument, NULL, 540},
+        {"datepos", required_argument, NULL, 541},
+        {"layoutpos", required_argument, NULL, 542},
+        {"statuspos", required_argument, NULL, 543},
+        {"modifpos", required_argument, NULL, 544},
+        {"indpos", required_argument, NULL, 545},
+
+
+        // bar indicator stuff
+
+        {"bar-indicator", no_argument, NULL, 700},
+        {"bar-direction", required_argument, NULL, 701},
+        {"bar-width", required_argument, NULL, 702},
+        {"bar-orientation", required_argument, NULL, 703},
+        {"bar-step", required_argument, NULL, 704},
+        {"bar-max-height", required_argument, NULL, 705},
+        {"bar-base-width", required_argument, NULL, 706},
+        {"bar-color", required_argument, NULL, 707},
+        {"bar-periodic-step", required_argument, NULL, 708},
+        {"bar-position", required_argument, NULL, 709},
+
+        // misc.
+
+        {"redraw-thread", no_argument, NULL, 900},
+        {"refresh-rate", required_argument, NULL, 901},
+        {"composite", no_argument, NULL, 902},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1157,6 +1174,8 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
     char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
+    char *arg = NULL;
+    int opt = 0;
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1175,7 +1194,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
             case 'c': {
-                char *arg = optarg;
+                arg = optarg;
 
                 /* Skip # if present */
                 if (arg[0] == '#')
@@ -1207,6 +1226,9 @@ int main(int argc, char *argv[]) {
             case 'e':
                 ignore_empty_password = true;
                 break;
+            case 'f':
+                show_failed_attempts = true;
+                break;
             case 'r':
                 if (internal_line_source != 0) {
                   errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
@@ -1230,485 +1252,372 @@ int main(int argc, char *argv[]) {
                 blur = true;
                 blur_sigma = atoi(optarg);
                 break;
-            case 0:
-                if (strcmp(longopts[longoptind].name, "debug") == 0)
-                    debug_mode = true;
-                else if (strcmp(longopts[longoptind].name, "indicator") == 0) {
-                    show_indicator = true;
-                }
-                else if (strcmp(longopts[longoptind].name, "insidevercolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidevercolor) != 1)
-                        errx(1, "insidevercolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "insidewrongcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidewrongcolor) != 1)
-                        errx(1, "insidewrongcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "insidecolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", insidecolor) != 1)
-                        errx(1, "insidecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "ringvercolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringvercolor) != 1)
-                        errx(1, "ringvercolor is invalid, color must be given in 4-byte format: rrggbb\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "ringwrongcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringwrongcolor) != 1)
-                        errx(1, "ringwrongcolor is invalid, color must be given in 4-byte format: rrggbb\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "ringcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ringcolor) != 1)
-                        errx(1, "ringcolor is invalid, color must be given in 4-byte format: rrggbb\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "linecolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", linecolor) != 1)
-                        errx(1, "linecolor is invalid, color must be given in 4-byte format: rrggbb\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "verifcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", verifcolor) != 1)
-                        errx(1, "verifcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "wrongcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", wrongcolor) != 1)
-                        errx(1, "wrongcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "layoutcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", layoutcolor) != 1)
-                        errx(1, "layoutcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "timecolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", timecolor) != 1)
-                        errx(1, "timecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "datecolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", datecolor) != 1)
-                        errx(1, "datecolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "keyhlcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", keyhlcolor) != 1)
-                        errx(1, "keyhlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "bshlcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bshlcolor) != 1)
-                        errx(1, "bshlcolor is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "separatorcolor") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", separatorcolor) != 1)
-                        errx(1, "separator is invalid, color must be given in 4-byte format: rrggbbaa\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "keylayout") == 0) {
-                    // if layout is NULL, do nothing
-                    // if not NULL, attempt to display stuff
-                    // need to code some sane defaults for it
-                    keylayout_mode = atoi(optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "timestr") == 0) {
-                    //read in to timestr
-                    if (strlen(optarg) > 31) {
-                        errx(1, "time format string can be at most 31 characters\n");
-                    }
-                    strcpy(time_format,optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "datestr") == 0) {
-                    //read in to datestr
-                    if (strlen(optarg) > 31) {
-                        errx(1, "time format string can be at most 31 characters\n");
-                    }
-                    strcpy(date_format,optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "layout-font") == 0) {
-                    //read in to time_font
-                    if (strlen(optarg) > 31) {
-                        errx(1, "layout font string can be at most 31 characters\n");
-                    }
-                    strcpy(fonts[LAYOUT_FONT],optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "time-font") == 0) {
-                    //read in to time_font
-                    if (strlen(optarg) > 31) {
-                        errx(1, "time font string can be at most 31 characters\n");
-                    }
-                    strcpy(fonts[TIME_FONT],optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "date-font") == 0) {
-                    //read in to date_font
-                    if (strlen(optarg) > 31) {
-                        errx(1, "date font string can be at most 31 characters\n");
-                    }
-                    strcpy(fonts[DATE_FONT],optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "verif-font") == 0) {
-                    if (strlen(optarg) > 31) {
-                        errx(1, "verif font string can be at most 31 "
-                                "characters\n");
-                    }
-                    strcpy(fonts[VERIF_FONT],optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "wrong-font") == 0) {
-                    if (strlen(optarg) > 31) {
-                        errx(1, "wrong font string can be at most 31 "
-                                "characters\n");
-                    }
-                    strcpy(fonts[WRONG_FONT],optarg);
-                }
-                else if (strcmp(longopts[longoptind].name, "timesize") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &time_size) != 1)
-                        errx(1, "timesize must be a number\n");
-                    if (time_size < 1)
-                        errx(1, "timesize must be larger than 0\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "datesize") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &date_size) != 1)
-                        errx(1, "datesize must be a number\n");
-                    if (date_size < 1)
-                        errx(1, "datesize must be larger than 0\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "layoutsize") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &layout_size) != 1)
-                        errx(1, "layoutsize must be a number\n");
-                    if (date_size < 1)
-                        errx(1, "layoutsize must be larger than 0\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "indpos") == 0) {
-                    //read in to ind_x_expr and ind_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "indicator position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", ind_x_expr, ind_y_expr) != 2) {
-                        errx(1, "indpos must be of the form x:y\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "timepos") == 0) {
-                    //read in to time_x_expr and time_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "time position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", time_x_expr, time_y_expr) != 2) {
-                        errx(1, "timepos must be of the form x:y\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "datepos") == 0) {
-                    //read in to date_x_expr and date_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "date position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", date_x_expr, date_y_expr) != 2) {
-                        errx(1, "datepos must be of the form x:y\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "layoutpos") == 0) {
-                    //read in to time_x_expr and time_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "layout position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", layout_x_expr, layout_y_expr) != 2) {
-                        errx(1, "layoutpos must be of the form x:y\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "statuspos") == 0) {
-                    //read in to time_x_expr and time_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "status position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", status_x_expr, status_y_expr) != 2) {
-                        errx(1, "statuspos must be of the form x:y\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "modifpos") == 0) {
-                    //read in to time_x_expr and time_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "modif position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%30[^:]:%30[^:]", modif_x_expr, modif_y_expr) != 2) {
-                        errx(1, "modifpos must be of the form x:y\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "refresh-rate") == 0) {
-                    char* arg = optarg;
-                    refresh_rate = strtof(arg, NULL);
-                    if (refresh_rate < 0.0) {
-                        fprintf(stderr, "The given refresh rate of %fs is less than zero seconds and was ignored.\n", refresh_rate);
-                        refresh_rate = 1.0;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "composite") == 0) {
-                    composite = true;
-                }
-                else if (strcmp(longopts[longoptind].name, "veriftext") == 0) {
-                    verif_text = optarg;
-                }
-                else if (strcmp(longopts[longoptind].name, "wrongtext") == 0) {
-                    wrong_text = optarg;
-                }
-                else if (strcmp(longopts[longoptind].name, "noinputtext") == 0) {
-                    noinput_text = optarg;
-                }
-                else if (strcmp(longopts[longoptind].name, "verifsize") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &verif_size) != 1)
-                        errx(1, "verifsize must be a number\n");
-                    if (verif_size < 1) {
-                        fprintf(stderr, "verifsize must be a positive integer; ignoring...\n");
-                        verif_size = 28.0;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "wrongsize") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &wrong_size) != 1)
-                        errx(1, "wrongsize must be a number\n");
-                    if (wrong_size < 1) {
-                        fprintf(stderr, "wrongsize must be a positive integer; ignoring...\n");
-                        wrong_size = 28.0;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "modsize") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &modifier_size) != 1)
-                        errx(1, "modsize must be a number\n");
-                    if (modifier_size < 1) {
-                        fprintf(stderr, "modsize must be a positive integer; ignoring...\n");
-                        modifier_size = 14.0;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "radius") == 0) {
-                    char *arg = optarg;
-
-                    if (sscanf(arg, "%lf", &circle_radius) != 1)
-                        errx(1, "radius must be a number\n");
-                    if (circle_radius < 1) {
-                        fprintf(stderr, "radius must be a positive integer; ignoring...\n");
-                        circle_radius = 90.0;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "ring-width") == 0) {
-                    char *arg = optarg;
-                    double new_width = 0;
-                    if (sscanf(arg, "%lf", &new_width) != 1)
-                        errx(1, "ring-width must be a number\n");
-                    if (new_width < 1) {
-                        fprintf(stderr, "ring-width must be a positive integer; ignoring...\n");
-                    }
-                    else {
-                        ring_width = new_width;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "verif-align") == 0) {
-                    int opt = atoi(optarg);
-                    if (opt < 0 || opt > 2) opt = 0;
-                    verif_align = opt;
-                }
-                else if (strcmp(longopts[longoptind].name, "wrong-align") == 0) {
-                    int opt = atoi(optarg);
-                    if (opt < 0 || opt > 2) opt = 0;
-                    wrong_align = opt;
-                }
-                else if (strcmp(longopts[longoptind].name, "time-align") == 0) {
-                    int opt = atoi(optarg);
-                    if (opt < 0 || opt > 2) opt = 0;
-                    time_align = opt;
-                }
-                else if (strcmp(longopts[longoptind].name, "date-align") == 0) {
-                    int opt = atoi(optarg);
-                    if (opt < 0 || opt > 2) opt = 0;
-                    date_align = opt;
-                }
-                else if (strcmp(longopts[longoptind].name, "layout-align") == 0) {
-                    int opt = atoi(optarg);
-                    if (opt < 0 || opt > 2) opt = 0;
-                    layout_align = opt;
-                }
-                else if (strcmp(longopts[longoptind].name, "force-clock") == 0) {
-                    show_clock = true;
-                    always_show_clock = true;
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-indicator") == 0) {
-                    bar_enabled = true;
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-direction") == 0) {
-                    int opt = atoi(optarg);
-                    switch(opt) {
-                        case BAR_REVERSED:
-                            bar_reversed = true;
-                            break;
-                        case BAR_BIDIRECTIONAL:
-                            bar_bidirectional = true;
-                            break;
-                        case BAR_DEFAULT:
-                        default:
-                            break;
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-width") == 0) {
-                    bar_width = atoi(optarg);
-                    if (bar_width < 1) bar_width = 150;
-                    // num_bars and bar_heights* initialized later when we grab display info
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-orientation") == 0) {
-                    char* arg = optarg;
-                    if (strcmp(arg, "vertical") == 0)
-                        bar_orientation = BAR_VERT;
-                    else if (strcmp(arg, "horizontal") == 0)
-                        bar_orientation = BAR_FLAT;
-                    else
-                        errx(1, "bar orientation must be \"vertical\" or \"horizontal\"\n");
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-step") == 0) {
-                    bar_step = atoi(optarg);
-                    if (bar_step < 1) bar_step = 15;
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-max-height") == 0) {
-                    max_bar_height = atoi(optarg);
-                    if (max_bar_height < 1) max_bar_height = 25;
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-base-width") == 0) {
-                    bar_base_height = atoi(optarg);
-                    if (bar_base_height < 1) bar_base_height = 25;
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-color") == 0) {
-                    char *arg = optarg;
-
-                    /* Skip # if present */
-                    if (arg[0] == '#')
-                        arg++;
-
-                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bar_base_color) != 1)
-                        errx(1, "bar-color is invalid, color must be given in 4-byte format: rrggbbaa\n");
-
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-periodic-step") == 0) {
-                    int tmp = atoi(optarg);
-                    if (tmp > 0)
-                        bar_periodic_step = tmp;
-                }
-                else if (strcmp(longopts[longoptind].name, "bar-position") == 0) {
-                    //read in to ind_x_expr and ind_y_expr
-                    if (strlen(optarg) > 31) {
-                        // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
-                        errx(1, "indicator position string can be at most 31 characters\n");
-                    }
-                    char* arg = optarg;
-                    if (sscanf(arg, "%31s", bar_expr) != 1) {
-                        errx(1, "bar-position must be of the form [pos] with a max length of 31\n");
-                    }
-                }
-                else if (strcmp(longopts[longoptind].name, "redraw-thread") == 0) {
-                    redraw_thread = true;
-                }
-
+            // begin colors
+#define parse_color(color)\
+                arg = optarg;\
+                if (arg[0] == '#') arg++;\
+                if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", color) != 1)\
+                    errx(1, #color " is invalid, color must be given in 4-byte format: rrggbbaa\n");
+            case 300:
+                parse_color(insidevercolor);
                 break;
-            case 'f':
-                show_failed_attempts = true;
+            case 301:
+                parse_color(insidewrongcolor);
+                break;
+            case 302:
+                parse_color(insidecolor);
+                break;
+            case 303:
+                parse_color(ringvercolor);
+                break;
+            case 304:
+                parse_color(ringwrongcolor);
+                break;
+            case 305:
+                parse_color(ringcolor);
+                break;
+            case 306:
+                parse_color(linecolor);
+                break;
+            case 307:
+                parse_color(verifcolor);
+                break;
+            case 308:
+                parse_color(wrongcolor);
+                break;
+            case 309:
+                parse_color(layoutcolor);
+                break;
+            case 310:
+                parse_color(timecolor);
+                break;
+            case 311:
+                parse_color(datecolor);
+                break;
+            case 312:
+                parse_color(keyhlcolor);
+                break;
+            case 313:
+                parse_color(bshlcolor);
+                break;
+            case 314:
+                parse_color(separatorcolor);
+                break;
+// general indicator opts
+            case 400:
+                show_clock = true;
+                always_show_clock = true;
+                break;
+            case 401:
+                show_indicator = true;
+                break;
+            case 402:
+                arg = optarg;
+
+                if (sscanf(arg, "%lf", &circle_radius) != 1)
+                    errx(1, "radius must be a number\n");
+                if (circle_radius < 1) {
+                    fprintf(stderr, "radius must be a positive integer; ignoring...\n");
+                    circle_radius = 90.0;
+                }
+                break;
+            case 403:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &ring_width) != 1)
+                    errx(1, "ring-width must be a number\n");
+                if (ring_width < 1.0) {
+                    fprintf(stderr, "ring-width must be a positive float; ignoring...\n");
+                    ring_width = 7.0;
+                }
+                break;
+// alignment stuff
+            case 500:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                time_align = opt;
+                break;
+            case 501:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                date_align = opt;
+                break;
+            case 502:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                verif_align = opt;
+                break;
+            case 503:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                wrong_align = opt;
+                break;
+            case 504:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                layout_align = opt;
+                break;
+            case 505:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                modif_align = opt;
+                break;
+// string stuff
+            case 510:
+                if (strlen(optarg) > 31) {
+                    errx(1, "time format string can be at most 31 characters\n");
+                }
+                strcpy(time_format,optarg);
+                break;
+            case 511:
+                if (strlen(optarg) > 31) {
+                    errx(1, "time format string can be at most 31 characters\n");
+                }
+                strcpy(date_format,optarg);
+                break;
+            case 512:
+                // if layout is NULL, do nothing
+                // if not NULL, attempt to display stuff
+                // need to code some sane defaults for it
+                keylayout_mode = atoi(optarg);
+                break;
+            case 513:
+                verif_text = optarg;
+                break;
+            case 514:
+                wrong_text = optarg;
+                break;
+            case 515:
+                noinput_text = optarg;
+                break;
+// font stuff
+            case 520:
+                if (strlen(optarg) > 31) {
+                    errx(1, "time font string can be at most 31 characters\n");
+                }
+                strcpy(fonts[TIME_FONT],optarg);
+                break;
+            case 521:
+                if (strlen(optarg) > 31) {
+                    errx(1, "date font string can be at most 31 characters\n");
+                }
+                strcpy(fonts[DATE_FONT],optarg);
+                break;
+            case 522:
+                if (strlen(optarg) > 31) {
+                    errx(1, "verif font string can be at most 31 "
+                            "characters\n");
+                }
+                strcpy(fonts[VERIF_FONT],optarg);
+                break;
+            case 523:
+                if (strlen(optarg) > 31) {
+                    errx(1, "wrong font string can be at most 31 "
+                            "characters\n");
+                }
+                strcpy(fonts[WRONG_FONT],optarg);
+                break;
+            case 524:
+                if (strlen(optarg) > 31) {
+                    errx(1, "layout font string can be at most 31 characters\n");
+                }
+                strcpy(fonts[LAYOUT_FONT],optarg);
+                break;
+// text size
+            case 530:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &time_size) != 1)
+                    errx(1, "timesize must be a number\n");
+                if (time_size < 1)
+                    errx(1, "timesize must be larger than 0\n");
+                break;
+            case 531:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &date_size) != 1)
+                    errx(1, "datesize must be a number\n");
+                if (date_size < 1)
+                    errx(1, "datesize must be larger than 0\n");
+                break;
+            case 532:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &verif_size) != 1)
+                    errx(1, "verifsize must be a number\n");
+                if (verif_size < 1) {
+                    fprintf(stderr, "verifsize must be a positive integer; ignoring...\n");
+                    verif_size = 28.0;
+                }
+                break;
+            case 533:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &wrong_size) != 1)
+                    errx(1, "wrongsize must be a number\n");
+                if (wrong_size < 1) {
+                    fprintf(stderr, "wrongsize must be a positive integer; ignoring...\n");
+                    wrong_size = 28.0;
+                }
+                break;
+            case 534:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &layout_size) != 1)
+                    errx(1, "layoutsize must be a number\n");
+                if (date_size < 1)
+                    errx(1, "layoutsize must be larger than 0\n");
+                break;
+            case 535:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &modifier_size) != 1)
+                    errx(1, "modsize must be a number\n");
+                if (modifier_size < 1) {
+                    fprintf(stderr, "modsize must be a positive integer; ignoring...\n");
+                    modifier_size = 14.0;
+                }
+                break;
+// Positions
+            case 540:
+                //read in to time_x_expr and time_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "time position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", time_x_expr, time_y_expr) != 2) {
+                    errx(1, "timepos must be of the form x:y\n");
+                }
+                break;
+            case 541:
+                //read in to date_x_expr and date_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "date position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", date_x_expr, date_y_expr) != 2) {
+                    errx(1, "datepos must be of the form x:y\n");
+                }
+                break;
+            case 542:
+                //read in to time_x_expr and time_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "layout position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", layout_x_expr, layout_y_expr) != 2) {
+                    errx(1, "layoutpos must be of the form x:y\n");
+                }
+                break;
+            case 543:
+                //read in to time_x_expr and time_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "status position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", status_x_expr, status_y_expr) != 2) {
+                    errx(1, "statuspos must be of the form x:y\n");
+                }
+                break;
+            case 544:
+                //read in to time_x_expr and time_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "modif position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", modif_x_expr, modif_y_expr) != 2) {
+                    errx(1, "modifpos must be of the form x:y\n");
+                }
+                break;
+            case 545:
+                //read in to ind_x_expr and ind_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "indicator position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", ind_x_expr, ind_y_expr) != 2) {
+                    errx(1, "indpos must be of the form x:y\n");
+                }
+                break;
+// bar indicator
+            case 700:
+                bar_enabled = true;
+                break;
+            case 701:
+                opt = atoi(optarg);
+                switch(opt) {
+                    case BAR_REVERSED:
+                        bar_reversed = true;
+                        break;
+                    case BAR_BIDIRECTIONAL:
+                        bar_bidirectional = true;
+                        break;
+                    case BAR_DEFAULT:
+                    default:
+                        break;
+                }
+                break;
+            case 702:
+                bar_width = atoi(optarg);
+                if (bar_width < 1) bar_width = 150;
+                // num_bars and bar_heights* initialized later when we grab display info
+                break;
+            case 703:
+                arg = optarg;
+                if (strcmp(arg, "vertical") == 0)
+                    bar_orientation = BAR_VERT;
+                else if (strcmp(arg, "horizontal") == 0)
+                    bar_orientation = BAR_FLAT;
+                else
+                    errx(1, "bar orientation must be \"vertical\" or \"horizontal\"\n");
+                break;
+            case 704:
+                bar_step = atoi(optarg);
+                if (bar_step < 1) bar_step = 15;
+                break;
+            case 705:
+                max_bar_height = atoi(optarg);
+                if (max_bar_height < 1) max_bar_height = 25;
+                break;
+            case 706:
+                bar_base_height = atoi(optarg);
+                if (bar_base_height < 1) bar_base_height = 25;
+                break;
+            case 707:
+                parse_color(bar_base_color);
+                break;
+            case 708:
+                opt = atoi(optarg);
+                if (opt > 0)
+                    bar_periodic_step = opt;
+                break;
+            case 709:
+                //read in to ind_x_expr and ind_y_expr
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "indicator position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%31s", bar_expr) != 1) {
+                    errx(1, "bar-position must be of the form [pos] with a max length of 31\n");
+                }
+                break;
+// misc
+            case 900:
+                redraw_thread = true;
+                break;
+            case 901:
+                arg = optarg;
+                refresh_rate = strtof(arg, NULL);
+                if (refresh_rate < 0.0) {
+                    fprintf(stderr, "The given refresh rate of %fs is less than zero seconds and was ignored.\n", refresh_rate);
+                    refresh_rate = 1.0;
+                }
+                break;
+            case 902:
+                composite = true;
+                break;
+            case 999:
+                debug_mode = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
