@@ -1375,16 +1375,16 @@ int main(int argc, char *argv[]) {
                 strcpy(date_format,optarg);
                 break;
             case 512:
+                verif_text = optarg;
+                break;
+            case 513:
+                wrong_text = optarg;
+                break;
+            case 514:
                 // if layout is NULL, do nothing
                 // if not NULL, attempt to display stuff
                 // need to code some sane defaults for it
                 keylayout_mode = atoi(optarg);
-                break;
-            case 513:
-                verif_text = optarg;
-                break;
-            case 514:
-                wrong_text = optarg;
                 break;
             case 515:
                 noinput_text = optarg;
