@@ -59,6 +59,11 @@ extern char *modifier_string;
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
 extern cairo_surface_t *blur_img;
+extern cairo_surface_t *img_slideshow[256];
+extern int slideshow_image_count;
+extern int slideshow_interval;
+
+unsigned long lastCheck = -1;
 
 /* Whether the image should be tiled. */
 extern bool tile;
@@ -143,6 +148,8 @@ static struct ev_periodic *time_redraw_tick;
 
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
+
+int current_slideshow_index = 0;
 
 /* Maintain the current unlock/PAM state to draw the appropriate unlock
  * indicator. */
@@ -677,6 +684,19 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
+
+    /*update image according to the slideshow_interval*/
+    if (slideshow_image_count > 0) {
+        unsigned long now = (unsigned long)time(NULL);
+        if (-1 == lastCheck || now - lastCheck >= slideshow_interval) {
+            img = img_slideshow[current_slideshow_index++];
+
+            if (current_slideshow_index >= slideshow_image_count) {
+                current_slideshow_index = 0;
+            }
+            lastCheck = now;
+        }
+    }
 
     if (blur_img || img) {
         if (blur_img) {

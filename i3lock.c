@@ -17,6 +17,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <string.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -91,6 +92,7 @@ int screen_number = 0;
 int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
 bool show_clock = false;
+bool slideshow_enabled = false;
 bool always_show_clock = false;
 bool show_indicator = false;
 float refresh_rate = 1.0;
@@ -200,6 +202,10 @@ static int randr_base = -1;
 
 cairo_surface_t *img = NULL;
 cairo_surface_t *blur_img = NULL;
+cairo_surface_t *img_slideshow[256];
+int slideshow_image_count = 0;
+int slideshow_interval = 10;
+
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
@@ -233,6 +239,15 @@ bool bar_reversed = false;
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
+
+/*
+ * Checks if the given path leads to an actual file or something else, e.g. a directory
+ */
+int is_regular_file(const char *path) {
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
 
 /*
  * Decrements i to point to the previous unicode glyph
@@ -1046,6 +1061,44 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+/*
+ * Loads the images from the provided directory and stores them in the pointer array
+ * img_slideshow
+ */
+void load_slideshow_images(const char *path) {
+    slideshow_enabled = true;
+    DIR *d;
+    struct dirent *dir;
+    int file_count = 0;
+
+    d = opendir(path);
+    if (d == NULL) {
+        printf("Could not open directory: %s\n", path);
+        exit(0);
+    }
+
+    while ((dir = readdir(d)) != NULL) {
+        if (file_count >= 256) {
+            break;
+        }
+
+        char path_to_image[256];
+        strcpy(path_to_image, path);
+        strcat(path_to_image, "/");
+        strcat(path_to_image, dir->d_name);
+
+        if (verify_png_image(path_to_image)) {
+            img_slideshow[file_count] = cairo_image_surface_create_from_png(path_to_image);
+            ++file_count;
+        }
+
+    }
+
+    slideshow_image_count = file_count;
+
+    closedir(d);
+}
+
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
@@ -1165,6 +1218,9 @@ int main(int argc, char *argv[]) {
         {"redraw-thread", no_argument, NULL, 900},
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
+
+        /* slideshow options */
+        {"slideshow-interval", required_argument, NULL, 1000},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1619,6 +1675,13 @@ int main(int argc, char *argv[]) {
             case 999:
                 debug_mode = true;
                 break;
+            case 1000:
+                slideshow_interval = atoi(optarg);
+
+                if (slideshow_interval < 0) {
+                    slideshow_interval = 10;
+                }
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-f]\n"
@@ -1743,23 +1806,28 @@ int main(int argc, char *argv[]) {
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
     init_colors_once();
-    if (verify_png_image(image_path)) {
-        /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-    } else if (file_is_jpg(image_path)) {
-        DEBUG("Image looks like a jpeg, decoding\n");
-        unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
-            if (jpg_data != NULL) {
-                img = cairo_image_surface_create_for_data(jpg_data,
-                        CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
-                        jpg_info.stride);
-            }
-    }
-    /* In case loading failed, we just pretend no -i was specified. */
-    if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-        fprintf(stderr, "Could not load image \"%s\": %s\n",
-                image_path, cairo_status_to_string(cairo_surface_status(img)));
-        img = NULL;
+    if (is_regular_file(image_path)) {
+        if (verify_png_image(image_path)) {
+            /* Create a pixmap to render on, fill it with the background color */
+            img = cairo_image_surface_create_from_png(image_path);
+        } else if (file_is_jpg(image_path)) {
+            DEBUG("Image looks like a jpeg, decoding\n");
+            unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
+                if (jpg_data != NULL) {
+                    img = cairo_image_surface_create_for_data(jpg_data,
+                            CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
+                            jpg_info.stride);
+                }
+        }
+        /* In case loading failed, we just pretend no -i was specified. */
+        if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+            fprintf(stderr, "Could not load image \"%s\": %s\n",
+                    image_path, cairo_status_to_string(cairo_surface_status(img)));
+            img = NULL;
+        }
+    } else {
+        /* Path to a directory is provided -> use slideshow mode */
+        load_slideshow_images(image_path);
     }
     free(image_path);
 
@@ -1881,7 +1949,7 @@ int main(int argc, char *argv[]) {
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
 
-    if (show_clock || bar_enabled) {
+    if (show_clock || bar_enabled || slideshow_enabled) {
         if (redraw_thread) {
             struct timespec ts;
             double s;
