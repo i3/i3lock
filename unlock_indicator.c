@@ -62,6 +62,7 @@ extern cairo_surface_t *blur_img;
 extern cairo_surface_t *img_slideshow[256];
 extern int slideshow_image_count;
 extern int slideshow_interval;
+extern bool slideshow_random_selection;
 
 unsigned long lastCheck;
 
@@ -693,10 +694,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     if (slideshow_image_count > 0) {
         unsigned long now = (unsigned long)time(NULL);
         if (img == NULL || now - lastCheck >= slideshow_interval) {
-            img = img_slideshow[current_slideshow_index++];
+            if (slideshow_random_selection) {
+                img = img_slideshow[rand() % slideshow_image_count];
+            } else {
+                img = img_slideshow[current_slideshow_index++];
 
-            if (current_slideshow_index >= slideshow_image_count) {
-                current_slideshow_index = 0;
+                if (current_slideshow_index >= slideshow_image_count) {
+                    current_slideshow_index = 0;
+                }
             }
             lastCheck = now;
         }

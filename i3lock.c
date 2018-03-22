@@ -205,6 +205,7 @@ cairo_surface_t *blur_img = NULL;
 cairo_surface_t *img_slideshow[256];
 int slideshow_image_count = 0;
 int slideshow_interval = 10;
+bool slideshow_random_selection = false;
 
 bool tile = false;
 bool ignore_empty_password = false;
@@ -1221,6 +1222,7 @@ int main(int argc, char *argv[]) {
 
         /* slideshow options */
         {"slideshow-interval", required_argument, NULL, 903},
+        {"slideshow-random-selection", no_argument, NULL, 904},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1678,6 +1680,9 @@ int main(int argc, char *argv[]) {
                 if (slideshow_interval < 0) {
                     slideshow_interval = 10;
                 }
+                break;
+            case 904:
+                slideshow_random_selection = true;
                 break;
             case 999:
                 debug_mode = true;
