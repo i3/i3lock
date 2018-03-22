@@ -1220,7 +1220,7 @@ int main(int argc, char *argv[]) {
         {"composite", no_argument, NULL, 902},
 
         /* slideshow options */
-        {"slideshow-interval", required_argument, NULL, 1000},
+        {"slideshow-interval", required_argument, NULL, 903},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1672,15 +1672,15 @@ int main(int argc, char *argv[]) {
             case 902:
                 composite = true;
                 break;
-            case 999:
-                debug_mode = true;
-                break;
-            case 1000:
+            case 903:
                 slideshow_interval = atoi(optarg);
 
                 if (slideshow_interval < 0) {
                     slideshow_interval = 10;
                 }
+                break;
+            case 999:
+                debug_mode = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
