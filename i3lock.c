@@ -1825,7 +1825,7 @@ int main(int argc, char *argv[]) {
                     image_path, cairo_status_to_string(cairo_surface_status(img)));
             img = NULL;
         }
-    } else {
+    } else if (image_path != NULL) {
         /* Path to a directory is provided -> use slideshow mode */
         load_slideshow_images(image_path);
     }
