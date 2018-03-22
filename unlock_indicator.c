@@ -63,7 +63,7 @@ extern cairo_surface_t *img_slideshow[256];
 extern int slideshow_image_count;
 extern int slideshow_interval;
 
-unsigned long lastCheck = -1;
+unsigned long lastCheck;
 
 /* Whether the image should be tiled. */
 extern bool tile;
@@ -581,6 +581,10 @@ static void colorgen_rgb(rgb_str_t *tmp, const char *src, rgb_t *dest) {
 }
 
 void init_colors_once(void) {
+
+    /* initialize for slideshow time interval */
+    lastCheck = (unsigned long)time(NULL);
+
     rgba_str_t tmp;
     rgb_str_t tmp_rgb;
 
@@ -688,7 +692,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     /*update image according to the slideshow_interval*/
     if (slideshow_image_count > 0) {
         unsigned long now = (unsigned long)time(NULL);
-        if (-1 == lastCheck || now - lastCheck >= slideshow_interval) {
+        if (img == NULL || now - lastCheck >= slideshow_interval) {
             img = img_slideshow[current_slideshow_index++];
 
             if (current_slideshow_index >= slideshow_image_count) {
