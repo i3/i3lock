@@ -1063,6 +1063,36 @@ static void raise_loop(xcb_window_t window) {
 }
 
 /*
+ * Loads an image from the given path. Handles JPEG and PNG. Returns NULL in case of error.
+ */
+cairo_surface_t* load_image(char* image_path) {
+    cairo_surface_t *img = NULL;
+    JPEG_INFO jpg_info;
+
+    if (verify_png_image(image_path)) {
+        /* Create a pixmap to render on, fill it with the background color */
+        img = cairo_image_surface_create_from_png(image_path);
+    } else if (file_is_jpg(image_path)) {
+        DEBUG("Image looks like a jpeg, decoding\n");
+        unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
+            if (jpg_data != NULL) {
+                img = cairo_image_surface_create_for_data(jpg_data,
+                        CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
+                        jpg_info.stride);
+            }
+    }
+
+    /* In case loading failed, we just pretend no -i was specified. */
+    if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+        fprintf(stderr, "Could not load image \"%s\": %s\n",
+                image_path, cairo_status_to_string(cairo_surface_status(img)));
+        img = NULL;
+    }
+
+    return img;
+}
+
+/*
  * Loads the images from the provided directory and stores them in the pointer array
  * img_slideshow
  */
@@ -1089,7 +1119,7 @@ void load_slideshow_images(const char *path) {
         strcat(path_to_image, dir->d_name);
 
         if (verify_png_image(path_to_image)) {
-            img_slideshow[file_count] = cairo_image_surface_create_from_png(path_to_image);
+            img_slideshow[file_count] = load_image(path_to_image);
             ++file_count;
         }
 
@@ -1104,7 +1134,6 @@ int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
-    JPEG_INFO jpg_info;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -1812,24 +1841,7 @@ int main(int argc, char *argv[]) {
 
     init_colors_once();
     if (is_regular_file(image_path)) {
-        if (verify_png_image(image_path)) {
-            /* Create a pixmap to render on, fill it with the background color */
-            img = cairo_image_surface_create_from_png(image_path);
-        } else if (file_is_jpg(image_path)) {
-            DEBUG("Image looks like a jpeg, decoding\n");
-            unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
-                if (jpg_data != NULL) {
-                    img = cairo_image_surface_create_for_data(jpg_data,
-                            CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
-                            jpg_info.stride);
-                }
-        }
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
-            img = NULL;
-        }
+        img = load_image(image_path);
     } else if (image_path != NULL) {
         /* Path to a directory is provided -> use slideshow mode */
         load_slideshow_images(image_path);
