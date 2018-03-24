@@ -1118,11 +1118,11 @@ void load_slideshow_images(const char *path) {
         strcat(path_to_image, "/");
         strcat(path_to_image, dir->d_name);
 
-        if (verify_png_image(path_to_image)) {
-            img_slideshow[file_count] = load_image(path_to_image);
+        img_slideshow[file_count] = load_image(path_to_image);
+
+        if (img_slideshow[file_count] != NULL) {
             ++file_count;
         }
-
     }
 
     slideshow_image_count = file_count;
