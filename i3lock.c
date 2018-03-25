@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
+#include <xcb/xproto.h>
 #include <err.h>
 #include <errno.h>
 #include <assert.h>
@@ -203,6 +204,7 @@ cairo_surface_t *blur_img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+bool pass_media_keys = false;
 
 // for the rendering thread, so we can clean it up
 pthread_t draw_thread;
@@ -615,7 +617,23 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 #else
     n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
 #endif
-
+    // media keys
+    if (pass_media_keys) {
+        switch(ksym) {
+            case XKB_KEY_XF86AudioPlay:
+            case XKB_KEY_XF86AudioPause:
+            case XKB_KEY_XF86AudioStop:
+            case XKB_KEY_XF86AudioPrev:
+            case XKB_KEY_XF86AudioNext:
+            case XKB_KEY_XF86AudioMute:
+            case XKB_KEY_XF86AudioLowerVolume:
+            case XKB_KEY_XF86AudioRaiseVolume:
+                xcb_send_event(conn, true, screen->root, XCB_EVENT_MASK_BUTTON_PRESS, (char *)event);
+                return;
+        }
+    }
+    
+    // return/enter/etc
     switch (ksym) {
         case XKB_KEY_j:
         case XKB_KEY_m:
@@ -641,6 +659,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             skip_repeated_empty_password = false;
     }
 
+    // backspace, esc, delete, etc
     switch (ksym) {
         case XKB_KEY_u:
         case XKB_KEY_Escape:
@@ -1165,6 +1184,7 @@ int main(int argc, char *argv[]) {
         {"redraw-thread", no_argument, NULL, 900},
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
+        {"pass-media-keys", no_argument, NULL, 'm'},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1173,7 +1193,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:m";
     char *arg = NULL;
     int opt = 0;
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
@@ -1615,6 +1635,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 902:
                 composite = true;
+                break;
+            case 'm':
+                pass_media_keys = true;
                 break;
             case 999:
                 debug_mode = true;
