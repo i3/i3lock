@@ -107,6 +107,10 @@ extern char layout_x_expr[32];
 extern char layout_y_expr[32];
 extern char status_x_expr[32];
 extern char status_y_expr[32];
+extern char verif_x_expr[32];
+extern char verif_y_expr[32];
+extern char wrong_x_expr[32];
+extern char wrong_y_expr[32];
 extern char modif_x_expr[32];
 extern char modif_y_expr[32];
 
@@ -852,6 +856,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_expr *te_layout_y_expr = compile_expression("--layoutpos", layout_y_expr, vars, vars_size);
     te_expr *te_status_x_expr = compile_expression("--statuspos", status_x_expr, vars, vars_size);
     te_expr *te_status_y_expr = compile_expression("--statuspos", status_y_expr, vars, vars_size);
+    te_expr *te_verif_x_expr = compile_expression("--verifpos", verif_x_expr, vars, vars_size);
+    te_expr *te_verif_y_expr = compile_expression("--verifpos", verif_y_expr, vars, vars_size);
+    te_expr *te_wrong_x_expr = compile_expression("--wrongpos", wrong_x_expr, vars, vars_size);
+    te_expr *te_wrong_y_expr = compile_expression("--wrongpos", wrong_y_expr, vars, vars_size);
     te_expr *te_modif_x_expr = compile_expression("--modifpos", modif_x_expr, vars, vars_size);
     te_expr *te_modif_y_expr = compile_expression("--modifpos", modif_y_expr, vars, vars_size);
     te_expr *te_bar_expr = compile_expression("--bar-position", bar_expr, vars, vars_size);
@@ -891,8 +899,24 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             draw_data.date_text.y = te_eval(te_date_y_expr);
             draw_data.keylayout_text.x = te_eval(te_layout_x_expr);
             draw_data.keylayout_text.y = te_eval(te_layout_y_expr);
-            draw_data.status_text.x = te_eval(te_status_x_expr);
-            draw_data.status_text.y = te_eval(te_status_y_expr);
+
+            switch (auth_state) {
+                case STATE_AUTH_VERIFY:
+                case STATE_AUTH_LOCK:
+                    draw_data.status_text.x = te_eval(te_verif_x_expr);
+                    draw_data.status_text.y = te_eval(te_verif_y_expr);
+                    break;
+                case STATE_AUTH_WRONG:
+                case STATE_I3LOCK_LOCK_FAILED:
+                    draw_data.status_text.x = te_eval(te_wrong_x_expr);
+                    draw_data.status_text.y = te_eval(te_wrong_y_expr);
+                    break;
+                default:
+                    draw_data.status_text.x = te_eval(te_status_x_expr);
+                    draw_data.status_text.y = te_eval(te_status_y_expr);
+                    break;
+            }
+
             draw_data.mod_text.x = te_eval(te_modif_x_expr);
             draw_data.mod_text.y = te_eval(te_modif_y_expr);
 
@@ -923,8 +947,22 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         draw_data.date_text.y = te_eval(te_date_y_expr);
         draw_data.keylayout_text.x = te_eval(te_layout_x_expr);
         draw_data.keylayout_text.y = te_eval(te_layout_y_expr);
-        draw_data.status_text.x = te_eval(te_status_x_expr);
-        draw_data.status_text.y = te_eval(te_status_y_expr);
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
+                draw_data.status_text.x = te_eval(te_verif_x_expr);
+                draw_data.status_text.y = te_eval(te_verif_y_expr);
+                break;
+            case STATE_AUTH_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
+                draw_data.status_text.x = te_eval(te_wrong_x_expr);
+                draw_data.status_text.y = te_eval(te_wrong_y_expr);
+                break;
+            default:
+                draw_data.status_text.x = te_eval(te_status_x_expr);
+                draw_data.status_text.y = te_eval(te_status_y_expr);
+                break;
+        }
         draw_data.mod_text.x = te_eval(te_modif_x_expr);
         draw_data.mod_text.y = te_eval(te_modif_y_expr);
 
@@ -949,6 +987,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_free(te_layout_y_expr);
     te_free(te_status_x_expr);
     te_free(te_status_y_expr);
+    te_free(te_verif_x_expr);
+    te_free(te_verif_y_expr);
+    te_free(te_wrong_x_expr);
+    te_free(te_wrong_y_expr);
     te_free(te_modif_x_expr);
     te_free(te_modif_y_expr);
     te_free(te_bar_expr);

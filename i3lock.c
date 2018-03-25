@@ -143,6 +143,10 @@ char status_x_expr[32] = "ix\0";
 char status_y_expr[32] = "iy\0";
 char modif_x_expr[32] = "ix\0";
 char modif_y_expr[32] = "iy+28\0";
+char verif_x_expr[32] = "ix\0";
+char verif_y_expr[32] = "iy\0";
+char wrong_x_expr[32] = "ix\0";
+char wrong_y_expr[32] = "iy\0";
 
 double time_size = 32.0;
 double date_size = 14.0;
@@ -1160,10 +1164,12 @@ int main(int argc, char *argv[]) {
 
         {"timepos", required_argument, NULL, 540},
         {"datepos", required_argument, NULL, 541},
-        {"layoutpos", required_argument, NULL, 542},
-        {"statuspos", required_argument, NULL, 543},
-        {"modifpos", required_argument, NULL, 544},
-        {"indpos", required_argument, NULL, 545},
+        {"verifpos", required_argument, NULL, 542},
+        {"wrongpos", required_argument, NULL, 543},
+        {"layoutpos", required_argument, NULL, 544},
+        {"statuspos", required_argument, NULL, 545},
+        {"modifpos", required_argument, NULL, 546},
+        {"indpos", required_argument, NULL, 547},
 
 
         // bar indicator stuff
@@ -1493,9 +1499,7 @@ int main(int argc, char *argv[]) {
                 break;
 // Positions
             case 540:
-                //read in to time_x_expr and time_y_expr
                 if (strlen(optarg) > 31) {
-                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "time position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1504,9 +1508,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 541:
-                //read in to date_x_expr and date_y_expr
                 if (strlen(optarg) > 31) {
-                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "date position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1515,9 +1517,25 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 542:
-                //read in to time_x_expr and time_y_expr
                 if (strlen(optarg) > 31) {
-                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "verif position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", verif_x_expr, verif_y_expr) != 2) {
+                    errx(1, "verifpos must be of the form x:y\n");
+                }
+                break;
+            case 543:
+                if (strlen(optarg) > 31) {
+                    errx(1, "\"wrong\" text position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", wrong_x_expr, wrong_y_expr) != 2) {
+                    errx(1, "verifpos must be of the form x:y\n");
+                }
+                break;
+            case 544:
+                if (strlen(optarg) > 31) {
                     errx(1, "layout position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1525,10 +1543,8 @@ int main(int argc, char *argv[]) {
                     errx(1, "layoutpos must be of the form x:y\n");
                 }
                 break;
-            case 543:
-                //read in to time_x_expr and time_y_expr
+            case 545:
                 if (strlen(optarg) > 31) {
-                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "status position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1536,10 +1552,8 @@ int main(int argc, char *argv[]) {
                     errx(1, "statuspos must be of the form x:y\n");
                 }
                 break;
-            case 544:
-                //read in to time_x_expr and time_y_expr
+            case 546:
                 if (strlen(optarg) > 31) {
-                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "modif position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1547,10 +1561,8 @@ int main(int argc, char *argv[]) {
                     errx(1, "modifpos must be of the form x:y\n");
                 }
                 break;
-            case 545:
-                //read in to ind_x_expr and ind_y_expr
+            case 547:
                 if (strlen(optarg) > 31) {
-                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "indicator position string can be at most 31 characters\n");
                 }
                 arg = optarg;
