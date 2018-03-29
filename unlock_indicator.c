@@ -298,14 +298,7 @@ static void draw_text(cairo_t *ctx, text_t text) {
             x = text.x - ((extents.width / 2) + (extents.x_bearing / 2));
             break;
     }
-    
-    // text shadowing - each text object should get its own specifiable shadow color
-    // (defaults to #00000000 so that it's invisible)
-    // as well as shadow-offset or something
-    cairo_set_source_rgba(ctx, 0.0, 0.0, 0.0, text.color.alpha);
-    cairo_move_to(ctx, x+1, text.y+1);
-    cairo_show_text(ctx, text.str);
-    
+
     cairo_set_source_rgba(ctx, text.color.red, text.color.green, text.color.blue, text.color.alpha);
     cairo_move_to(ctx, x, text.y);
     cairo_show_text(ctx, text.str);
