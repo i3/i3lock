@@ -1840,13 +1840,16 @@ int main(int argc, char *argv[]) {
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
     init_colors_once();
-    if (is_regular_file(image_path)) {
-        img = load_image(image_path);
-    } else if (image_path != NULL) {
-        /* Path to a directory is provided -> use slideshow mode */
-        load_slideshow_images(image_path);
+    if (image_path != NULL) {
+        if (is_regular_file(image_path)) {
+            img = load_image(image_path);
+        } else {
+            /* Path to a directory is provided -> use slideshow mode */
+            load_slideshow_images(image_path);
+        }
+
+        free(image_path);
     }
-    free(image_path);
 
     xcb_pixmap_t* blur_pixmap = NULL;
     if (blur) {
