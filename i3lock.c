@@ -160,6 +160,8 @@ double ring_width = 7.0;
 char* verif_text = "verifying…";
 char* wrong_text = "wrong!";
 char* noinput_text = "no input";
+char* lock_text = "locking…";
+char* lock_failed_text = "lock failed!";
 int   keylayout_mode = -1;
 char* layout_text = NULL;
 
@@ -636,7 +638,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
                 return;
         }
     }
-    
+
     // return/enter/etc
     switch (ksym) {
         case XKB_KEY_j:
@@ -1142,6 +1144,8 @@ int main(int argc, char *argv[]) {
         {"wrongtext", required_argument, NULL, 513},
         {"keylayout", required_argument, NULL, 514},
         {"noinputtext", required_argument, NULL, 515},
+        {"locktext", required_argument, NULL, 516},
+        {"lockfailedtext", required_argument, NULL, 517},
 
         // fonts
 
@@ -1414,6 +1418,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 515:
                 noinput_text = optarg;
+                break;
+            case 516:
+                lock_text = optarg;
+                break;
+            case 517:
+                lock_failed_text = optarg;
                 break;
 // font stuff
             case 520:
