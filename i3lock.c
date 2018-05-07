@@ -17,6 +17,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <string.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -92,6 +93,7 @@ int screen_number = 0;
 int internal_line_source = 0;
 /* bool for showing the clock; why am I commenting this? */
 bool show_clock = false;
+bool slideshow_enabled = false;
 bool always_show_clock = false;
 bool show_indicator = false;
 float refresh_rate = 1.0;
@@ -205,6 +207,11 @@ static int randr_base = -1;
 
 cairo_surface_t *img = NULL;
 cairo_surface_t *blur_img = NULL;
+cairo_surface_t *img_slideshow[256];
+int slideshow_image_count = 0;
+int slideshow_interval = 10;
+bool slideshow_random_selection = false;
+
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
@@ -241,10 +248,19 @@ bool bar_reversed = false;
 #define isutf(c) (((c)&0xC0) != 0x80)
 
 /*
+ * Checks if the given path leads to an actual file or something else, e.g. a directory
+ */
+int is_regular_file(const char *path) {
+    struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
+/*
  * Decrements i to point to the previous unicode glyph
  *
  */
-void u8_dec(char *s, int *i) {
+static void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
 }
 
@@ -258,7 +274,7 @@ void u8_dec(char *s, int *i) {
  * credit to the XKB/xcb implementation (no libx11) from https://gist.github.com/bluetech/6061368
  * docs are really sparse, so finding some random implementation was nice
  */
-char* get_keylayoutname(int mode, xcb_connection_t* conn) {
+static char* get_keylayoutname(int mode, xcb_connection_t* conn) {
     if (mode < 0 || mode > 2) return NULL;
     char* newans = NULL, *answer = xcb_get_key_group_names(conn);
     DEBUG("keylayout answer is: [%s]\n", answer);
@@ -1069,11 +1085,78 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+/*
+ * Loads an image from the given path. Handles JPEG and PNG. Returns NULL in case of error.
+ */
+static cairo_surface_t* load_image(char* image_path) {
+    cairo_surface_t *img = NULL;
+    JPEG_INFO jpg_info;
+
+    if (verify_png_image(image_path)) {
+        /* Create a pixmap to render on, fill it with the background color */
+        img = cairo_image_surface_create_from_png(image_path);
+    } else if (file_is_jpg(image_path)) {
+        DEBUG("Image looks like a jpeg, decoding\n");
+        unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
+            if (jpg_data != NULL) {
+                img = cairo_image_surface_create_for_data(jpg_data,
+                        CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
+                        jpg_info.stride);
+            }
+    }
+
+    /* In case loading failed, we just pretend no -i was specified. */
+    if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+        fprintf(stderr, "Could not load image \"%s\": %s\n",
+                image_path, cairo_status_to_string(cairo_surface_status(img)));
+        img = NULL;
+    }
+
+    return img;
+}
+
+/*
+ * Loads the images from the provided directory and stores them in the pointer array
+ * img_slideshow
+ */
+static void load_slideshow_images(const char *path) {
+    slideshow_enabled = true;
+    DIR *d;
+    struct dirent *dir;
+    int file_count = 0;
+
+    d = opendir(path);
+    if (d == NULL) {
+        printf("Could not open directory: %s\n", path);
+        exit(0);
+    }
+
+    while ((dir = readdir(d)) != NULL) {
+        if (file_count >= 256) {
+            break;
+        }
+
+        char path_to_image[256];
+        strcpy(path_to_image, path);
+        strcat(path_to_image, "/");
+        strcat(path_to_image, dir->d_name);
+
+        img_slideshow[file_count] = load_image(path_to_image);
+
+        if (img_slideshow[file_count] != NULL) {
+            ++file_count;
+        }
+    }
+
+    slideshow_image_count = file_count;
+
+    closedir(d);
+}
+
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
-    JPEG_INFO jpg_info;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -1191,6 +1274,10 @@ int main(int argc, char *argv[]) {
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
         {"pass-media-keys", no_argument, NULL, 'm'},
+
+        /* slideshow options */
+        {"slideshow-interval", required_argument, NULL, 903},
+        {"slideshow-random-selection", no_argument, NULL, 904},
 
         {NULL, no_argument, NULL, 0}};
 
@@ -1499,7 +1586,9 @@ int main(int argc, char *argv[]) {
                 break;
 // Positions
             case 540:
+                //read in to time_x_expr and time_y_expr
                 if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "time position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1508,7 +1597,9 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 541:
+                //read in to date_x_expr and date_y_expr
                 if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "date position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1517,6 +1608,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 542:
+                //read in to time_x_expr and time_y_expr
                 if (strlen(optarg) > 31) {
                     errx(1, "verif position string can be at most 31 characters\n");
                 }
@@ -1545,6 +1637,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 545:
                 if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "status position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1554,6 +1647,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 546:
                 if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "modif position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1563,6 +1657,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 547:
                 if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
                     errx(1, "indicator position string can be at most 31 characters\n");
                 }
                 arg = optarg;
@@ -1647,6 +1742,16 @@ int main(int argc, char *argv[]) {
                 break;
             case 902:
                 composite = true;
+                break;
+            case 903:
+                slideshow_interval = atoi(optarg);
+
+                if (slideshow_interval < 0) {
+                    slideshow_interval = 10;
+                }
+                break;
+            case 904:
+                slideshow_random_selection = true;
                 break;
             case 'm':
                 pass_media_keys = true;
@@ -1778,25 +1883,16 @@ int main(int argc, char *argv[]) {
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
     init_colors_once();
-    if (verify_png_image(image_path)) {
-        /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-    } else if (file_is_jpg(image_path)) {
-        DEBUG("Image looks like a jpeg, decoding\n");
-        unsigned char* jpg_data = read_JPEG_file(image_path, &jpg_info);
-            if (jpg_data != NULL) {
-                img = cairo_image_surface_create_for_data(jpg_data,
-                        CAIRO_FORMAT_ARGB32, jpg_info.width, jpg_info.height,
-                        jpg_info.stride);
-            }
+    if (image_path != NULL) {
+        if (is_regular_file(image_path)) {
+            img = load_image(image_path);
+        } else {
+            /* Path to a directory is provided -> use slideshow mode */
+            load_slideshow_images(image_path);
+        }
+
+        free(image_path);
     }
-    /* In case loading failed, we just pretend no -i was specified. */
-    if (img && cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-        fprintf(stderr, "Could not load image \"%s\": %s\n",
-                image_path, cairo_status_to_string(cairo_surface_status(img)));
-        img = NULL;
-    }
-    free(image_path);
 
     xcb_pixmap_t* blur_pixmap = NULL;
     if (blur) {
@@ -1916,7 +2012,7 @@ int main(int argc, char *argv[]) {
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
 
-    if (show_clock || bar_enabled) {
+    if (show_clock || bar_enabled || slideshow_enabled) {
         if (redraw_thread) {
             struct timespec ts;
             double s;
