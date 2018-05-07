@@ -130,6 +130,8 @@ extern double layout_size;
 extern char *verif_text;
 extern char *wrong_text;
 extern char *noinput_text;
+extern char *lock_text;
+extern char *lock_failed_text;
 extern char *layout_text;
 
 /* Whether the failed attempts should be displayed. */
@@ -758,7 +760,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
             case STATE_AUTH_LOCK:
                 draw_data.status_text.show = true;
-                strncpy(draw_data.status_text.str, "locking…", sizeof(draw_data.status_text.str));
+                strncpy(draw_data.status_text.str, lock_text, sizeof(draw_data.status_text.str));
                 draw_data.status_text.font = get_font_face(VERIF_FONT);
                 draw_data.status_text.color = verif16;
                 draw_data.status_text.size = verif_size;
@@ -774,7 +776,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 draw_data.status_text.show = true;
-                strncpy(draw_data.status_text.str, "lock failed!", sizeof(draw_data.status_text.str));
+                strncpy(draw_data.status_text.str, lock_failed_text, sizeof(draw_data.status_text.str));
                 draw_data.status_text.font = get_font_face(WRONG_FONT);
                 draw_data.status_text.color = wrong16;
                 draw_data.status_text.size = wrong_size;
