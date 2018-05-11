@@ -93,6 +93,7 @@ dnl downloaded in a newer version and would like to overwrite.
 PKG_CHECK_MODULES([XCB], [xcb xcb-xkb xcb-xinerama xcb-randr])
 PKG_CHECK_MODULES([XCB_IMAGE], [xcb-image])
 PKG_CHECK_MODULES([XCB_UTIL], [xcb-event xcb-util xcb-atom])
+PKG_CHECK_MODULES([XCB_UTIL_XRM], [xcb-xrm])
 PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon xkbcommon-x11])
 PKG_CHECK_MODULES([CAIRO], [cairo])
 

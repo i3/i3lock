@@ -46,6 +46,7 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 #include "randr.h"
+#include "dpi.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -1032,6 +1033,8 @@ int main(int argc, char *argv[]) {
     load_compose_table(locale);
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+
+    init_dpi();
 
     randr_init(&randr_base, screen->root);
     randr_query(screen->root);

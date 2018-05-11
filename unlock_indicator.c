@@ -20,6 +20,7 @@
 #include "xcb.h"
 #include "unlock_indicator.h"
 #include "randr.h"
+#include "dpi.h"
 
 #define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
@@ -81,26 +82,16 @@ unlock_state_t unlock_state;
 auth_state_t auth_state;
 
 /*
- * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
- * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
- *
- */
-static double scaling_factor(void) {
-    const int dpi = (double)screen->height_in_pixels * 25.4 /
-                    (double)screen->height_in_millimeters;
-    return (dpi / 96.0);
-}
-
-/*
  * Draws global image with fill color onto a pixmap with the given
  * resolution and returns it.
  *
  */
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
-    int button_diameter_physical = ceil(scaling_factor() * BUTTON_DIAMETER);
+    const double scaling_factor = get_dpi_value() / 96.0;
+    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
-          scaling_factor(), button_diameter_physical);
+          scaling_factor, button_diameter_physical);
 
     if (!vistype)
         vistype = get_root_visual_type(screen);
@@ -142,7 +133,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (unlock_indicator &&
         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE)) {
-        cairo_scale(ctx, scaling_factor(), scaling_factor());
+        cairo_scale(ctx, scaling_factor, scaling_factor);
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 10.0);
         cairo_arc(ctx,

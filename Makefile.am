@@ -19,6 +19,7 @@ i3lock_CFLAGS = \
 	$(XCB_CFLAGS) \
 	$(XCB_IMAGE_CFLAGS) \
 	$(XCB_UTIL_CFLAGS) \
+	$(XCB_UTIL_XRM_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
 	$(CAIRO_CFLAGS) \
 	$(CODE_COVERAGE_CFLAGS)
@@ -31,12 +32,15 @@ i3lock_LDADD = \
 	$(XCB_LIBS) \
 	$(XCB_IMAGE_LIBS) \
 	$(XCB_UTIL_LIBS) \
+	$(XCB_UTIL_XRM_LIBS) \
 	$(XKBCOMMON_LIBS) \
 	$(CAIRO_LIBS) \
 	$(CODE_COVERAGE_LDFLAGS)
 
 i3lock_SOURCES = \
 	cursors.h \
+	dpi.c \
+	dpi.h \
 	i3lock.c \
 	i3lock.h \
 	randr.c \
