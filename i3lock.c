@@ -656,7 +656,7 @@ static bool verify_png_image(const char *image_path) {
 
     // Check PNG header according to the specification, available at:
     // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
-    static unsigned char PNG_REFERENCE_HEADER[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
     if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
         fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
         return false;
