@@ -41,17 +41,17 @@ Many little improvements have been made to i3lock over time:
     - A new bar indicator, which replaces the ring indicator with its own set of options
       - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
 
-## Building
+# Building
 
 Before you build - check and see if there's a packaged version available for your distro (there usually is, either in a community repo/PPA).
 
 If there's no packaged version available - think carefully, since you're using a forked screen locker at your own risk.
 
-If you want to build a non-debug version, you should tag your build before configuring. For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info.
+**If you want to build a non-debug version, you should tag your build before configuring.** For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info. Issues asking about ASAN/complaints about i3lock-color being slow / etc will likely be closed.
 
 i3lock now uses GNU autotools for building; you'll need to do something like `autoreconf -i && ./configure && make` to build.
 
-### Required Packages
+## Required Packages
 - pkg-config
 - libxcb
 - libxcb-util
