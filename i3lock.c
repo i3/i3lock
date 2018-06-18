@@ -369,13 +369,12 @@ static void input_done(void) {
 
     /* execute on max failed attempts, if enabled */
     if (max_failed_attempts_enabled && failed_attempts > max_failed_attempts) {
-        /* This "double" fork is needed, because system() blocks */
         if (!fork()) { 
             /* Child */
-            if (max_failed_attempts_exec)
-                system(max_failed_attempts_exec);
+            execl("/bin/sh", "sh", "-c", max_failed_attempts_exec, NULL);
             exit(EXIT_SUCCESS);
         }
+        free(max_failed_attempts_exec);
         max_failed_attempts_enabled = false;
     }
 }
