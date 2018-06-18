@@ -106,6 +106,16 @@ your computer with the enter key.
 Show the number of failed attempts, if any.
 
 .TP
+.BI \-x\  command \fR,\ \fB\-\-max\-failed\-attempts\-exec= command 
+Run a command, when the the maximum ammount of failed authentication
+attempts (default 3; can be specified with \-m) is exceeded.
+
+.TP
+.BI \-m\  count \fR,\ \fB\-\-max\-failed\-attempts= count 
+Set the maximum ammount of failed authentication attempts.
+Without \-x it will be useless.
+
+.TP
 .B \-\-debug
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
