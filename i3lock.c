@@ -82,9 +82,9 @@ extern auth_state_t auth_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
 bool retry_verification = false;
-int max_failed_attempts = 3;
-bool max_failed_attempts_enabled = false;
-char *max_failed_attempts_exec;
+static int max_failed_attempts = 3;
+static bool max_failed_attempts_enabled = false;
+static char *max_failed_attempts_exec;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -376,6 +376,7 @@ static void input_done(void) {
                 system(max_failed_attempts_exec);
             exit(EXIT_SUCCESS);
         }
+        max_failed_attempts_enabled = false;
     }
 }
 
