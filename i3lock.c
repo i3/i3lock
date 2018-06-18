@@ -82,6 +82,9 @@ extern auth_state_t auth_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
 bool retry_verification = false;
+int max_failed_attempts = 3;
+bool max_failed_attempts_enabled = false;
+char *max_failed_attempts_exec;
 
 static struct xkb_state *xkb_state;
 static struct xkb_context *xkb_context;
@@ -362,6 +365,17 @@ static void input_done(void) {
     if (beep) {
         xcb_bell(conn, 100);
         xcb_flush(conn);
+    }
+
+    /* execute on max failed attempts, if enabled */
+    if (max_failed_attempts_enabled && failed_attempts > max_failed_attempts) {
+        /* This "double" fork is needed, because system() blocks */
+        if (!fork()) { 
+            /* Child */
+            if (max_failed_attempts_exec)
+                system(max_failed_attempts_exec);
+            exit(EXIT_SUCCESS);
+        }
     }
 }
 
@@ -878,6 +892,8 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"max-failed-attempts-exec", required_argument, NULL, 'x'},
+        {"max-failed-attempts", required_argument, NULL, 'm'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -885,7 +901,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fx:m:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -943,9 +959,19 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'x':
+                max_failed_attempts_enabled = true;
+                max_failed_attempts_exec = strdup(optarg);
+                break;
+            case 'm': {
+                int m = atoi(optarg);
+                if (m >= 0)
+                    max_failed_attempts = m;
+                break;
+            }
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]  [-x exec] [-m max_retries]");
         }
     }
 
