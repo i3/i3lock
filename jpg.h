@@ -1,6 +1,9 @@
 #ifndef _JPG_H
 #define _JPG_H
 
+#include <sys/types.h>
+
+#define _GNU_SOURCE 1
 typedef struct {
     uint height;
     uint width;
