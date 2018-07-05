@@ -20,6 +20,7 @@
 #include "xcb.h"
 #include "unlock_indicator.h"
 #include "randr.h"
+#include "dpi.h"
 #include "tinyexpr.h"
 #include "fonts.h"
 
@@ -212,17 +213,6 @@ static cairo_font_face_t *font_faces[5] = {
     NULL,
 };
 
-/*
- * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
- * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
- *
- */
-static double calculate_scaling_factor(void) {
-    const int dpi = (double)screen->height_in_pixels * 25.4 /
-                       (double)screen->height_in_millimeters;
-    return dpi / 96.0;
-}
-
 static cairo_font_face_t *get_font_face(int which) {
     if (font_faces[which]) {
         return font_faces[which];
@@ -288,8 +278,6 @@ static void draw_text(cairo_t *ctx, text_t text) {
     if (!text.show)
         return;
     cairo_text_extents_t extents;
-
-    cairo_set_font_face(ctx, text.font);
     cairo_set_font_size(ctx, text.size);
 
     cairo_text_extents(ctx, text.str, &extents);
@@ -676,8 +664,11 @@ static void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
  *
  */
 xcb_pixmap_t draw_image(uint32_t *resolution) {
-    const double scaling_factor = calculate_scaling_factor();
+    const double scaling_factor = get_dpi_value() / 96.0;
     xcb_pixmap_t bg_pixmap = XCB_NONE;
+    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
+    DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
+        scaling_factor, button_diameter_physical);
 
     if (!vistype)
         vistype = get_root_visual_type(screen);
@@ -858,7 +849,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
            width = 0, height = 0;
 
     double radius = (circle_radius + ring_width);
-    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %f, physical diameter is %d px\n",
           scaling_factor, button_diameter_physical);
 

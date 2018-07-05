@@ -54,6 +54,7 @@
 #include "cursors.h"
 #include "unlock_indicator.h"
 #include "randr.h"
+#include "dpi.h"
 #include "blur.h"
 #include "jpg.h"
 #include "fonts.h"
@@ -891,7 +892,7 @@ static bool verify_png_image(const char *image_path) {
 
     // Check PNG header according to the specification, available at:
     // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
-    static unsigned char PNG_REFERENCE_HEADER[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
+    static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
     if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
         DEBUG("File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
         return false;
@@ -1873,6 +1874,8 @@ int main(int argc, char *argv[]) {
 
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+
+    init_dpi();
 
     randr_init(&randr_base, screen->root);
     randr_query(screen->root);
