@@ -743,7 +743,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
                 draw_data.status_text.show = true;
-                strncpy(draw_data.status_text.str, verif_text, sizeof(draw_data.status_text.str));
+                strncpy(draw_data.status_text.str, verif_text, sizeof(draw_data.status_text.str) - 1);
                 draw_data.status_text.font = get_font_face(VERIF_FONT);
                 draw_data.status_text.color = verif16;
                 draw_data.status_text.size = verif_size;
@@ -751,7 +751,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
             case STATE_AUTH_LOCK:
                 draw_data.status_text.show = true;
-                strncpy(draw_data.status_text.str, lock_text, sizeof(draw_data.status_text.str));
+                strncpy(draw_data.status_text.str, lock_text, sizeof(draw_data.status_text.str) - 1);
                 draw_data.status_text.font = get_font_face(VERIF_FONT);
                 draw_data.status_text.color = verif16;
                 draw_data.status_text.size = verif_size;
@@ -759,7 +759,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
             case STATE_AUTH_WRONG:
                 draw_data.status_text.show = true;
-                strncpy(draw_data.status_text.str, wrong_text, sizeof(draw_data.status_text.str));
+                strncpy(draw_data.status_text.str, wrong_text, sizeof(draw_data.status_text.str) - 1);
                 draw_data.status_text.font = get_font_face(WRONG_FONT);
                 draw_data.status_text.color = wrong16;
                 draw_data.status_text.size = wrong_size;
@@ -767,7 +767,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 draw_data.status_text.show = true;
-                strncpy(draw_data.status_text.str, lock_failed_text, sizeof(draw_data.status_text.str));
+                strncpy(draw_data.status_text.str, lock_failed_text, sizeof(draw_data.status_text.str) - 1);
                 draw_data.status_text.font = get_font_face(WRONG_FONT);
                 draw_data.status_text.color = wrong16;
                 draw_data.status_text.size = wrong_size;
@@ -776,7 +776,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
                     draw_data.status_text.show = true;
-                    strncpy(draw_data.status_text.str, noinput_text, sizeof(draw_data.status_text.str));
+                    strncpy(draw_data.status_text.str, noinput_text, sizeof(draw_data.status_text.str) - 1);
                     draw_data.status_text.font = get_font_face(WRONG_FONT);
                     draw_data.status_text.color = wrong16;
                     draw_data.status_text.size = wrong_size;
@@ -803,7 +803,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (modifier_string) {
         draw_data.mod_text.show = true;
-        strncpy(draw_data.mod_text.str, modifier_string, sizeof(draw_data.mod_text.str));
+        strncpy(draw_data.mod_text.str, modifier_string, sizeof(draw_data.mod_text.str) - 1);
         draw_data.mod_text.size = modifier_size;
         draw_data.mod_text.font = get_font_face(WRONG_FONT);
         draw_data.mod_text.align = modif_align;
@@ -813,7 +813,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (layout_text) {
         draw_data.keylayout_text.show = true;
-        strncpy(draw_data.keylayout_text.str, layout_text, sizeof(draw_data.keylayout_text.str));
+        strncpy(draw_data.keylayout_text.str, layout_text, sizeof(draw_data.keylayout_text.str) - 1);
         draw_data.keylayout_text.size = layout_size;
         draw_data.keylayout_text.font = get_font_face(LAYOUT_FONT);
         draw_data.keylayout_text.color = layout16;
