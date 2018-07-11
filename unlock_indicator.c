@@ -278,6 +278,7 @@ static void draw_text(cairo_t *ctx, text_t text) {
     if (!text.show)
         return;
     cairo_text_extents_t extents;
+    cairo_set_font_face(ctx, text.font);
     cairo_set_font_size(ctx, text.size);
 
     cairo_text_extents(ctx, text.str, &extents);
