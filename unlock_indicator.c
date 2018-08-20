@@ -56,6 +56,8 @@ extern cairo_surface_t *img;
 extern bool tile;
 /* The background color to use (in hex). */
 extern char color[7];
+/* The color of the unlock circle */
+extern char ring_color[7];
 /* Whether to write text on the unlock indicator. */
 extern bool write_text;
 
@@ -75,6 +77,9 @@ extern xcb_screen_t *screen;
  * Local variables.
  ******************************************************************************/
 
+static float ring_colorf[3];
+static float type_colorf[3];
+
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
 
@@ -82,6 +87,23 @@ static xcb_visualtype_t *vistype;
  * indicator. */
 unlock_state_t unlock_state;
 auth_state_t auth_state;
+
+void init_colors(void) {
+    char strgroups[3][3] = {{ring_color[0], ring_color[1], '\0'},
+                            {ring_color[2], ring_color[3], '\0'},
+                            {ring_color[4], ring_color[5], '\0'}};
+    ring_colorf[0] = (float) strtol(strgroups[0], NULL, 16) / 255;
+    ring_colorf[1] = (float) strtol(strgroups[1], NULL, 16) / 255;
+    ring_colorf[2] = (float) strtol(strgroups[2], NULL, 16) / 255;
+
+    double P = sqrt(ring_color[0] * .3 * 256 + ring_color[1] * .6 * 256 + ring_color[2] * .1 * 256) / 255;
+
+    printf("%f", P);
+
+    type_colorf[0] = (P + (ring_colorf[0] - P) * 0.75) * 1.8;
+    type_colorf[1] = (P + (ring_colorf[1] - P) * 0.75) * 1.8;
+    type_colorf[2] = (P + (ring_colorf[2] - P) * 0.75) * 1.8;
+}
 
 /*
  * Draws global image with fill color onto a pixmap with the given
@@ -181,7 +203,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     break;
                 }
 
-                cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
+                cairo_set_source_rgb(ctx, ring_colorf[0], ring_colorf[1], type_colorf[2]);
                 break;
         }
         cairo_stroke(ctx);
@@ -280,7 +302,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
-                cairo_set_source_rgb(ctx, 51.0 / 255, 219.0 / 255, 0);
+                cairo_set_source_rgb(ctx, type_colorf[0], type_colorf[1], type_colorf[2]);
             } else {
                 /* For backspace, we use red. */
                 cairo_set_source_rgb(ctx, 219.0 / 255, 51.0 / 255, 0);
