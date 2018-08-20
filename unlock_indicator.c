@@ -56,6 +56,8 @@ extern cairo_surface_t *img;
 extern bool tile;
 /* The background color to use (in hex). */
 extern char color[7];
+/* Whether to write text on the unlock indicator. */
+extern bool write_text;
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -235,7 +237,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
         }
 
-        if (text) {
+        if (text && write_text) {
             cairo_text_extents_t extents;
             double x, y;
 
