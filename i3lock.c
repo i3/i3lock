@@ -59,6 +59,7 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
 char color[7] = "ffffff";
+char ring_color[7] = "337d00";
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -71,6 +72,7 @@ static char password[512];
 static bool beep = false;
 bool debug_mode = false;
 bool unlock_indicator = true;
+bool write_text = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
@@ -879,6 +881,8 @@ int main(int argc, char *argv[]) {
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
+        {"no-text", no_argument, NULL, 's'},
+        {"ring_color", required_argument, NULL, 'r'},
         {"image", required_argument, NULL, 'i'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
@@ -891,7 +895,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.\n");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fsr:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -921,8 +925,22 @@ int main(int argc, char *argv[]) {
 
                 break;
             }
+            case 'r': {
+                char *arg = optarg;
+
+                if (arg[0] == '#')
+                    arg++;
+
+                if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", ring_color) != 1)
+                    errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb\n");
+
+                break;
+            }
             case 'u':
                 unlock_indicator = false;
+                break;
+            case 's':
+                write_text = false;
                 break;
             case 'i':
                 image_path = strdup(optarg);
@@ -950,8 +968,8 @@ int main(int argc, char *argv[]) {
                 show_failed_attempts = true;
                 break;
             default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-s] [-p win|default]"
+                                   " [-r color] [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
 
@@ -1037,6 +1055,8 @@ int main(int argc, char *argv[]) {
     }
 
     load_compose_table(locale);
+
+    init_colors();
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
