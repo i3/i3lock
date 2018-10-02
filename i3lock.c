@@ -680,6 +680,12 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             return;
         default:
             skip_repeated_empty_password = false;
+            // A new password is being entered, but a previous one is pending.
+            // Discard the old one and clear the retry_verification flag.
+            if (retry_verification) {
+                retry_verification = false;
+                clear_input();
+            }
     }
 
     // backspace, esc, delete, etc
