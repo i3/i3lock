@@ -12,11 +12,12 @@
 #define LAYOUT_FONT 2
 #define TIME_FONT   3
 #define DATE_FONT   4
+#define GREETER_FONT   5
 
 typedef struct text {
     bool show;
 
-    char str[40];
+    char str[512];
     double size;
 
     cairo_font_face_t *font;

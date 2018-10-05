@@ -88,6 +88,7 @@ extern char datecolor[9];
 extern char keyhlcolor[9];
 extern char bshlcolor[9];
 extern char separatorcolor[9];
+extern char greetercolor[9];
 extern int internal_line_source;
 
 extern int screen_number;
@@ -102,9 +103,10 @@ extern int time_align;
 extern int date_align;
 extern int layout_align;
 extern int modif_align;
+extern int greeter_align;
 extern char time_format[32];
 extern char date_format[32];
-extern char *fonts[5];
+extern char *fonts[6];
 extern char ind_x_expr[32];
 extern char ind_y_expr[32];
 extern char time_x_expr[32];
@@ -121,6 +123,8 @@ extern char wrong_x_expr[32];
 extern char wrong_y_expr[32];
 extern char modif_x_expr[32];
 extern char modif_y_expr[32];
+extern char greeter_x_expr[32];
+extern char greeter_y_expr[32];
 
 extern double time_size;
 extern double date_size;
@@ -128,6 +132,7 @@ extern double verif_size;
 extern double wrong_size;
 extern double modifier_size;
 extern double layout_size;
+extern double greeter_size;
 
 extern char *verif_text;
 extern char *wrong_text;
@@ -135,6 +140,7 @@ extern char *noinput_text;
 extern char *lock_text;
 extern char *lock_failed_text;
 extern char *layout_text;
+extern char *greeter_text;
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -182,6 +188,7 @@ rgba_t keyhl16;
 rgba_t bshl16;
 rgba_t sep16;
 rgba_t bar16;
+rgba_t greeter16;
 // just rgb
 rgb_t rgb16;
 
@@ -206,7 +213,8 @@ extern char bar_expr[32];
 extern bool bar_bidirectional;
 extern bool bar_reversed;
 
-static cairo_font_face_t *font_faces[5] = {
+static cairo_font_face_t *font_faces[6] = {
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -602,6 +610,7 @@ void init_colors_once(void) {
     colorgen(&tmp, bshlcolor, &bshl16);
     colorgen(&tmp, separatorcolor, &sep16);
     colorgen(&tmp, bar_base_color, &bar16);
+    colorgen(&tmp, greetercolor, &greeter16);
     colorgen_rgb(&tmp_rgb, color, &rgb16);
 }
 
@@ -658,6 +667,7 @@ static void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
     draw_text(ctx, draw_data->mod_text);
     draw_text(ctx, draw_data->time_text);
     draw_text(ctx, draw_data->date_text);
+    draw_text(ctx, draw_data->greeter_text);
 }
 
 /*
@@ -822,6 +832,15 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         draw_data.keylayout_text.align = layout_align;
     }
 
+    if (greeter_text) {
+        draw_data.greeter_text.show = true;
+        strncpy(draw_data.greeter_text.str, greeter_text, sizeof(draw_data.greeter_text.str) - 1);
+        draw_data.greeter_text.size = greeter_size;
+        draw_data.greeter_text.font = get_font_face(GREETER_FONT);
+        draw_data.greeter_text.color = greeter16;
+        draw_data.greeter_text.align = greeter_align;
+    }
+
     if (show_clock && (!draw_data.status_text.show || always_show_clock)) {
         time_t rawtime;
         struct tm *timeinfo;
@@ -843,6 +862,14 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             draw_data.date_text.color = date16;
             draw_data.date_text.font = get_font_face(DATE_FONT);
             draw_data.date_text.align = date_align;
+        }
+
+        if (*draw_data.greeter_text.str) {
+            draw_data.greeter_text.show = true;
+            draw_data.greeter_text.size = greeter_size;
+            draw_data.greeter_text.color = greeter16;
+            draw_data.greeter_text.font = get_font_face(GREETER_FONT);
+            draw_data.greeter_text.align = greeter_align;
         }
     }
 
@@ -887,6 +914,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_expr *te_modif_y_expr = compile_expression("--modifpos", modif_y_expr, vars, vars_size);
     te_expr *te_bar_expr = compile_expression("--bar-position", bar_expr, vars, vars_size);
 
+    te_expr *te_greeter_x_expr = compile_expression("--greeterpos", greeter_x_expr, vars, vars_size);
+    te_expr *te_greeter_y_expr = compile_expression("--greeterpos", greeter_y_expr, vars, vars_size);
+
     if (xr_screens > 0) {
         if (screen_number < 0 || screen_number > xr_screens) {
             screen_number = 0;
@@ -901,6 +931,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             draw_data.time_text.y = 0;
             draw_data.date_text.x = 0;
             draw_data.date_text.y = 0;
+            draw_data.greeter_text.x = 0;
+            draw_data.greeter_text.y = 0;
 
             width = xr_resolutions[current_screen].width / scaling_factor;
             height = xr_resolutions[current_screen].height / scaling_factor;
@@ -922,6 +954,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             draw_data.date_text.y = te_eval(te_date_y_expr);
             draw_data.keylayout_text.x = te_eval(te_layout_x_expr);
             draw_data.keylayout_text.y = te_eval(te_layout_y_expr);
+            draw_data.greeter_text.x = te_eval(te_greeter_x_expr);
+            draw_data.greeter_text.y = te_eval(te_greeter_y_expr);
 
             switch (auth_state) {
                 case STATE_AUTH_VERIFY:
@@ -970,6 +1004,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         draw_data.date_text.y = te_eval(te_date_y_expr);
         draw_data.keylayout_text.x = te_eval(te_layout_x_expr);
         draw_data.keylayout_text.y = te_eval(te_layout_y_expr);
+        draw_data.greeter_text.x = te_eval(te_greeter_x_expr);
+        draw_data.greeter_text.y = te_eval(te_greeter_y_expr);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
@@ -1017,6 +1053,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     te_free(te_modif_x_expr);
     te_free(te_modif_y_expr);
     te_free(te_bar_expr);
+    te_free(te_greeter_x_expr);
+    te_free(te_greeter_y_expr);
 
     cairo_set_source_surface(xcb_ctx, output, 0, 0);
     cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
