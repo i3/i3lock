@@ -249,8 +249,8 @@ iy - the y value of the indicator on the current display.
 .RE
 
 .TP
-.B \-\-time\-align, \-\-date\-align, \-\-layout\-align, \-\-verif\-align, \-\-wrong\-align, \-\-modif\-align
-Sets the text alignment of the time, date, keylayout, verification text, wrong text, and modifier text.
+.B \-\-time\-align, \-\-date\-align, \-\-layout\-align, \-\-verif\-align, \-\-wrong\-align, \-\-modif\-align, \-\-greeter\-align
+Sets the text alignment of the time, date, keylayout, verification text, wrong text, modifier text and greeter text.
 
 .RS
 .RS
@@ -272,11 +272,11 @@ Sets the color of the date in the clock.
 Sets the format used for generating the date string. See strftime(3) for a full list of format specifiers.
 
 .TP
-.B \-\-{time, date, layout, verif, wrong}\-font=sans-serif
+.B \-\-{time, date, layout, verif, wrong, greeter}\-font=sans-serif
 Sets the font used to render various strings.
 
 .TP
-.B \-\-{time, date, layout, verif, wrong}size=number
+.B \-\-{time, date, layout, verif, wrong, greeter}size=number
 Sets the font size used to render various strings.
 
 .TP
@@ -291,6 +291,18 @@ ty - the computed y value of the timestring, for the current display.
 
 .RE
 .RE
+
+.TP
+.B \-\-greetertext="text"
+Sets the greeter text. Defaults to "".
+
+.TP
+.B \-\-greetercolor=rrggbbaa
+Sets the color of the greeter text.
+
+.TP
+.B \-\-greeterpos="x position:y position"
+Sets the position for the date string. All the variables from \-\-indpos and \-\-timepos may be used.
 
 .TP
 .B \-\-refresh\-rate=seconds-as-double

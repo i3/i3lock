@@ -88,6 +88,7 @@ char datecolor[9] = "000000ff";
 char keyhlcolor[9] = "33db00ff";
 char bshlcolor[9] = "db3300ff";
 char separatorcolor[9] = "000000ff";
+char greetercolor[9] = "000000ff";
 
 /* int defining which display the lock indicator should be shown on. If -1, then show on all displays.*/
 int screen_number = 0;
@@ -117,6 +118,7 @@ int time_align = 0;
 int date_align = 0;
 int layout_align = 0;
 int modif_align = 0;
+int greeter_align = 0;
 
 char time_format[32] = "%H:%M:%S\0";
 char date_format[32] = "%A, %m %Y\0";
@@ -126,13 +128,15 @@ char wrong_font[32] = "sans-serif\0";
 char layout_font[32] = "sans-serif\0";
 char time_font[32] = "sans-serif\0";
 char date_font[32] = "sans-serif\0";
+char greeter_font[32] = "sans-serif\0";
 
-char* fonts[5] = {
+char* fonts[6] = {
     verif_font,
     wrong_font,
     layout_font,
     time_font,
-    date_font
+    date_font,
+    greeter_font
 };
 
 char ind_x_expr[32] = "x + (w / 2)\0";
@@ -151,6 +155,8 @@ char verif_x_expr[32] = "ix\0";
 char verif_y_expr[32] = "iy\0";
 char wrong_x_expr[32] = "ix\0";
 char wrong_y_expr[32] = "iy\0";
+char greeter_x_expr[32] = "ix\0";
+char greeter_y_expr[32] = "ix\0";
 
 double time_size = 32.0;
 double date_size = 14.0;
@@ -160,6 +166,7 @@ double modifier_size = 14.0;
 double layout_size = 14.0;
 double circle_radius = 90.0;
 double ring_width = 7.0;
+double greeter_size = 32.0;
 
 char* verif_text = "verifying…";
 char* wrong_text = "wrong!";
@@ -168,6 +175,7 @@ char* lock_text = "locking…";
 char* lock_failed_text = "lock failed!";
 int   keylayout_mode = -1;
 char* layout_text = NULL;
+char* greeter_text = "";
 
 /* opts for blurring */
 bool blur = false;
@@ -1206,6 +1214,7 @@ int main(int argc, char *argv[]) {
         {"keyhlcolor", required_argument, NULL, 312},
         {"bshlcolor", required_argument, NULL, 313},
         {"separatorcolor", required_argument, NULL, 314},
+        {"greetercolor", required_argument, NULL, 315},
 
         {"line-uses-ring", no_argument, NULL, 'r'},
         {"line-uses-inside", no_argument, NULL, 's'},
@@ -1226,6 +1235,7 @@ int main(int argc, char *argv[]) {
         {"wrong-align", required_argument, NULL, 503},
         {"layout-align", required_argument, NULL, 504},
         {"modif-align", required_argument, NULL, 505},
+        {"greeter-align", required_argument, NULL, 506},
 
         // string stuff
 
@@ -1237,6 +1247,7 @@ int main(int argc, char *argv[]) {
         {"noinputtext", required_argument, NULL, 515},
         {"locktext", required_argument, NULL, 516},
         {"lockfailedtext", required_argument, NULL, 517},
+        {"greetertext", required_argument, NULL, 518},
 
         // fonts
 
@@ -1245,6 +1256,7 @@ int main(int argc, char *argv[]) {
         {"verif-font", required_argument, NULL, 522},
         {"wrong-font", required_argument, NULL, 523},
         {"layout-font", required_argument, NULL, 524},
+        {"greeter-font", required_argument, NULL, 525},
 
         // text size
 
@@ -1254,6 +1266,7 @@ int main(int argc, char *argv[]) {
         {"wrongsize", required_argument, NULL, 533},
         {"layoutsize", required_argument, NULL, 534},
         {"modsize", required_argument, NULL, 535},
+        {"greetersize", required_argument, NULL, 536},
 
         // text/indicator positioning
 
@@ -1265,6 +1278,7 @@ int main(int argc, char *argv[]) {
         {"statuspos", required_argument, NULL, 545},
         {"modifpos", required_argument, NULL, 546},
         {"indpos", required_argument, NULL, 547},
+        {"greeterpos", required_argument, NULL, 548},
 
 
         // bar indicator stuff
@@ -1428,6 +1442,9 @@ int main(int argc, char *argv[]) {
             case 314:
                 parse_color(separatorcolor);
                 break;
+            case 315:
+                parse_color(greetercolor);
+                break;
 // general indicator opts
             case 400:
                 show_clock = true;
@@ -1486,6 +1503,11 @@ int main(int argc, char *argv[]) {
                 if (opt < 0 || opt > 2) opt = 0;
                 modif_align = opt;
                 break;
+            case 506:
+                opt = atoi(optarg);
+                if (opt < 0 || opt > 2) opt = 0;
+                greeter_align = opt;
+                break;
 // string stuff
             case 510:
                 if (strlen(optarg) > 31) {
@@ -1520,6 +1542,9 @@ int main(int argc, char *argv[]) {
             case 517:
                 lock_failed_text = optarg;
                 break;
+            case 518:
+                greeter_text = optarg;
+                break;
 // font stuff
             case 520:
                 if (strlen(optarg) > 31) {
@@ -1552,6 +1577,12 @@ int main(int argc, char *argv[]) {
                     errx(1, "layout font string can be at most 31 characters\n");
                 }
                 strcpy(fonts[LAYOUT_FONT],optarg);
+                break;
+            case 525:
+                if (strlen(optarg) > 31) {
+                    errx(1, "greeter font string can be at most 31 characters\n");
+                }
+                strcpy(fonts[GREETER_FONT],optarg);
                 break;
 // text size
             case 530:
@@ -1600,6 +1631,15 @@ int main(int argc, char *argv[]) {
                 if (modifier_size < 1) {
                     fprintf(stderr, "modsize must be a positive integer; ignoring...\n");
                     modifier_size = 14.0;
+                }
+                break;
+            case 536:
+                arg = optarg;
+                if (sscanf(arg, "%lf", &greeter_size) != 1)
+                    errx(1, "greetersize must be a number\n");
+                if (greeter_size < 1) {
+                    fprintf(stderr, "greetersize must be a positive integer; ignoring...\n");
+                    greeter_size = 14.0;
                 }
                 break;
 // Positions
@@ -1680,6 +1720,16 @@ int main(int argc, char *argv[]) {
                 }
                 arg = optarg;
                 if (sscanf(arg, "%30[^:]:%30[^:]", ind_x_expr, ind_y_expr) != 2) {
+                    errx(1, "indpos must be of the form x:y\n");
+                }
+                break;
+            case 548:
+                if (strlen(optarg) > 31) {
+                    // this is overly restrictive since both the x and y string buffers have size 32, but it's easier to check.
+                    errx(1, "indicator position string can be at most 31 characters\n");
+                }
+                arg = optarg;
+                if (sscanf(arg, "%30[^:]:%30[^:]", greeter_x_expr, greeter_y_expr) != 2) {
                     errx(1, "indpos must be of the form x:y\n");
                 }
                 break;

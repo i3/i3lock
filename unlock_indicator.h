@@ -30,6 +30,7 @@ typedef struct {
     text_t keylayout_text;
     text_t time_text;
     text_t date_text;
+    text_t greeter_text;
 
     double indicator_x, indicator_y;
 
