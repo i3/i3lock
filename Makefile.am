@@ -54,4 +54,5 @@ EXTRA_DIST = \
 	$(pamd_files) \
 	CHANGELOG \
 	LICENSE \
-	README.md
+	README.md \
+	I3LOCK_VERSION
