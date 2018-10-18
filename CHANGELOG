@@ -1,3 +1,7 @@
+2018-10-18 i3lock 2.11.1
+
+ • Fix dist tarball by including I3LOCK_VERSION
+
 2018-10-10 i3lock 2.11
 
  • Switch to autotools
