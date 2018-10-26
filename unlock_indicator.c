@@ -20,6 +20,7 @@
 #include "xcb.h"
 #include "unlock_indicator.h"
 #include "randr.h"
+#include "dpi.h"
 
 #define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
@@ -83,16 +84,6 @@ auth_state_t auth_state;
 /* Cache the font we use after looking it up once */
 static cairo_font_face_t *sans_serif = NULL;
 
-/*
- * Returns the scaling factor of the current screen. E.g., on a 227 DPI MacBook
- * Pro 13" Retina screen, the scaling factor is 227/96 = 2.36.
- *
- */
-static double scaling_factor(void) {
-    const int dpi = (double)screen->height_in_pixels * 25.4 /
-                    (double)screen->height_in_millimeters;
-    return (dpi / 96.0);
-}
 
 /*
  * Returns the cairo_font_face_t for sans-serif
@@ -181,9 +172,10 @@ static void draw_text(cairo_t *ctx, const char *text, double offset) {
  */
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
-    int button_diameter_physical = ceil(scaling_factor() * BUTTON_DIAMETER);
+    const double scaling_factor = get_dpi_value() / 96.0;
+    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
-          scaling_factor(), button_diameter_physical);
+          scaling_factor, button_diameter_physical);
 
     if (!vistype)
         vistype = get_root_visual_type(screen);
@@ -225,7 +217,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (unlock_indicator &&
         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE)) {
-        cairo_scale(ctx, scaling_factor(), scaling_factor());
+        cairo_scale(ctx, scaling_factor, scaling_factor);
         /* Draw a (centered) circle with transparent background. */
         cairo_set_line_width(ctx, 10.0);
         cairo_arc(ctx,
@@ -247,6 +239,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
                 break;
             default:
+                if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                    break;
+                }
                 cairo_set_source_rgba(ctx, 0, 0, 0, 0.75);
                 break;
         }
@@ -262,6 +258,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
                 break;
             case STATE_AUTH_IDLE:
+                if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                    break;
+                }
+
                 cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
                 break;
         }
@@ -309,6 +310,9 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                     text = "lock failed!";
                     break;
                 default:
+                    if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                        text = "no input";
+                    }
                     if (show_failed_attempts && failed_attempts > 0) {
                         if (failed_attempts > 999) {
                             text = "> 999";
@@ -333,6 +337,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
             face = NULL;
         }
+
         /* After the user pressed any valid key or the backspace key, we
          * highlight a random part of the unlock indicator to confirm this
          * keypress. */

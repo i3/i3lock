@@ -203,6 +203,9 @@ bool grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
             break;
         }
 
+        /* In case the grab failed, we still need to free the reply */
+        free(preply);
+
         /* Make this quite a bit slower */
         usleep(50);
 
@@ -236,6 +239,9 @@ bool grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
             free(kreply);
             break;
         }
+
+        /* In case the grab failed, we still need to free the reply */
+        free(kreply);
 
         /* Make this quite a bit slower */
         usleep(50);

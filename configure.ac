@@ -76,7 +76,15 @@ AC_SEARCH_LIBS([ev_run], [ev], , [AC_MSG_FAILURE([cannot find the required ev_ru
 
 AC_SEARCH_LIBS([shm_open], [rt])
 
-AC_SEARCH_LIBS([pam_authenticate], [pam])
+# Only disable PAM on OpenBSD where i3lock uses BSD Auth instead
+case "$host" in
+	*-openbsd*)
+	# Nothing yet.
+	;;
+	*)
+	AC_SEARCH_LIBS([pam_authenticate], [pam])
+	;;
+esac
 
 AC_SEARCH_LIBS([iconv_open], [iconv], , [AC_MSG_FAILURE([cannot find the required iconv_open() function despite trying to link with -liconv])])
 
@@ -85,6 +93,7 @@ dnl downloaded in a newer version and would like to overwrite.
 PKG_CHECK_MODULES([XCB], [xcb xcb-xkb xcb-xinerama xcb-randr])
 PKG_CHECK_MODULES([XCB_IMAGE], [xcb-image])
 PKG_CHECK_MODULES([XCB_UTIL], [xcb-event xcb-util xcb-atom])
+PKG_CHECK_MODULES([XCB_UTIL_XRM], [xcb-xrm])
 PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon xkbcommon-x11])
 PKG_CHECK_MODULES([CAIRO], [cairo])
 PKG_CHECK_MODULES([FONTCONFIG], [fontconfig])
