@@ -84,7 +84,6 @@ auth_state_t auth_state;
 /* Cache the font we use after looking it up once */
 static cairo_font_face_t *sans_serif = NULL;
 
-
 /*
  * Returns the cairo_font_face_t for sans-serif
  * if this thing returns NULL, then we're somehow on a system without a
