@@ -41,6 +41,27 @@ press enter.
 On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
 authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
+Building i3lock
+---------------
+We recommend you use the provided package from your distribution. Do not build
+i3lock unless you have a reason to do so.
+
+First install the dependencies listed in requirements section, then run these
+commands (might need to be adapted to your OS):
+```
+autoreconf --force --install
+
+rm -rf build/
+mkdir -p build && cd build/
+
+../configure \
+  --prefix=/usr \
+  --sysconfdir=/etc \
+  --disable-sanitizers
+
+make
+```
+
 Upstream
 --------
 Please submit pull requests to https://github.com/i3/i3lock
