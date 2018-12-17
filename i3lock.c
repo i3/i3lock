@@ -336,7 +336,7 @@ static void input_done(void) {
         else if (strcmp(mod_name, XKB_MOD_NAME_NUM) == 0)
             mod_name = "Num Lock";
         else if (strcmp(mod_name, XKB_MOD_NAME_LOGO) == 0)
-            mod_name = "Win";
+            mod_name = "Super";
 
         char *tmp;
         if (modifier_string == NULL) {
