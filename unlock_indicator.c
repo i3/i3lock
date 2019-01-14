@@ -207,20 +207,20 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_set_font_size(ctx, 28.0);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-                text = "verifying…";
+                text = "Verifying…";
                 break;
             case STATE_AUTH_LOCK:
-                text = "locking…";
+                text = "Locking…";
                 break;
             case STATE_AUTH_WRONG:
-                text = "wrong!";
+                text = "Wrong!";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
-                text = "lock failed!";
+                text = "Lock failed!";
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    text = "no input";
+                    text = "No input";
                 }
                 if (show_failed_attempts && failed_attempts > 0) {
                     if (failed_attempts > 999) {
