@@ -149,6 +149,15 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
                         strlen(name),
                         name);
 
+    xcb_change_property(conn,
+                        XCB_PROP_MODE_REPLACE,
+                        win,
+                        XCB_ATOM_WM_CLASS,
+                        XCB_ATOM_STRING,
+                        8,
+                        2 * (strlen("i3lock") + 1),
+                        "i3lock\0i3lock\0");
+
     /* Map the window (= make it visible) */
     xcb_map_window(conn, win);
 
