@@ -102,6 +102,9 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+char *hook_fail = NULL;
+char *hook_success = NULL;
+
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -290,6 +293,13 @@ static void input_done(void) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
 
+        if(hook_success) {
+            char str[33];
+            sprintf(str, "%d", failed_attempts);
+            setenv("I3L_ATTEMPTS", str, true);
+            system(hook_success);
+        }
+
         ev_break(EV_DEFAULT, EVBREAK_ALL);
         return;
     }
@@ -297,6 +307,13 @@ static void input_done(void) {
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
         DEBUG("successfully authenticated\n");
         clear_password_memory();
+
+        if(hook_success) {
+            char str[33];
+            sprintf(str, "%d", failed_attempts);
+            setenv("I3L_ATTEMPTS", str, true);
+            system(hook_success);
+        }
 
         /* PAM credentials should be refreshed, this will for example update any kerberos tickets.
          * Related to credentials pam_end() needs to be called to cleanup any temporary
@@ -350,6 +367,14 @@ static void input_done(void) {
 
     auth_state = STATE_AUTH_WRONG;
     failed_attempts += 1;
+
+    if(hook_fail) {
+        char str[33];
+        sprintf(str, "%d", failed_attempts);
+        setenv("I3L_ATTEMPTS", str, true);
+        system(hook_fail);
+    }
+
     clear_input();
     if (unlock_indicator)
         redraw_screen();
@@ -890,6 +915,8 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
+        {"hook-fail", required_argument, NULL, 'F'},
+        {"hook-success", required_argument, NULL, 'S'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -902,7 +929,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:fl";
+    char *optstring = "hvnbdc:p:ui:F:S:teI:fl";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -938,6 +965,12 @@ int main(int argc, char *argv[]) {
             case 'i':
                 image_path = strdup(optarg);
                 break;
+            case 'F':
+                hook_fail = strdup(optarg);
+                break;
+            case 'S':
+                hook_success = strdup(optarg);
+                break;
             case 't':
                 tile = true;
                 break;
@@ -969,7 +1002,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l] [-F hook.sh] [-S hook.sh]");
         }
     }
 
