@@ -97,6 +97,7 @@ static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
 static int randr_base = -1;
 
+static char *image_path = NULL;
 cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
@@ -111,6 +112,63 @@ bool skip_repeated_empty_password = false;
  */
 void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
+}
+
+/*
+ * Check if file exists and it is png one.
+ *
+ */
+static bool verify_png_image(const char *image_path) {
+    if (!image_path) {
+        return false;
+    }
+
+    /* Check file exists and has correct PNG header */
+    FILE *png_file = fopen(image_path, "r");
+    if (png_file == NULL) {
+        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
+        return false;
+    }
+    unsigned char png_header[8];
+    memset(png_header, '\0', sizeof(png_header));
+    int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
+    fclose(png_file);
+    if (bytes_read != sizeof(png_header)) {
+        fprintf(stderr, "Could not read PNG header from \"%s\"\n", image_path);
+        return false;
+    }
+
+    // Check PNG header according to the specification, available at:
+    // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
+    static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
+    if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
+        fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
+        return false;
+    }
+    return true;
+}
+
+/*
+ * Reload background image.
+ *
+ */
+static void reload_image() {
+    /* There could be already loaded one */
+    if (img) {
+        cairo_surface_destroy(img);
+        img = NULL;
+    }
+
+    if (verify_png_image(image_path)) {
+        /* Create a pixmap to render on, fill it with the background color */
+        img = cairo_image_surface_create_from_png(image_path);
+        /* In case loading failed, we just pretend no -i was specified. */
+        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+            fprintf(stderr, "Could not load image \"%s\": %s\n",
+                    image_path, cairo_status_to_string(cairo_surface_status(img)));
+            img = NULL;
+        }
+    }
 }
 
 /*
@@ -503,6 +561,13 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             redraw_screen();
             unlock_state = STATE_KEY_PRESSED;
             return;
+
+        case XKB_KEY_F35:
+            /* Doubt that anyone has such key on keyboard. Use it to reload
+             * background image. */
+            reload_image();
+            redraw_screen();
+            return;
     }
 
     if ((input_position + 8) >= (int)sizeof(password))
@@ -643,36 +708,6 @@ void handle_screen_resize(void) {
 
     randr_query(screen->root);
     redraw_screen();
-}
-
-static bool verify_png_image(const char *image_path) {
-    if (!image_path) {
-        return false;
-    }
-
-    /* Check file exists and has correct PNG header */
-    FILE *png_file = fopen(image_path, "r");
-    if (png_file == NULL) {
-        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
-        return false;
-    }
-    unsigned char png_header[8];
-    memset(png_header, '\0', sizeof(png_header));
-    int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
-    fclose(png_file);
-    if (bytes_read != sizeof(png_header)) {
-        fprintf(stderr, "Could not read PNG header from \"%s\"\n", image_path);
-        return false;
-    }
-
-    // Check PNG header according to the specification, available at:
-    // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
-    static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
-    if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
-        fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
-        return false;
-    }
-    return true;
 }
 
 #ifndef __OpenBSD__
@@ -866,7 +901,6 @@ static void raise_loop(xcb_window_t window) {
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
-    char *image_path = NULL;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -1069,17 +1103,7 @@ int main(int argc, char *argv[]) {
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
-    if (verify_png_image(image_path)) {
-        /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
-            img = NULL;
-        }
-    }
-    free(image_path);
+    reload_image();
 
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
@@ -1118,6 +1142,7 @@ int main(int argc, char *argv[]) {
      * popping up while i3lock blocks, it is not critical. */
     if (pid == 0) {
         /* Child */
+        free(image_path);
         close(xcb_get_file_descriptor(conn));
         maybe_close_sleep_lock_fd();
         raise_loop(win);
@@ -1172,6 +1197,8 @@ int main(int argc, char *argv[]) {
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
+
+    free(image_path);
 
     if (stolen_focus == XCB_NONE) {
         return 0;
