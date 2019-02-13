@@ -22,10 +22,24 @@
 #include "randr.h"
 #include "dpi.h"
 
-#define BUTTON_RADIUS 90
+#define BUTTON_RADIUS 60
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
+/* Color constants and stuff */
+
+/* RGBA inner button colors */
+#define CLR01 0, 87.0 / 255, 215.0 / 255, 0.75
+#define CLR02 127.0 / 255, 107.0 / 255, 87.0 / 255, 0.75
+#define CLR03 0, 0, 20.0 / 255, 0.75
+
+/* RGB arc colors */
+#define CLR04 0, 87.0 / 255, 215.0 / 255
+#define CLR05 255.0 / 255, 215.0 / 255, 175.0 / 255
+#define CLR06 95.0 / 255, 87.0 / 255, 215.0 / 255
+
+#define CLR07 0, 87.0 / 255, 215.0 / 255
+#define CLR08 195.0 / 255, 97.0 / 255, 105.0 / 255
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -99,9 +113,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
      * depending on the amount of screens) unlock indicators on. */
+    
     cairo_surface_t *output = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, button_diameter_physical, button_diameter_physical);
     cairo_t *ctx = cairo_create(output);
-
+    
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
@@ -148,18 +163,18 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, 0, 114.0 / 255, 255.0 / 255, 0.75);
+                cairo_set_source_rgba(ctx, CLR01);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, CLR02);
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                    cairo_set_source_rgba(ctx, CLR02);
                     break;
                 }
-                cairo_set_source_rgba(ctx, 0, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, CLR03);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -167,19 +182,19 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgb(ctx, 51.0 / 255, 0, 250.0 / 255);
+                cairo_set_source_rgb(ctx, CLR04);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                cairo_set_source_rgb(ctx, CLR05);
                 break;
             case STATE_AUTH_IDLE:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                    cairo_set_source_rgb(ctx, CLR05);
                     break;
                 }
 
-                cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
+                cairo_set_source_rgb(ctx, CLR06);
                 break;
         }
         cairo_stroke(ctx);
@@ -203,24 +218,25 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         char buf[4];
 
         cairo_set_source_rgb(ctx, 0, 0, 0);
-        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
+        cairo_select_font_face(ctx, "urw gothic", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(ctx, 23.0);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-                text = "Verifying…";
+                text = "hm…";
                 break;
             case STATE_AUTH_LOCK:
                 text = "Locking…";
                 break;
             case STATE_AUTH_WRONG:
-                text = "Wrong!";
+                text = "no";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 text = "Lock failed!";
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    text = "No input";
+                    text = "…";
+                break;
                 }
                 if (show_failed_attempts && failed_attempts > 0) {
                     if (failed_attempts > 999) {
@@ -275,13 +291,13 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       BUTTON_CENTER /* y */,
                       BUTTON_RADIUS /* radius */,
                       highlight_start,
-                      highlight_start + (M_PI / 3.0));
+                      highlight_start + (M_PI / 5.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
-                cairo_set_source_rgb(ctx, 51.0 / 255, 219.0 / 255, 0);
+                cairo_set_source_rgb(ctx, CLR07);
             } else {
                 /* For backspace, we use red. */
-                cairo_set_source_rgb(ctx, 219.0 / 255, 51.0 / 255, 0);
+                cairo_set_source_rgb(ctx, CLR08);
             }
             cairo_stroke(ctx);
 
@@ -299,8 +315,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
                       BUTTON_RADIUS /* radius */,
-                      (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0) /* start */,
-                      highlight_start + (M_PI / 3.0) /* end */);
+                      (highlight_start + (M_PI / 5.0)) - (M_PI / 128.0) /* start */,
+                      highlight_start + (M_PI / 5.0) /* end */);
             cairo_stroke(ctx);
         }
     }
@@ -318,8 +334,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         /* We have no information about the screen sizes/positions, so we just
          * place the unlock indicator in the middle of the X root window and
          * hope for the best. */
-        int x = (last_resolution[0] / 2) - (button_diameter_physical / 2);
-        int y = (last_resolution[1] / 2) - (button_diameter_physical / 2);
+        int x = (last_resolution[0] / 4) - (button_diameter_physical / 2);
+        int y = (3 * last_resolution[1] / 4) - (button_diameter_physical / 2);
         cairo_set_source_surface(xcb_ctx, output, x, y);
         cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
         cairo_fill(xcb_ctx);
