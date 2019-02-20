@@ -100,7 +100,7 @@ auth_state_t auth_state;
  * resolution and returns it.
  *
  */
-xcb_pixmap_t draw_image(uint32_t *resolution) {
+xcb_pixmap_t draw_image(uint32_t *resolution){
     xcb_pixmap_t bg_pixmap = XCB_NONE;
     const double scaling_factor = get_dpi_value() / 96.0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
@@ -354,11 +354,16 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
+    const double scaling_factor = get_dpi_value() / 96.0;
+    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
      * screen instead of the whole screen. */
-    xcb_clear_area(conn, 0, win, 0, 0, last_resolution[0], last_resolution[1]);
+    xcb_clear_area(conn, 0, win, last_resolution[0] / 2 - button_diameter_physical / 2, 
+            last_resolution[1] / 2 - button_diameter_physical / 2, 
+            last_resolution[0] / 2 + button_diameter_physical / 2, 
+            last_resolution[1] / 2 + button_diameter_physical / 2); 
     xcb_free_pixmap(conn, bg_pixmap);
     xcb_flush(conn);
 }
