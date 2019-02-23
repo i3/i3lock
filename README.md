@@ -24,22 +24,24 @@ Many little improvements have been made to i3lock over time:
   On OpenBSD i3lock uses the bsd\_auth(3) framework.
 
 ## Additional features in this fork
-  -  You can also specify additional options, as detailed in the manpage. This includes, but is not limited to, the following:
-    - Color options for the following:
-      - verification ring
-      - interior ring color
-      - ring interior line color
-      - key highlight color
-      - backspace highlight color
-      - text colors for most/all strings
-      - Changing all of the above depending on PAM's authentication status
-    - Blurring the current screen and using that as the lock background    
-    - Showing a clock in the indicator
-    - refreshing on a timer, instead of on each keypress
-    - Positioning the various UI elements
-    - Changing the ring radius and thickness, as well as text size
-    - A new bar indicator, which replaces the ring indicator with its own set of options
-      - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
+
+You can also specify additional options, as detailed in the manpage. This includes, but is not limited to, the following:
+
+  - Color options for the following:
+    - verification ring
+    - interior ring color
+    - ring interior line color
+    - key highlight color
+    - backspace highlight color
+    - text colors for most/all strings
+    - Changing all of the above depending on PAM's authentication status
+  - Blurring the current screen and using that as the lock background    
+  - Showing a clock in the indicator
+  - refreshing on a timer, instead of on each keypress
+  - Positioning the various UI elements
+  - Changing the ring radius and thickness, as well as text size
+  - A new bar indicator, which replaces the ring indicator with its own set of options
+    - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
 
 # Building
 
