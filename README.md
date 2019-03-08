@@ -18,8 +18,8 @@ Many little improvements have been made to i3lock over time:
 - i3lock uses PAM and therefore is compatible with LDAP etc.
   On OpenBSD i3lock uses the bsd_auth(3) framework.
 
-Running i3lock
--------------
+Install
+-------
 Ubuntu:
 ```
 sudo apt-get install i3lock
