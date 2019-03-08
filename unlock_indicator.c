@@ -234,41 +234,39 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_show_text(ctx, text);
         cairo_close_path(ctx);
 
-        /* Failed attempts (below) */
-        if (failed_attempts == 0) {
-            text = get_login();
-        } else if (failed_attempts == 1) {
-            text = "1 failed attempt";
-        } else {
-            snprintf(text, INFO_MAXLENGTH - 1, "%i failed attempts", failed_attempts);
-        }
-
-        cairo_set_font_size(ctx, 14.0);
-
         double x, y;
         cairo_text_extents_t extents;
-        cairo_text_extents(ctx, text, &extents);
-        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-        y = time_y - extents.y_bearing + INFO_MARGIN;
-
+        cairo_set_font_size(ctx, 14.0);
+        /* Failed attempts (below) */
         if (show_failed_attempts && failed_attempts > 0) {
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
-        }
-
-        if (failed_attempts >= 1)
-        {
-            text = get_login();
+            if (failed_attempts == 1) {
+                text = "1 failed attempt";
+            } else {
+                snprintf(text, INFO_MAXLENGTH - 1, "%i failed attempts", failed_attempts);
+            }
 
             cairo_text_extents(ctx, text, &extents);
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = time_y - time_extents.y_bearing + INFO_MARGIN * 2;
+            y = time_y - extents.y_bearing + INFO_MARGIN;
 
             cairo_move_to(ctx, x, y);
             cairo_show_text(ctx, text);
             cairo_close_path(ctx);
         }
+
+        text = get_login();
+
+        cairo_text_extents(ctx, text, &extents);
+        x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+        if (show_failed_attempts && failed_attempts > 0) {
+            y = time_y - time_extents.y_bearing + INFO_MARGIN * 2;
+        } else {
+            y = time_y - extents.y_bearing + INFO_MARGIN;
+        }
+
+        cairo_move_to(ctx, x, y);
+        cairo_show_text(ctx, text);
+        cairo_close_path(ctx);
 
         /* Lock time (above) */
         text = "Locked for";

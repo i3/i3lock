@@ -85,7 +85,7 @@ static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
 extern auth_state_t auth_state;
 int failed_attempts = 0;
-bool show_failed_attempts = false;
+bool show_failed_attempts = true;
 bool retry_verification = false;
 
 static struct xkb_state *xkb_state;
@@ -894,7 +894,7 @@ int main(int argc, char *argv[]) {
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
-        {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"hide-failed-attempts", no_argument, NULL, 'f'},
         {"lock-console", no_argument, NULL, 'l'},
         {NULL, no_argument, NULL, 0}};
 
@@ -959,7 +959,7 @@ int main(int argc, char *argv[]) {
                     debug_mode = true;
                 break;
             case 'f':
-                show_failed_attempts = true;
+                show_failed_attempts = false;
                 break;
             case 'l':
 #if defined(__linux__)
