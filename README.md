@@ -1,8 +1,8 @@
 i3lock - improved screen locker
 ===============================
-i3lock is a simple screen locker like slock. After starting it, you will
-see a white screen (you can configure the color/an image). You can return
-to your screen by entering your password.
+[i3lock](https://i3wm.org/i3lock/)> is a simple screen locker like slock.
+After starting it, you will see a white screen (you can configure the
+color/an image). You can return to your screen by entering your password.
 
 Many little improvements have been made to i3lock over time:
 
@@ -20,12 +20,8 @@ Many little improvements have been made to i3lock over time:
 
 Install
 -------
-Ubuntu:
-```
-sudo apt-get install i3lock
-```
 
-For other operating systems, see Requirements and Building below.
+See [the i3lock home page](https://i3wm.org/i3lock/).
 
 Requirements
 ------------
