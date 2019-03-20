@@ -22,24 +22,24 @@
 #include "randr.h"
 #include "dpi.h"
 
-#define BUTTON_RADIUS 60
+#define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
 /* Color constants and stuff */
 
 /* RGBA inner button colors */
-#define CLR01 0, 87.0 / 255, 215.0 / 255, 0.75
-#define CLR02 127.0 / 255, 107.0 / 255, 87.0 / 255, 0.75
-#define CLR03 0, 0, 20.0 / 255, 0.75
+#define CLR01 0, 114.0 / 255, 255.0 / 255, 0.75
+#define CLR02 250.0 / 255, 0, 0, 0.75
+#define CLR03 0, 0, 0, 0.75
 
 /* RGB arc colors */
-#define CLR04 0, 87.0 / 255, 215.0 / 255
-#define CLR05 255.0 / 255, 215.0 / 255, 175.0 / 255
-#define CLR06 95.0 / 255, 87.0 / 255, 215.0 / 255
+#define CLR04 51.0 / 255, 0, 250.0 / 255
+#define CLR05 125.0 / 255, 51.0 / 255, 0
+#define CLR06 51.0 / 255, 125.0 / 255, 0
 
-#define CLR07 0, 87.0 / 255, 215.0 / 255
-#define CLR08 195.0 / 255, 97.0 / 255, 105.0 / 255
+#define CLR07 51.0 / 255, 219.0 / 255, 0
+#define CLR08 219.0 / 255, 51.0 / 255, 0
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -218,24 +218,24 @@ xcb_pixmap_t draw_image(uint32_t *resolution){
         char buf[4];
 
         cairo_set_source_rgb(ctx, 0, 0, 0);
-        cairo_select_font_face(ctx, "urw gothic", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 23.0);
+        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(ctx, 28.0);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-                text = "hm…";
+                text = "Verifying...";
                 break;
             case STATE_AUTH_LOCK:
                 text = "Locking…";
                 break;
             case STATE_AUTH_WRONG:
-                text = "no";
+                text = "Wrong!";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
                 text = "Lock failed!";
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    text = "…";
+                    text = "No input";
                 break;
                 }
                 if (show_failed_attempts && failed_attempts > 0) {
@@ -291,7 +291,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution){
                       BUTTON_CENTER /* y */,
                       BUTTON_RADIUS /* radius */,
                       highlight_start,
-                      highlight_start + (M_PI / 5.0));
+                      highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
                 cairo_set_source_rgb(ctx, CLR07);
@@ -315,8 +315,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution){
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
                       BUTTON_RADIUS /* radius */,
-                      (highlight_start + (M_PI / 5.0)) - (M_PI / 128.0) /* start */,
-                      highlight_start + (M_PI / 5.0) /* end */);
+                      (highlight_start + (M_PI / 3.0)) - (M_PI / 128.0) /* start */,
+                      highlight_start + (M_PI / 3.0) /* end */);
             cairo_stroke(ctx);
         }
     }
@@ -334,8 +334,8 @@ xcb_pixmap_t draw_image(uint32_t *resolution){
         /* We have no information about the screen sizes/positions, so we just
          * place the unlock indicator in the middle of the X root window and
          * hope for the best. */
-        int x = (last_resolution[0] / 4) - (button_diameter_physical / 2);
-        int y = (3 * last_resolution[1] / 4) - (button_diameter_physical / 2);
+        int x = (last_resolution[0] / 2) - (button_diameter_physical / 2);
+        int y = (last_resolution[1] / 2) - (button_diameter_physical / 2);
         cairo_set_source_surface(xcb_ctx, output, x, y);
         cairo_rectangle(xcb_ctx, x, y, button_diameter_physical, button_diameter_physical);
         cairo_fill(xcb_ctx);
