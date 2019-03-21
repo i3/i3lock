@@ -100,10 +100,9 @@ auth_state_t auth_state;
  * resolution and returns it.
  *
  */
-xcb_pixmap_t draw_image(uint32_t *resolution){
+
+xcb_pixmap_t draw_image_with_sf_and_diam(uint32_t *resolution, const double scaling_factor, int button_diameter_physical) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
-    const double scaling_factor = get_dpi_value() / 96.0;
-    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor, button_diameter_physical);
 
@@ -222,7 +221,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution){
         cairo_set_font_size(ctx, 28.0);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
-                text = "Verifying...";
+                text = "Verifying…";
                 break;
             case STATE_AUTH_LOCK:
                 text = "Locking…";
@@ -348,15 +347,21 @@ xcb_pixmap_t draw_image(uint32_t *resolution){
     return bg_pixmap;
 }
 
+xcb_pixmap_t draw_image(uint32_t *resolution) {
+    const double scaling_factor = get_dpi_value() / 96.0;
+    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
+    return draw_image_with_sf_and_diam(resolution, scaling_factor, button_diameter_physical);
+}
 /*
  * Calls draw_image on a new pixmap and swaps that with the current pixmap
  *
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
+    printf("%d %d", last_resolution[0], last_resolution[1]);
     const double scaling_factor = get_dpi_value() / 96.0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
-    xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
+    xcb_pixmap_t bg_pixmap = draw_image_with_sf_and_diam(last_resolution, scaling_factor, button_diameter_physical);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
      * screen instead of the whole screen. */
