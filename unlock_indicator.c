@@ -358,7 +358,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
-    printf("%d %d", last_resolution[0], last_resolution[1]);
     const double scaling_factor = get_dpi_value() / 96.0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     xcb_pixmap_t bg_pixmap = draw_image_with_sf_and_diam(last_resolution, scaling_factor, button_diameter_physical);
