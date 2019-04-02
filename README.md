@@ -40,6 +40,7 @@ You can also specify additional options, as detailed in the manpage. This includ
   - refreshing on a timer, instead of on each keypress
   - Positioning the various UI elements
   - Changing the ring radius and thickness, as well as text size
+  - Passthrough media keys
   - A new bar indicator, which replaces the ring indicator with its own set of options
     - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
 

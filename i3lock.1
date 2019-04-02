@@ -28,6 +28,7 @@ i3lock-color \- improved screen locker
 .RB [\|\-u\|]
 .RB [\|\-e\|]
 .RB [\|\-f\|]
+.RB [\|\-m\|]
 
 .SH DESCRIPTION
 .B i3lock-color
@@ -120,6 +121,11 @@ Note that this number is zero indexed. The ordering is dependent on libxinerama.
 .B \-B=sigma, \-\-blur=sigma
 Captures the screen and blurs it using the given sigma (radius).
 Images may still be overlaid over the blurred screenshot.
+
+.TP
+.B \-m,
+Allow the following keys to be used while the screen is locked by passing them through:
+XF86AudioPlay, XF86AudioPause, XF86AudioStop, XF86AudioPrev, XF86AudioNext, XF86AudioMute, XF86AudioLowerVolume, XF86AudioRaiseVolume,  XF86MonBrightnessUp, XF86MonBrightnessDown.
 
 .TP
 .B \-\-indicator
