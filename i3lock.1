@@ -20,6 +20,8 @@ i3lock \- improved screen locker
 .RB [\|\-b\|]
 .RB [\|\-i
 .IR image.png \|]
+.RB [\|\-r
+.IR format \|]
 .RB [\|\-c
 .IR color \|]
 .RB [\|\-t\|]
@@ -73,6 +75,16 @@ verified or whether it is wrong).
 .TP
 .BI \-i\  path \fR,\ \fB\-\-image= path
 Display the given PNG image instead of a blank screen.
+
+.TP
+.BI \-r\  format \fR,\ \fB\-\-raw= format
+Read the image given by \-\-image as a raw image instead of PNG. The argument is the image's format
+as <width>x<height>:<pixfmt>. The supported pixel formats are 'native' and 'rgb'.
+The "rgb" pixel format expects a pixel to be three bytes; red, green, and blue.
+The "native" pixel format expects a pixel as a 32-bit (4-byte) integer in
+the machine's native endianness, with the upper 8 bits unused. Red, green and blue are stored in
+the remaining bits, in that order.
+Example: \-\-raw=1920x1080:rgb
 
 .TP
 .BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
