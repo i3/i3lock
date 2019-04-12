@@ -26,20 +26,17 @@
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
 #define BUTTON_CENTER (BUTTON_RADIUS + 5)
 #define BUTTON_DIAMETER (2 * BUTTON_SPACE)
-/* Color constants and stuff */
 
-/* RGBA inner button colors */
-#define CLR01 0, 114.0 / 255, 255.0 / 255, 0.75
-#define CLR02 250.0 / 255, 0, 0, 0.75
-#define CLR03 0, 0, 0, 0.75
+#define VERIFYING_INNER_CLR 0, 114.0 / 255, 255.0 / 255, 0.75
+#define WRONG_INNER_CLR 250.0 / 255, 0, 0, 0.75
+#define NO_INPUT_INNER_CLR 0, 0, 0, 0.75
 
-/* RGB arc colors */
-#define CLR04 51.0 / 255, 0, 250.0 / 255
-#define CLR05 125.0 / 255, 51.0 / 255, 0
-#define CLR06 51.0 / 255, 125.0 / 255, 0
+#define VERIFYING_OUTER_CLR 51.0 / 255, 0, 250.0 / 255
+#define WRONG_OUTER_CLR 125.0 / 255, 51.0 / 255, 0
+#define NO_INPUT_OUTER_CLR 51.0 / 255, 125.0 / 255, 0
 
-#define CLR07 51.0 / 255, 219.0 / 255, 0
-#define CLR08 219.0 / 255, 51.0 / 255, 0
+#define KEY_CLR 51.0 / 255, 219.0 / 255, 0
+#define BACKSPACE_CLR 219.0 / 255, 51.0 / 255, 0
 
 /*******************************************************************************
  * Variables defined in i3lock.c.
@@ -162,18 +159,18 @@ xcb_pixmap_t draw_image_with_sf_and_diam(uint32_t *resolution, const double scal
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, CLR01);
+                cairo_set_source_rgba(ctx, VERIFYING_INNER_CLR);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, CLR02);
+                cairo_set_source_rgba(ctx, WRONG_INNER_CLR);
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgba(ctx, CLR02);
+                    cairo_set_source_rgba(ctx, WRONG_INNER_CLR);
                     break;
                 }
-                cairo_set_source_rgba(ctx, CLR03);
+                cairo_set_source_rgba(ctx, NO_INPUT_INNER_CLR);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -181,19 +178,19 @@ xcb_pixmap_t draw_image_with_sf_and_diam(uint32_t *resolution, const double scal
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgb(ctx, CLR04);
+                cairo_set_source_rgb(ctx, VERIFYING_OUTER_CLR);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgb(ctx, CLR05);
+                cairo_set_source_rgb(ctx, WRONG_OUTER_CLR);
                 break;
             case STATE_AUTH_IDLE:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgb(ctx, CLR05);
+                    cairo_set_source_rgb(ctx, WRONG_OUTER_CLR);
                     break;
                 }
 
-                cairo_set_source_rgb(ctx, CLR06);
+                cairo_set_source_rgb(ctx, NO_INPUT_OUTER_CLR);
                 break;
         }
         cairo_stroke(ctx);
@@ -293,10 +290,10 @@ xcb_pixmap_t draw_image_with_sf_and_diam(uint32_t *resolution, const double scal
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
-                cairo_set_source_rgb(ctx, CLR07);
+                cairo_set_source_rgb(ctx, KEY_CLR);
             } else {
                 /* For backspace, we use red. */
-                cairo_set_source_rgb(ctx, CLR08);
+                cairo_set_source_rgb(ctx, BACKSPACE_CLR);
             }
             cairo_stroke(ctx);
 
@@ -362,8 +359,6 @@ void redraw_screen(void) {
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     xcb_pixmap_t bg_pixmap = draw_image_with_sf_and_diam(last_resolution, scaling_factor, button_diameter_physical);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
-    /* XXX: Possible optimization: Only update the area in the middle of the
-     * screen instead of the whole screen. */
     xcb_clear_area(conn, 0, win, last_resolution[0] / 2 - button_diameter_physical / 2,
                    last_resolution[1] / 2 - button_diameter_physical / 2,
                    last_resolution[0] / 2 + button_diameter_physical / 2,
