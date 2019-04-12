@@ -98,7 +98,9 @@ auth_state_t auth_state;
  *
  */
 
-xcb_pixmap_t draw_image_with_sf_and_diam(uint32_t *resolution, const double scaling_factor, int button_diameter_physical) {
+xcb_pixmap_t draw_image(uint32_t *resolution) {
+    const double scaling_factor = get_dpi_value() / 96.0;
+    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     xcb_pixmap_t bg_pixmap = XCB_NONE;
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor, button_diameter_physical);
@@ -344,11 +346,6 @@ xcb_pixmap_t draw_image_with_sf_and_diam(uint32_t *resolution, const double scal
     return bg_pixmap;
 }
 
-xcb_pixmap_t draw_image(uint32_t *resolution) {
-    const double scaling_factor = get_dpi_value() / 96.0;
-    int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
-    return draw_image_with_sf_and_diam(resolution, scaling_factor, button_diameter_physical);
-}
 /*
  * Calls draw_image on a new pixmap and swaps that with the current pixmap
  *
@@ -357,7 +354,7 @@ void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
     const double scaling_factor = get_dpi_value() / 96.0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
-    xcb_pixmap_t bg_pixmap = draw_image_with_sf_and_diam(last_resolution, scaling_factor, button_diameter_physical);
+    xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     xcb_clear_area(conn, 0, win, last_resolution[0] / 2 - button_diameter_physical / 2,
                    last_resolution[1] / 2 - button_diameter_physical / 2,
