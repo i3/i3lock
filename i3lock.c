@@ -762,7 +762,7 @@ cairo_surface_t* read_image_to_cairo_surface(const char* path)
  * Returns a new surface with dimensions x: target_width y: target_height
  *
  */
-cairo_surface_t* resize_cairo_surface(const cairo_surface_t* original, int target_width, int target_height)
+cairo_surface_t* resize_cairo_surface(cairo_surface_t* original, int target_width, int target_height)
 {
     cairo_t* ctx;
     cairo_surface_t* resized;
