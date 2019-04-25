@@ -52,6 +52,8 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "dpi.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -74,6 +76,7 @@ int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
 static char password[512];
 static bool beep = false;
+static bool resize = true;
 bool debug_mode = false;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
@@ -645,34 +648,138 @@ void handle_screen_resize(void) {
     redraw_screen();
 }
 
-static bool verify_png_image(const char *image_path) {
-    if (!image_path) {
-        return false;
+typedef struct
+{
+    int width;
+    int height;
+    int components;
+    unsigned char* data;
+}image_t;
+
+/*
+ * Reads an image from disk
+ * Retuns NULL on failure and a valid image_t on success
+ */
+image_t* image_read(const char* path)
+{
+    image_t* image = NULL;
+    int width, height, components;
+    unsigned char* data = stbi_load(path, &width, &height, &components, 0);
+    if(!data)
+        return NULL;
+
+    image = malloc(sizeof(image_t));
+    image->width = width;
+    image->height = height;
+    image->components = components;
+    image->data = data;
+
+    return image;
+}
+/*
+ * Frees an image_t
+ */
+void image_free(image_t* image)
+{
+    if(!image)
+        return;
+    stbi_image_free(image->data);
+    free(image);
+}
+
+/*
+ * Converts an image_t to a cairo surface
+ * Returns NULL on failure and a valid cairo surface on success
+ */
+cairo_surface_t* image_to_cairo_surface(const image_t* image)
+{
+    cairo_surface_t* surface = NULL;
+    int pixel_count = image->width * image->height;
+    const unsigned char* d = image->data;
+    if(image->components == STBI_rgb_alpha)
+    {
+        surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, image->width, image->height);
+        int* cairo_data = (int*)cairo_image_surface_get_data(surface);
+        for(int i = 0; i < pixel_count; ++i)
+        {
+            int idata = i * image->components;
+            int alpha = d[i + 3];
+            cairo_data[i] = (alpha << 24) | ((d[idata] << 16) * alpha / 255)
+                            | ((d[idata + 1] << 8) * alpha / 255) | (d[idata + 2] * alpha / 255);
+        }
+    }
+    else if(image->components == STBI_rgb)
+    {
+        surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, image->width, image->height);
+        int* cairo_data = (int*)cairo_image_surface_get_data(surface);
+        for(int i = 0; i < pixel_count; i++)
+        {
+            int idata = i * image->components;
+            cairo_data[i] = (d[idata] << 16) | (d[idata + 1] << 8) | (d[idata + 2]);
+        }
+    }
+    else if(image->components == STBI_grey)
+    {
+        printf("Reading grey scale image");
+        surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, image->width, image->height);
+        int* cairo_data = (int*)cairo_image_surface_get_data(surface);
+        for(int i = 0; i <  pixel_count; ++i)
+        {
+            int grey = d[i];
+            cairo_data[i] = (grey << 16) | (grey << 8) | (grey); 
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Invalid pixel format\n");
     }
 
-    /* Check file exists and has correct PNG header */
-    FILE *png_file = fopen(image_path, "r");
-    if (png_file == NULL) {
-        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
-        return false;
-    }
-    unsigned char png_header[8];
-    memset(png_header, '\0', sizeof(png_header));
-    int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
-    fclose(png_file);
-    if (bytes_read != sizeof(png_header)) {
-        fprintf(stderr, "Could not read PNG header from \"%s\"\n", image_path);
-        return false;
-    }
+    return surface;
+}
 
-    // Check PNG header according to the specification, available at:
-    // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
-    static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
-    if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
-        fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
-        return false;
+/*
+ * Reads an image from disk to a cairo surface
+ * Returns NULL on failure and a valid cairo surface on success
+ */
+cairo_surface_t* read_image_to_cairo_surface(const char* path)
+{
+    image_t* image;
+    cairo_surface_t* surface;
+    
+    if(!path)
+        return NULL;
+    image = image_read(path);
+    if(!image){
+        fprintf(stderr, "Failed to read image from path '%s'.", path);
+        return NULL;
     }
-    return true;
+    surface = image_to_cairo_surface(image);
+    image_free(image);
+    return surface;
+}
+
+/*
+ * Returns a new surface with dimensions x: target_width y: target_height
+ *
+ */
+cairo_surface_t* resize_cairo_surface(const cairo_surface_t* original, int target_width, int target_height)
+{
+    cairo_t* ctx;
+    cairo_surface_t* resized;
+
+    resized = cairo_image_surface_create(cairo_image_surface_get_format(original), target_width, target_height);
+    ctx = cairo_create(resized);
+
+    double scale_x = (double)last_resolution[0] / (double)cairo_image_surface_get_width(original);
+    double scale_y = (double)last_resolution[1] / (double)cairo_image_surface_get_height(original);
+
+    cairo_scale(ctx, scale_x, scale_y);
+    cairo_set_source_surface(ctx, original, 0, 0);
+    cairo_paint(ctx);
+
+    cairo_destroy(ctx);
+
+    return resized;
 }
 
 #ifndef __OpenBSD__
@@ -890,6 +997,7 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
+        {"no-resize", no_argument, NULL, 0},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -956,6 +1064,8 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[longoptind].name, "debug") == 0)
                     debug_mode = true;
+                else if(strcmp(longopts[longoptind].name, "no-resize") == 0)
+                    resize = false;
                 break;
             case 'f':
                 show_failed_attempts = true;
@@ -969,7 +1079,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l] [--no-resize]");
         }
     }
 
@@ -1068,14 +1178,18 @@ int main(int argc, char *argv[]) {
 
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
-
-    if (verify_png_image(image_path)) {
-        /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
+    if(image_path)
+    {
+        cairo_surface_t* original_img =  read_image_to_cairo_surface(image_path);
+        if(original_img){
+            if(resize){
+               img = resize_cairo_surface(original_img, last_resolution[0], last_resolution[1]); 
+               cairo_surface_destroy(original_img);
+            }else{
+                img = original_img;
+            }
+        }else{
+            fprintf(stderr, "Failed to read image");
             img = NULL;
         }
     }
