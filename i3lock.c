@@ -645,6 +645,119 @@ void handle_screen_resize(void) {
     redraw_screen();
 }
 
+static ssize_t read_raw_image_native(uint32_t *dest, FILE *src, size_t width, size_t height, int pixstride) {
+    ssize_t count = 0;
+    for (size_t y = 0; y < height; y++) {
+        size_t n = fread(&dest[y * pixstride], 1, width * 4, src);
+        count += n;
+        if (n < (size_t)(width * 4))
+            break;
+    }
+
+    return count;
+}
+
+static ssize_t read_raw_image_rgb(uint32_t *dest, FILE *src, size_t width, size_t height, int pixstride) {
+    unsigned char *buf = malloc(width * 3);
+    if (buf == NULL)
+        return -1;
+
+    ssize_t count = 0;
+    for (size_t y = 0; y < height; y++) {
+        size_t n = fread(buf, 1, width * 3, src);
+        count += n;
+        if (n < (size_t)(width * 3))
+            break;
+
+        for (size_t x = 0; x < width; ++x) {
+            int idx = x * 3;
+            dest[y * pixstride + x] = 0 |
+                                      (buf[idx + 0] << 16) |
+                                      (buf[idx + 1] << 8) |
+                                      (buf[idx + 2]);
+        }
+    }
+
+    free(buf);
+    return count;
+}
+
+static cairo_surface_t *read_raw_image(const char *image_path, const char *image_raw_format) {
+    cairo_surface_t *img;
+
+#define RAW_PIXFMT_MAXLEN 6
+#define STRINGIFY1(x) #x
+#define STRINGIFY(x) STRINGIFY1(x)
+    /* Parse format as <width>x<height>:<pixfmt> */
+    char pixfmt[RAW_PIXFMT_MAXLEN + 1];
+    size_t w, h;
+    const char *fmt = "%zux%zu:%" STRINGIFY(RAW_PIXFMT_MAXLEN) "s";
+    if (sscanf(image_raw_format, fmt, &w, &h, pixfmt) != 3) {
+        fprintf(stderr, "Invalid image format: \"%s\"\n", image_raw_format);
+        return NULL;
+    }
+#undef RAW_PIXFMT_MAXLEN
+#undef STRINGIFY1
+#undef STRINGIFY
+
+    /* Create image surface */
+    img = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+    if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+        fprintf(stderr, "Could not create surface: %s\n",
+                cairo_status_to_string(cairo_surface_status(img)));
+        return NULL;
+    }
+    cairo_surface_flush(img);
+
+    /* Use uint32_t* because cairo uses native endianness */
+    uint32_t *data = (uint32_t *)cairo_image_surface_get_data(img);
+    const int pixstride = cairo_image_surface_get_stride(img) / 4;
+
+    FILE *f = fopen(image_path, "r");
+    if (f == NULL) {
+        fprintf(stderr, "Could not open image \"%s\": %s\n",
+                image_path, strerror(errno));
+        cairo_surface_destroy(img);
+        return NULL;
+    }
+
+    /* Read the image, respecting cairo's stride, according to the pixfmt */
+    ssize_t size, count;
+    if (strcmp(pixfmt, "native") == 0) {
+        /* If the pixfmt is 'native', just read each line directly into the buffer */
+        size = w * h * 4;
+        count = read_raw_image_native(data, f, w, h, pixstride);
+    } else if (strcmp(pixfmt, "rgb") == 0) {
+        /* If the pixfmt is 'rgb', we have to convert it to the native pixfmt */
+        size = w * h * 3;
+        count = read_raw_image_rgb(data, f, w, h, pixstride);
+    } else {
+        fprintf(stderr, "Unknown raw pixel pixfmt: %s\n", pixfmt);
+        fclose(f);
+        cairo_surface_destroy(img);
+        return NULL;
+    }
+    cairo_surface_mark_dirty(img);
+
+    if (count < size) {
+        if (count < 0 || ferror(f)) {
+            fprintf(stderr, "Failed to read image \"%s\": %s\n",
+                    image_path, strerror(errno));
+            fclose(f);
+            cairo_surface_destroy(img);
+            return NULL;
+        } else {
+            /* Print a warning if the file contains less data than expected,
+             * but don't abort. It's useful to see how the image looks even if it's wrong. */
+            fprintf(stderr, "Warning: expected to read %zi bytes from \"%s\", read %zi\n",
+                    size, image_path, count);
+        }
+    }
+
+    fclose(f);
+    return img;
+}
+
 static bool verify_png_image(const char *image_path) {
     if (!image_path) {
         return false;
@@ -867,6 +980,7 @@ int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
+    char *image_raw_format = NULL;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -890,6 +1004,7 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
+        {"raw", required_argument, NULL, 'r'},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -902,7 +1017,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:fl";
+    char *optstring = "hvnbdc:p:ui:r:teI:fl";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -934,6 +1049,9 @@ int main(int argc, char *argv[]) {
             }
             case 'u':
                 unlock_indicator = false;
+                break;
+            case 'r':
+                image_raw_format = strdup(optarg);
                 break;
             case 'i':
                 image_path = strdup(optarg);
@@ -969,7 +1087,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l]");
+                                   " [-i image.png] [-r format] [-t] [-e] [-I timeout] [-f] [-l]");
         }
     }
 
@@ -1069,7 +1187,11 @@ int main(int argc, char *argv[]) {
     xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK,
                                  (uint32_t[]){XCB_EVENT_MASK_STRUCTURE_NOTIFY});
 
-    if (verify_png_image(image_path)) {
+    if (image_raw_format != NULL && image_path != NULL) {
+        /* Read image. 'read_raw_image' returns NULL on error,
+         * so we don't have to handle errors here. */
+        img = read_raw_image(image_path, image_raw_format);
+    } else if (verify_png_image(image_path)) {
         /* Create a pixmap to render on, fill it with the background color */
         img = cairo_image_surface_create_from_png(image_path);
         /* In case loading failed, we just pretend no -i was specified. */
@@ -1079,7 +1201,9 @@ int main(int argc, char *argv[]) {
             img = NULL;
         }
     }
+
     free(image_path);
+    free(image_raw_format);
 
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
