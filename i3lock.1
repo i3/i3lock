@@ -79,8 +79,8 @@ Display the given PNG image instead of a blank screen.
 .TP
 .BI \-r\  format \fR,\ \fB\-\-raw= format
 Read the image given by \-\-image as a raw image instead of PNG. The argument is the image's format
-as <width>x<height>:<pixfmt>. The supported pixel formats are 'native' and 'rgb'.
-The "rgb" pixel format expects a pixel to be three bytes; red, green, and blue.
+as <width>x<height>:<pixfmt>. The supported pixel formats are:
+\'native', 'rgb', 'xrgb', 'rgbx', 'bgr', 'xbgr', and 'bgrx'.
 The "native" pixel format expects a pixel as a 32-bit (4-byte) integer in
 the machine's native endianness, with the upper 8 bits unused. Red, green and blue are stored in
 the remaining bits, in that order.
