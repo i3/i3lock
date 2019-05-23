@@ -1004,7 +1004,7 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
-        {"raw", required_argument, NULL, 'r'},
+        {"raw", required_argument, NULL, 0},
         {"tiling", no_argument, NULL, 't'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
@@ -1017,7 +1017,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:r:teI:fl";
+    char *optstring = "hvnbdc:p:ui:teI:fl";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1050,9 +1050,6 @@ int main(int argc, char *argv[]) {
             case 'u':
                 unlock_indicator = false;
                 break;
-            case 'r':
-                image_raw_format = strdup(optarg);
-                break;
             case 'i':
                 image_path = strdup(optarg);
                 break;
@@ -1074,6 +1071,8 @@ int main(int argc, char *argv[]) {
             case 0:
                 if (strcmp(longopts[longoptind].name, "debug") == 0)
                     debug_mode = true;
+                else if (strcmp(longopts[longoptind].name, "raw") == 0)
+                    image_raw_format = strdup(optarg);
                 break;
             case 'f':
                 show_failed_attempts = true;
@@ -1087,7 +1086,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-r format] [-t] [-e] [-I timeout] [-f] [-l]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-l]");
         }
     }
 
