@@ -657,30 +657,46 @@ static ssize_t read_raw_image_native(uint32_t *dest, FILE *src, size_t width, si
     return count;
 }
 
-static ssize_t read_raw_image_rgb(uint32_t *dest, FILE *src, size_t width, size_t height, int pixstride) {
-    unsigned char *buf = malloc(width * 3);
+struct raw_pixel_format {
+    int bpp;
+    int red;
+    int green;
+    int blue;
+};
+
+static ssize_t read_raw_image_fmt(uint32_t *dest, FILE *src, size_t width, size_t height, int pixstride,
+                                  struct raw_pixel_format fmt) {
+    unsigned char *buf = malloc(width * fmt.bpp);
     if (buf == NULL)
         return -1;
 
     ssize_t count = 0;
     for (size_t y = 0; y < height; y++) {
-        size_t n = fread(buf, 1, width * 3, src);
+        size_t n = fread(buf, 1, width * fmt.bpp, src);
         count += n;
-        if (n < (size_t)(width * 3))
+        if (n < (size_t)(width * fmt.bpp))
             break;
 
         for (size_t x = 0; x < width; ++x) {
-            int idx = x * 3;
+            int idx = x * fmt.bpp;
             dest[y * pixstride + x] = 0 |
-                                      (buf[idx + 0] << 16) |
-                                      (buf[idx + 1] << 8) |
-                                      (buf[idx + 2]);
+                                      (buf[idx + fmt.red]) << 16 |
+                                      (buf[idx + fmt.green]) << 8 |
+                                      (buf[idx + fmt.blue]);
         }
     }
 
     free(buf);
     return count;
 }
+
+// Pre-defind pixel formats (<bytes per pixel>, <red pixel>, <green pixel>, <blue pixel>)
+static const struct raw_pixel_format raw_fmt_rgb = {3, 0, 1, 2};
+static const struct raw_pixel_format raw_fmt_rgbx = {4, 0, 1, 2};
+static const struct raw_pixel_format raw_fmt_xrgb = {4, 1, 2, 3};
+static const struct raw_pixel_format raw_fmt_bgr = {3, 2, 1, 0};
+static const struct raw_pixel_format raw_fmt_bgrx = {4, 2, 1, 0};
+static const struct raw_pixel_format raw_fmt_xbgr = {4, 3, 2, 1};
 
 static cairo_surface_t *read_raw_image(const char *image_path, const char *image_raw_format) {
     cairo_surface_t *img;
@@ -727,16 +743,33 @@ static cairo_surface_t *read_raw_image(const char *image_path, const char *image
         /* If the pixfmt is 'native', just read each line directly into the buffer */
         size = w * h * 4;
         count = read_raw_image_native(data, f, w, h, pixstride);
-    } else if (strcmp(pixfmt, "rgb") == 0) {
-        /* If the pixfmt is 'rgb', we have to convert it to the native pixfmt */
-        size = w * h * 3;
-        count = read_raw_image_rgb(data, f, w, h, pixstride);
     } else {
-        fprintf(stderr, "Unknown raw pixel pixfmt: %s\n", pixfmt);
-        fclose(f);
-        cairo_surface_destroy(img);
-        return NULL;
+        const struct raw_pixel_format *fmt = NULL;
+
+        if (strcmp(pixfmt, "rgb") == 0)
+            fmt = &raw_fmt_rgb;
+        else if (strcmp(pixfmt, "rgbx") == 0)
+            fmt = &raw_fmt_rgbx;
+        else if (strcmp(pixfmt, "xrgb") == 0)
+            fmt = &raw_fmt_xrgb;
+        else if (strcmp(pixfmt, "bgr") == 0)
+            fmt = &raw_fmt_bgr;
+        else if (strcmp(pixfmt, "bgrx") == 0)
+            fmt = &raw_fmt_bgrx;
+        else if (strcmp(pixfmt, "xbgr") == 0)
+            fmt = &raw_fmt_xbgr;
+
+        if (fmt == NULL) {
+            fprintf(stderr, "Unknown raw pixel format: %s\n", pixfmt);
+            fclose(f);
+            cairo_surface_destroy(img);
+            return NULL;
+        }
+
+        size = w * h * fmt->bpp;
+        count = read_raw_image_fmt(data, f, w, h, pixstride, *fmt);
     }
+
     cairo_surface_mark_dirty(img);
 
     if (count < size) {
