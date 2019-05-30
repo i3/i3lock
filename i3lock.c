@@ -1533,6 +1533,13 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'l':
+#if defined(__linux__)
+                lock_tty_switching = true;
+#else
+                errx(EXIT_FAILURE, "TTY switch locking is only supported on Linux.");
+#endif
+                break;
             case 'r':
                 if (internal_line_source != 0) {
                   errx(EXIT_FAILURE, "i3lock-color: Options line-uses-ring and line-uses-inside conflict.");
