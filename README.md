@@ -103,9 +103,6 @@ authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
 Building i3lock
 ---------------
-We recommend you use the provided package from your distribution. Do not build
-i3lock unless you have a reason to do so.
-
 First install the dependencies listed in requirements section, then run these
 commands (might need to be adapted to your OS):
 ```
