@@ -126,7 +126,6 @@ static bool load_keymap(void) {
             return false;
         }
     }
-
     xkb_keymap_unref(xkb_keymap);
 
     int32_t device_id = xkb_x11_get_core_keyboard_device_id(conn);

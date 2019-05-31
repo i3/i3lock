@@ -6,6 +6,7 @@
  * See LICENSE for licensing information
  *
  */
+#define _GNU_SOURCE
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -115,7 +116,6 @@ static void check_modifier_keys(void) {
             mod_name = "Num Lock";
         else if (strcmp(mod_name, XKB_MOD_NAME_LOGO) == 0)
             mod_name = "Super";
-
         char *tmp;
         if (modifier_string == NULL) {
             if (asprintf(&tmp, "%s", mod_name) != -1)
