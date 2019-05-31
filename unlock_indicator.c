@@ -379,7 +379,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
-    if(modifier_string) {
+    if (modifier_string) {
         free(modifier_string);
         modifier_string = NULL;
     }
