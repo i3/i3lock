@@ -267,10 +267,10 @@ bool bar_reversed = false;
 /*
  * Checks if the given path leads to an actual file or something else, e.g. a directory
  */
-int is_regular_file(const char *path) {
+int is_directory(const char *path) {
     struct stat path_stat;
     stat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
+    return !S_ISDIR(path_stat.st_mode);
 }
 
 /*
@@ -2129,8 +2129,8 @@ int main(int argc, char *argv[]) {
 
     init_colors_once();
     if (image_path != NULL) {
-        if (is_regular_file(image_path)) {
-            img = load_image(image_path, image_raw_format);
+        if (!is_directory(image_path)) {
+            img = load_image(image_path);
         } else {
             /* Path to a directory is provided -> use slideshow mode */
             load_slideshow_images(image_path, image_raw_format);
