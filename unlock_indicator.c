@@ -12,6 +12,7 @@
 #include <string.h>
 #include <math.h>
 #include <xcb/xcb.h>
+#include <xkbcommon/xkbcommon.h>
 #include <ev.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -62,6 +63,8 @@ extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
 extern int failed_attempts;
 
+extern struct xkb_keymap *xkb_keymap;
+extern struct xkb_state *xkb_state;
 /*******************************************************************************
  * Variables defined in xcb.c.
  ******************************************************************************/
@@ -86,6 +89,44 @@ auth_state_t auth_state;
  * resolution and returns it.
  *
  */
+
+static void check_modifier_keys(void) {
+    /* Get state of Caps and Num lock modifiers, to be displayed in
+     * STATE_AUTH_WRONG state */
+    xkb_mod_index_t idx, num_mods;
+    const char *mod_name;
+
+    num_mods = xkb_keymap_num_mods(xkb_keymap);
+
+    for (idx = 0; idx < num_mods; idx++) {
+        if (!xkb_state_mod_index_is_active(xkb_state, idx, XKB_STATE_MODS_EFFECTIVE))
+            continue;
+
+        mod_name = xkb_keymap_mod_get_name(xkb_keymap, idx);
+        if (mod_name == NULL)
+            continue;
+
+        /* Replace certain xkb names with nicer, human-readable ones. */
+        if (strcmp(mod_name, XKB_MOD_NAME_CAPS) == 0)
+            mod_name = "Caps Lock";
+        else if (strcmp(mod_name, XKB_MOD_NAME_ALT) == 0)
+            mod_name = "Alt";
+        else if (strcmp(mod_name, XKB_MOD_NAME_NUM) == 0)
+            mod_name = "Num Lock";
+        else if (strcmp(mod_name, XKB_MOD_NAME_LOGO) == 0)
+            mod_name = "Super";
+
+        char *tmp;
+        if (modifier_string == NULL) {
+            if (asprintf(&tmp, "%s", mod_name) != -1)
+                modifier_string = tmp;
+        } else if (asprintf(&tmp, "%s, %s", modifier_string, mod_name) != -1) {
+            free(modifier_string);
+            modifier_string = tmp;
+        }
+    }
+}
+
 xcb_pixmap_t draw_image(uint32_t *resolution) {
     xcb_pixmap_t bg_pixmap = XCB_NONE;
     const double scaling_factor = get_dpi_value() / 96.0;
@@ -248,7 +289,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_close_path(ctx);
         }
 
-        if (auth_state == STATE_AUTH_WRONG && (modifier_string != NULL)) {
+        if (/*auth_state == STATE_AUTH_WRONG &&*/ (modifier_string != NULL)) {
             cairo_text_extents_t extents;
             double x, y;
 
@@ -338,6 +379,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
+    if(modifier_string) {
+        free(modifier_string);
+        modifier_string = NULL;
+    }
+    check_modifier_keys();
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
