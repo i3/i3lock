@@ -1,3 +1,20 @@
+2018-10-18 i3lock 2.11.1
+
+ • Fix dist tarball by including I3LOCK_VERSION
+
+2018-10-10 i3lock 2.11
+
+ • Switch to autotools
+ • Display an error when backspace is pressed without any input
+ • Print an error when a non-PNG file is opened
+   (i3lock only supports PNG files) (Thanks eplanet)
+ • Don’t unnecessarily check the xcb_connect return value,
+   it is known never to be NULL (Thanks SegFault42)
+ • Fix memory leak when grabbing fails (Thanks karulont)
+ • Respect Xft.dpi for determining the unlock indicator’s scale factor
+ • Discard pending password verification attempts
+   when a new password is entered (Thanks layus)
+
 2017-11-25 i3lock 2.10
 
  • Only use -lpam when not on OpenBSD (Thanks Kaashif)

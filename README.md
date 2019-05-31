@@ -101,6 +101,24 @@ A [sample script](https://github.com/PandorasFox/i3lock-color/blob/master/lock.s
 On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
 authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
+Building i3lock
+---------------
+First install the dependencies listed in requirements section, then run these
+commands (might need to be adapted to your OS):
+```
+autoreconf --force --install
+
+rm -rf build/
+mkdir -p build && cd build/
+
+../configure \
+  --prefix=/usr \
+  --sysconfdir=/etc \
+  --disable-sanitizers
+
+make
+```
+
 Upstream
 --------
 Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for features to me here at https://github.com/PandorasFox/i3lock-color.
