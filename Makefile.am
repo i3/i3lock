@@ -56,7 +56,3 @@ EXTRA_DIST = \
 	LICENSE \
 	README.md \
 	I3LOCK_VERSION
-
-# SUID the executable so it has permissions to lock TTY switching
-install-exec-hook:
-	chmod +s $(DESTDIR)$(bindir)/i3lock$(EXEEXT)
