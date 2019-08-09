@@ -1004,105 +1004,148 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+struct option longopts[] = {
+    {"version", no_argument, NULL, 'v'},
+    {"nofork", no_argument, NULL, 'n'},
+    {"beep", no_argument, NULL, 'b'},
+    {"dpms", no_argument, NULL, 'd'},
+    {"color", required_argument, NULL, 'c'},
+    {"pointer", required_argument, NULL, 'p'},
+    {"debug", no_argument, NULL, 0},
+    {"help", no_argument, NULL, 'h'},
+    {"no-unlock-indicator", no_argument, NULL, 'u'},
+    {"image", required_argument, NULL, 'i'},
+    {"raw", required_argument, NULL, 0},
+    {"tiling", no_argument, NULL, 't'},
+    {"ignore-empty-password", no_argument, NULL, 'e'},
+    {"inactivity-timeout", required_argument, NULL, 'I'},
+    {"show-failed-attempts", no_argument, NULL, 'f'},
+    {NULL, no_argument, NULL, 0}};
+
+
+char *image_path = NULL;
+char *image_raw_format = NULL;
+int curs_choice = CURS_NONE;
+
+int set_opt(char o, char *optarg, int longoptind) {
+    switch (o) {
+        case 'v':
+            errx(EXIT_SUCCESS, "version " I3LOCK_VERSION " © 2010 Michael Stapelberg");
+        case 'n':
+            dont_fork = true;
+            break;
+        case 'b':
+            beep = true;
+            break;
+        case 'd':
+            fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
+            break;
+        case 'I': {
+                      fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
+                      break;
+                  }
+        case 'c': {
+                      char *arg = optarg;
+
+                      /* Skip # if present */
+                      if (arg[0] == '#')
+                          arg++;
+
+                      if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
+                          errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb");
+
+                      break;
+                  }
+        case 'u':
+                  unlock_indicator = false;
+                  break;
+        case 'i':
+                  image_path = strdup(optarg);
+                  break;
+        case 't':
+                  tile = true;
+                  break;
+        case 'p':
+                  if (!strcmp(optarg, "win")) {
+                      curs_choice = CURS_WIN;
+                  } else if (!strcmp(optarg, "default")) {
+                      curs_choice = CURS_DEFAULT;
+                  } else {
+                      errx(EXIT_FAILURE, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".");
+                  }
+                  break;
+        case 'e':
+                  ignore_empty_password = true;
+                  break;
+        case 0:
+                  if (strcmp(longopts[longoptind].name, "debug") == 0)
+                      debug_mode = true;
+                  else if (strcmp(longopts[longoptind].name, "raw") == 0)
+                      image_raw_format = strdup(optarg);
+                  break;
+        case 'f':
+                  show_failed_attempts = true;
+                  break;
+        default:
+                  errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+                          " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+    }
+
+    return 0;
+}
+
+int conf_file_rc() {
+
+    char buff[128] = {0};
+    char path[1024] = {0};
+    char *p = getenv("HOME");
+    int i = 0;
+
+    if(p == NULL)
+        return -ENOENT;
+
+    strcat(path, p);
+    strcat(path, "/.i3lockrc");
+    FILE *f = fopen(path, "r");
+
+    if(f == NULL)
+        return -ENOENT;
+
+    while(fgets(buff, sizeof buff, f) != NULL) {
+
+        for(i=0; i<(sizeof longopts / sizeof *longopts) - 1; i++) {
+            if(strncmp(longopts[i].name, buff, strlen(longopts[i].name)) == 0) {
+                if((p = strchr(buff, '\n')) != NULL)
+                        *p = '\0';
+                set_opt(longopts[i].val, buff + strlen(longopts[i].name)+1, i);
+                break;
+            }
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
-    char *image_path = NULL;
-    char *image_raw_format = NULL;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
 #endif
-    int curs_choice = CURS_NONE;
     int o;
     int longoptind = 0;
-    struct option longopts[] = {
-        {"version", no_argument, NULL, 'v'},
-        {"nofork", no_argument, NULL, 'n'},
-        {"beep", no_argument, NULL, 'b'},
-        {"dpms", no_argument, NULL, 'd'},
-        {"color", required_argument, NULL, 'c'},
-        {"pointer", required_argument, NULL, 'p'},
-        {"debug", no_argument, NULL, 0},
-        {"help", no_argument, NULL, 'h'},
-        {"no-unlock-indicator", no_argument, NULL, 'u'},
-        {"image", required_argument, NULL, 'i'},
-        {"raw", required_argument, NULL, 0},
-        {"tiling", no_argument, NULL, 't'},
-        {"ignore-empty-password", no_argument, NULL, 'e'},
-        {"inactivity-timeout", required_argument, NULL, 'I'},
-        {"show-failed-attempts", no_argument, NULL, 'f'},
-        {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
         err(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
+    conf_file_rc();
+
     char *optstring = "hvnbdc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
-        switch (o) {
-            case 'v':
-                errx(EXIT_SUCCESS, "version " I3LOCK_VERSION " © 2010 Michael Stapelberg");
-            case 'n':
-                dont_fork = true;
-                break;
-            case 'b':
-                beep = true;
-                break;
-            case 'd':
-                fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
-                break;
-            case 'I': {
-                fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
-                break;
-            }
-            case 'c': {
-                char *arg = optarg;
-
-                /* Skip # if present */
-                if (arg[0] == '#')
-                    arg++;
-
-                if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
-                    errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb");
-
-                break;
-            }
-            case 'u':
-                unlock_indicator = false;
-                break;
-            case 'i':
-                image_path = strdup(optarg);
-                break;
-            case 't':
-                tile = true;
-                break;
-            case 'p':
-                if (!strcmp(optarg, "win")) {
-                    curs_choice = CURS_WIN;
-                } else if (!strcmp(optarg, "default")) {
-                    curs_choice = CURS_DEFAULT;
-                } else {
-                    errx(EXIT_FAILURE, "i3lock: Invalid pointer type given. Expected one of \"win\" or \"default\".");
-                }
-                break;
-            case 'e':
-                ignore_empty_password = true;
-                break;
-            case 0:
-                if (strcmp(longopts[longoptind].name, "debug") == 0)
-                    debug_mode = true;
-                else if (strcmp(longopts[longoptind].name, "raw") == 0)
-                    image_raw_format = strdup(optarg);
-                break;
-            case 'f':
-                show_failed_attempts = true;
-                break;
-            default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
-        }
+        set_opt(o, optarg, longoptind);
     }
 
     /* We need (relatively) random numbers for highlighting a random part of
