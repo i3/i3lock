@@ -97,6 +97,9 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
+/* Global, to allow it to be refreshed by signal handler */
+char *image_path = NULL;
+
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
 
@@ -1007,7 +1010,6 @@ static void raise_loop(xcb_window_t window) {
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
-    char *image_path = NULL;
     char *image_raw_format = NULL;
 #ifndef __OpenBSD__
     int ret;
@@ -1218,7 +1220,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    free(image_path);
+    // free(image_path);
     free(image_raw_format);
 
     /* Pixmap on which the image is rendered to (if any) */
