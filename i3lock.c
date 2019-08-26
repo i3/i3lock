@@ -39,6 +39,7 @@
 #endif
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
+#include <signal.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -819,6 +820,25 @@ static bool verify_png_image(const char *image_path) {
     return true;
 }
 
+/* Signal handler */
+void signal_handler(int signo) {
+    if (signo != SIGUSR1)
+        return;
+    if (img == NULL)
+        return;
+    /* Refresh image from disk */
+    if (!verify_png_image(image_path))
+        return;
+    cairo_surface_t *newimg = NULL;
+    newimg = cairo_image_surface_create_from_png(image_path);
+    if (cairo_surface_status(newimg) != CAIRO_STATUS_SUCCESS)
+        return;
+    /* All good. Replace */
+    img = newimg;
+    redraw_screen();
+    return;
+}
+
 #ifndef __OpenBSD__
 /*
  * Callback function for PAM. We only react on password request callbacks.
@@ -1265,6 +1285,11 @@ int main(int argc, char *argv[]) {
         maybe_close_sleep_lock_fd();
         raise_loop(win);
         exit(EXIT_SUCCESS);
+    }
+
+    /* Install signal handler for USR1 */
+    if (signal(SIGUSR1, signal_handler) == SIG_ERR) {
+        errx(EXIT_FAILURE, "Cannot catch SIGUSR1");
     }
 
     /* Load the keymap again to sync the current modifier state. Since we first
