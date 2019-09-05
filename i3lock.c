@@ -667,6 +667,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             case XKB_KEY_XF86AudioRaiseVolume:
             case XKB_KEY_XF86MonBrightnessUp:
             case XKB_KEY_XF86MonBrightnessDown:
+            case XKB_KEY_XF86PowerDown:
+            case XKB_KEY_XF86PowerOff:
                 xcb_send_event(conn, true, screen->root, XCB_EVENT_MASK_BUTTON_PRESS, (char *)event);
                 return;
         }
