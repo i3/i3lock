@@ -233,6 +233,8 @@ bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 bool pass_media_keys = false;
+bool pass_screen_keys = false;
+bool pass_power_keys = false;
 
 // for the rendering thread, so we can clean it up
 pthread_t draw_thread;
@@ -654,6 +656,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
 #else
     n = xkb_keysym_to_utf8(ksym, buffer, sizeof(buffer));
 #endif
+
     // media keys
     if (pass_media_keys) {
         switch(ksym) {
@@ -665,8 +668,24 @@ static void handle_key_press(xcb_key_press_event_t *event) {
             case XKB_KEY_XF86AudioMute:
             case XKB_KEY_XF86AudioLowerVolume:
             case XKB_KEY_XF86AudioRaiseVolume:
+                xcb_send_event(conn, true, screen->root, XCB_EVENT_MASK_BUTTON_PRESS, (char *)event);
+                return;
+        }
+    }
+
+	// screen keys
+    if (pass_screen_keys) {
+        switch(ksym) {
             case XKB_KEY_XF86MonBrightnessUp:
             case XKB_KEY_XF86MonBrightnessDown:
+                xcb_send_event(conn, true, screen->root, XCB_EVENT_MASK_BUTTON_PRESS, (char *)event);
+                return;
+        }
+    }
+
+	// power keys
+    if (pass_power_keys) {
+        switch(ksym) {
             case XKB_KEY_XF86PowerDown:
             case XKB_KEY_XF86PowerOff:
                 xcb_send_event(conn, true, screen->root, XCB_EVENT_MASK_BUTTON_PRESS, (char *)event);
@@ -1364,7 +1383,7 @@ int main(int argc, char *argv[]) {
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
 
-        /* options for unlock indicator colors */
+        // options for unlock indicator colors
         {"insidevercolor", required_argument, NULL, 300},
         {"insidewrongcolor", required_argument, NULL, 301},
         {"insidecolor", required_argument, NULL, 302},
@@ -1393,8 +1412,12 @@ int main(int argc, char *argv[]) {
         {"radius", required_argument, NULL, 402},
         {"ring-width", required_argument, NULL, 403},
 
-        // alignment
+		// pass keys
+        {"pass-media-keys", no_argument, NULL, 'm'},
+        {"pass-screen-keys", no_argument, NULL, 's'},
+        {"pass-power-keys", no_argument, NULL, 'p'},
 
+        // alignment
         {"time-align", required_argument, NULL, 500},
         {"date-align", required_argument, NULL, 501},
         {"verif-align", required_argument, NULL, 502},
@@ -1404,7 +1427,6 @@ int main(int argc, char *argv[]) {
         {"greeter-align", required_argument, NULL, 506},
 
         // string stuff
-
         {"timestr", required_argument, NULL, 510},
         {"datestr", required_argument, NULL, 511},
         {"veriftext", required_argument, NULL, 512},
@@ -1416,7 +1438,6 @@ int main(int argc, char *argv[]) {
         {"greetertext", required_argument, NULL, 518},
 
         // fonts
-
         {"time-font", required_argument, NULL, 520},
         {"date-font", required_argument, NULL, 521},
         {"verif-font", required_argument, NULL, 522},
@@ -1425,7 +1446,6 @@ int main(int argc, char *argv[]) {
         {"greeter-font", required_argument, NULL, 525},
 
         // text size
-
         {"timesize", required_argument, NULL, 530},
         {"datesize", required_argument, NULL, 531},
         {"verifsize", required_argument, NULL, 532},
@@ -1465,7 +1485,6 @@ int main(int argc, char *argv[]) {
         {"redraw-thread", no_argument, NULL, 900},
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
-        {"pass-media-keys", no_argument, NULL, 'm'},
 
         /* slideshow options */
         {"slideshow-interval", required_argument, NULL, 903},
@@ -1564,6 +1583,15 @@ int main(int argc, char *argv[]) {
             case 'B':
                 blur = true;
                 blur_sigma = atoi(optarg);
+                break;
+            case 'm':
+                pass_media_keys = true;
+                break;
+            case 's':
+                pass_screen_keys = true;
+                break;
+            case 'p':
+                pass_power_keys = true;
                 break;
             // begin colors
 #define parse_color(color)\
@@ -1994,9 +2022,6 @@ int main(int argc, char *argv[]) {
                 break;
             case 904:
                 slideshow_random_selection = true;
-                break;
-            case 'm':
-                pass_media_keys = true;
                 break;
             case 999:
                 debug_mode = true;

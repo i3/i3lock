@@ -138,11 +138,6 @@ Captures the screen and blurs it using the given sigma (radius).
 Images may still be overlaid over the blurred screenshot.
 
 .TP
-.B \-m, \-\-pass-media-keys
-Allow the following keys to be used while the screen is locked by passing them through:
-XF86AudioPlay, XF86AudioPause, XF86AudioStop, XF86AudioPrev, XF86AudioNext, XF86AudioMute, XF86AudioLowerVolume, XF86AudioRaiseVolume,  XF86MonBrightnessUp, XF86MonBrightnessDown, XF86PowerDown, XF86PowerOff.
-
-.TP
 .B \-\-indicator
 Forces the indicator to always be visible, instead of only showing on activity.
 
@@ -168,6 +163,21 @@ Displays the clock. \-\-force\-clock also displays the clock when there's indica
 .TP
 .B \-\-composite
 Some compositors have problems with i3lock trying to render over them, so this argument is disabled by default. However, some will work properly with it, so it's been left enabled.
+
+.TP
+.B \-m, \-\-pass-media-keys
+Allow the following keys to be used while the screen is locked by passing them through:
+XF86AudioPlay, XF86AudioPause, XF86AudioStop, XF86AudioPrev, XF86AudioNext, XF86AudioMute, XF86AudioLowerVolume, XF86AudioRaiseVolume.
+
+.TP
+.B \-s, \-\-pass-screen-keys
+Allow the following keys to be used while the screen is locked by passing them through:
+XF86MonBrightnessUp, XF86MonBrightnessDown.
+
+.TP
+.B \-p, \-\-pass-power-keys
+Allow the following keys to be used while the screen is locked by passing them through:
+XF86PowerDown, XF86PowerOff.
 
 .TP
 .B \-\-insidevercolor=rrggbbaa
