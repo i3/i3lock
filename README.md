@@ -91,6 +91,9 @@ i3lock now uses GNU autotools for building; you'll need to do something like `au
 
 [Git](https://aur.archlinux.org/packages/i3lock-color-git)
 
+##### FreeBSD port
+[i3lock-color-port](https://github.com/rkashapov/i3lock-color-port/)
+
 Running i3lock
 -------------
 Simply invoke the 'i3lock' command. To get out of it, enter your password and
