@@ -11,7 +11,8 @@ Many little improvements have been made to i3lock over time:
    after waking up your computer from suspend to RAM)
 
 - You can specify either a background color or a PNG image which will be
-  displayed while your screen is locked.
+  displayed while your screen is locked (**note**: i3lock don't make any
+  image manipulation or processing, nor it is planned to add this feature).
 
 - You can specify whether i3lock should bell upon a wrong password.
 
