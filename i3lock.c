@@ -1412,11 +1412,6 @@ int main(int argc, char *argv[]) {
         {"radius", required_argument, NULL, 402},
         {"ring-width", required_argument, NULL, 403},
 
-		// pass keys
-        {"pass-media-keys", no_argument, NULL, 'm'},
-        {"pass-screen-keys", no_argument, NULL, 's'},
-        {"pass-power-keys", no_argument, NULL, 'p'},
-
         // alignment
         {"time-align", required_argument, NULL, 500},
         {"date-align", required_argument, NULL, 501},
@@ -1455,7 +1450,6 @@ int main(int argc, char *argv[]) {
         {"greetersize", required_argument, NULL, 536},
 
         // text/indicator positioning
-
         {"timepos", required_argument, NULL, 540},
         {"datepos", required_argument, NULL, 541},
         {"verifpos", required_argument, NULL, 542},
@@ -1466,9 +1460,12 @@ int main(int argc, char *argv[]) {
         {"indpos", required_argument, NULL, 547},
         {"greeterpos", required_argument, NULL, 548},
 
+		// pass keys
+        {"pass-media-keys", no_argument, NULL, 601},
+        {"pass-screen-keys", no_argument, NULL, 602},
+        {"pass-power-keys", no_argument, NULL, 603},
 
         // bar indicator stuff
-
         {"bar-indicator", no_argument, NULL, 700},
         {"bar-direction", required_argument, NULL, 701},
         {"bar-width", required_argument, NULL, 702},
@@ -1481,12 +1478,11 @@ int main(int argc, char *argv[]) {
         {"bar-position", required_argument, NULL, 709},
 
         // misc.
-
         {"redraw-thread", no_argument, NULL, 900},
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
 
-        /* slideshow options */
+        // slideshow options
         {"slideshow-interval", required_argument, NULL, 903},
         {"slideshow-random-selection", no_argument, NULL, 904},
 
@@ -1555,11 +1551,11 @@ int main(int argc, char *argv[]) {
                 show_failed_attempts = true;
                 break;
             case 'l':
-#if defined(__linux__)
+				#if defined(__linux__)
                 lock_tty_switching = true;
-#else
+					#else
                 errx(EXIT_FAILURE, "TTY switch locking is only supported on Linux.");
-#endif
+				#endif
                 break;
             case 'r':
                 if (internal_line_source != 0) {
@@ -1584,17 +1580,9 @@ int main(int argc, char *argv[]) {
                 blur = true;
                 blur_sigma = atoi(optarg);
                 break;
-            case 'm':
-                pass_media_keys = true;
-                break;
-            case 's':
-                pass_screen_keys = true;
-                break;
-            case 'p':
-                pass_power_keys = true;
-                break;
-            // begin colors
-#define parse_color(color)\
+
+            // Begin colors
+			#define parse_color(color)\
                 arg = optarg;\
                 if (arg[0] == '#') arg++;\
                 if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", color) != 1)\
@@ -1647,7 +1635,8 @@ int main(int argc, char *argv[]) {
             case 315:
                 parse_color(greetercolor);
                 break;
-// general indicator opts
+
+			// General indicator opts
             case 400:
                 show_clock = true;
                 always_show_clock = true;
@@ -1657,7 +1646,6 @@ int main(int argc, char *argv[]) {
                 break;
             case 402:
                 arg = optarg;
-
                 if (sscanf(arg, "%lf", &circle_radius) != 1)
                     errx(1, "radius must be a number\n");
                 if (circle_radius < 1) {
@@ -1674,7 +1662,8 @@ int main(int argc, char *argv[]) {
                     ring_width = 7.0;
                 }
                 break;
-// alignment stuff
+
+			// Alignment stuff
             case 500:
                 opt = atoi(optarg);
                 if (opt < 0 || opt > 2) opt = 0;
@@ -1710,7 +1699,8 @@ int main(int argc, char *argv[]) {
                 if (opt < 0 || opt > 2) opt = 0;
                 greeter_align = opt;
                 break;
-// string stuff
+
+			// String stuff
             case 510:
                 if (strlen(optarg) > 31) {
                     errx(1, "time format string can be at most 31 characters\n");
@@ -1747,7 +1737,8 @@ int main(int argc, char *argv[]) {
             case 518:
                 greeter_text = optarg;
                 break;
-// font stuff
+
+			// Font stuff
             case 520:
                 if (strlen(optarg) > 31) {
                     errx(1, "time font string can be at most 31 characters\n");
@@ -1786,7 +1777,8 @@ int main(int argc, char *argv[]) {
                 }
                 strcpy(fonts[GREETER_FONT],optarg);
                 break;
-// text size
+
+			// Text size
             case 530:
                 arg = optarg;
                 if (sscanf(arg, "%lf", &time_size) != 1)
@@ -1844,7 +1836,8 @@ int main(int argc, char *argv[]) {
                     greeter_size = 14.0;
                 }
                 break;
-// Positions
+
+			// Positions
             case 540:
                 //read in to time_x_expr and time_y_expr
                 if (strlen(optarg) > 31) {
@@ -1868,7 +1861,7 @@ int main(int argc, char *argv[]) {
                 }
                 break;
             case 542:
-                //read in to time_x_expr and time_y_expr
+                // read in to time_x_expr and time_y_expr
                 if (strlen(optarg) > 31) {
                     errx(1, "verif position string can be at most 31 characters\n");
                 }
@@ -1935,7 +1928,19 @@ int main(int argc, char *argv[]) {
                     errx(1, "indpos must be of the form x:y\n");
                 }
                 break;
-// bar indicator
+
+			// Pass keys
+			case 601:
+				pass_media_keys = true;
+				break;
+			case 602:
+				pass_screen_keys = true;
+				break;
+			case 603:
+				pass_power_keys = true;
+				break;
+
+			// Bar indicator
             case 700:
                 bar_enabled = true;
                 break;
@@ -1998,7 +2003,8 @@ int main(int argc, char *argv[]) {
                     errx(1, "bar-position must be of the form [pos] with a max length of 31\n");
                 }
                 break;
-// misc
+
+			// Misc
             case 900:
                 redraw_thread = true;
                 break;
@@ -2023,11 +2029,11 @@ int main(int argc, char *argv[]) {
             case 904:
                 slideshow_random_selection = true;
                 break;
-            case 999:
-                debug_mode = true;
-                break;
             case 998:
                 image_raw_format = strdup(optarg);
+                break;
+            case 999:
+                debug_mode = true;
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
