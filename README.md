@@ -121,4 +121,4 @@ make
 
 Upstream
 --------
-Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for features to me here at https://github.com/PandorasFox/i3lock-color.
+Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for additional features on top of regular i3lock at https://github.com/PandorasFox/i3lock-color.
