@@ -49,11 +49,6 @@
 #endif
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
-#if defined(__linux__)
-#include <fcntl.h>
-#include <linux/vt.h>
-#include <sys/ioctl.h>
-#endif
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -1486,7 +1481,6 @@ int main(int argc, char *argv[]) {
         {"slideshow-interval", required_argument, NULL, 903},
         {"slideshow-random-selection", no_argument, NULL, 904},
 
-        {"lock-console", no_argument, NULL, 'l'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -1494,7 +1488,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:ml";
+    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:m";
     char *arg = NULL;
     int opt = 0;
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
@@ -1549,13 +1543,6 @@ int main(int argc, char *argv[]) {
                 break;
             case 'f':
                 show_failed_attempts = true;
-                break;
-            case 'l':
-				#if defined(__linux__)
-                lock_tty_switching = true;
-					#else
-                errx(EXIT_FAILURE, "TTY switch locking is only supported on Linux.");
-				#endif
                 break;
             case 'r':
                 if (internal_line_source != 0) {
@@ -2037,7 +2024,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-f] [-l]\n"
+                                   " [-i image.png] [-t] [-e] [-f]\n"
                                    "Please see the manpage for a full list of arguments.");
         }
     }
@@ -2270,21 +2257,6 @@ int main(int argc, char *argv[]) {
     if (main_loop == NULL)
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?");
 
-#if defined(__linux__)
-
-    /* Lock tty switching */
-    if (lock_tty_switching) {
-        if ((term = open("/dev/console", O_RDWR)) == -1) {
-            perror("error locking TTY switching: opening console failed");
-        }
-
-        if (term != -1 && (ioctl(term, VT_LOCKSWITCH)) == -1) {
-            perror("error locking TTY switching: locking console failed");
-        }
-    }
-
-#endif
-
     /* Explicitly call the screen redraw in case "locking…" message was displayed */
     auth_state = STATE_AUTH_IDLE;
     redraw_screen();
@@ -2324,18 +2296,6 @@ int main(int argc, char *argv[]) {
     if (stolen_focus == XCB_NONE) {
         return 0;
     }
-
-#if defined(__linux__)
-    /* Restore tty switching */
-    if (lock_tty_switching) {
-        if (term != -1 && (ioctl(term, VT_UNLOCKSWITCH)) == -1) {
-            perror("error unlocking TTY switching: unlocking console failed");
-        }
-
-        close(term);
-    }
-
-#endif
 
     DEBUG("restoring focus to X11 window 0x%08x\n", stolen_focus);
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
