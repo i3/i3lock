@@ -691,6 +691,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
         switch(ksym) {
             case XKB_KEY_XF86PowerDown:
             case XKB_KEY_XF86PowerOff:
+            case XKB_KEY_XF86Sleep:
                 xcb_send_event(conn, true, screen->root, XCB_EVENT_MASK_BUTTON_PRESS, (char *)event);
                 return;
         }
