@@ -28,6 +28,8 @@ i3lock \- improved screen locker
 .RB [\|\-u\|]
 .RB [\|\-e\|]
 .RB [\|\-f\|]
+.RB [\|\-g
+.IR timeout \|]
 
 .SH DESCRIPTION
 .B i3lock
@@ -131,6 +133,13 @@ your computer with the enter key.
 .TP
 .B \-f, \-\-show-failed-attempts
 Show the number of failed attempts, if any.
+
+
+.TP
+.BI \-g\  timeout \fR,\ \fB\-\-grace-timeout= timeout
+Timeout in seconds, where a single keypress unlocks. Defaults to
+.B 0
+seconds.
 
 .TP
 .B \-\-debug

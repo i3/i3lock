@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <xcb/xcb.h>
@@ -65,6 +66,7 @@ static xcb_cursor_t cursor;
 #ifndef __OpenBSD__
 static pam_handle_t *pam_handle;
 #endif
+static struct timespec grace_timeout;
 int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
 static char password[512];
@@ -387,11 +389,20 @@ static bool skip_without_validation(void) {
  *
  */
 static void handle_key_press(xcb_key_press_event_t *event) {
+    struct timespec ts;
     xkb_keysym_t ksym;
     char buffer[128];
     int n;
     bool ctrl;
     bool composed = false;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    if (ts.tv_sec < grace_timeout.tv_sec ||
+        (ts.tv_sec == grace_timeout.tv_sec &&
+         ts.tv_nsec < grace_timeout.tv_nsec)) {
+        DEBUG("keypress within grace period\n");
+        exit(0);
+    }
 
     ksym = xkb_state_key_get_one_sym(xkb_state, event->detail);
     ctrl = xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_DEPRESSED);
@@ -1032,14 +1043,16 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"grace-timeout", no_argument, NULL, 'g'},
         {NULL, no_argument, NULL, 0}};
+    int grace_timeout_seconds = 0;
 
     if ((pw = getpwuid(getuid())) == NULL)
         err(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fg:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1099,6 +1112,11 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'g': {
+                if (sscanf(optarg, "%d", &grace_timeout_seconds) != 1 || grace_timeout_seconds < 0)
+                    errx(EXIT_FAILURE, "invalid grace timeout, it must be a positive integer\n");
+                break;
+            }
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
@@ -1108,6 +1126,9 @@ int main(int argc, char *argv[]) {
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
     srand(time(NULL));
+    if (clock_gettime(CLOCK_MONOTONIC, &grace_timeout) != 0)
+        errx(EXIT_FAILURE, "Cannot get current time: %s", strerror(errno));
+    grace_timeout.tv_sec += grace_timeout_seconds;
 
 #ifndef __OpenBSD__
     /* Initialize PAM */
