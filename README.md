@@ -1,6 +1,10 @@
 i3lock - improved screen locker
 ===============================
 
+# This project is not maintained
+
+This project has been relatively unmaintained for the past year or so, and might potentially be archived some time in 2020 if no other maintainer(s) take over. If you're interested, feel free to email me or just fork i3lock-color.
+
 _This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to [eBrnd](https://github.com/eBrnd/) !_
 
 ![i3lock-color in action. Why are you reading this?](https://github.com/PandorasFox/i3lock-color/raw/master/screenshot.png "Screenshot sample")
