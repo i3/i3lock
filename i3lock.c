@@ -64,6 +64,7 @@ xcb_window_t win;
 static xcb_cursor_t cursor;
 #ifndef __OpenBSD__
 static pam_handle_t *pam_handle;
+static bool pam_cleanup;
 #endif
 int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
@@ -298,7 +299,7 @@ static void input_done(void) {
          * credentials like kerberos /tmp/krb5cc_pam_* files which may of been left behind if the
          * refresh of the credentials failed. */
         pam_setcred(pam_handle, PAM_REFRESH_CRED);
-        pam_end(pam_handle, PAM_SUCCESS);
+        pam_cleanup = true;
 
         ev_break(EV_DEFAULT, EVBREAK_ALL);
         return;
@@ -1295,6 +1296,12 @@ int main(int argc, char *argv[]) {
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
+
+#ifndef __OpenBSD__
+    if (pam_cleanup) {
+        pam_end(pam_handle, PAM_SUCCESS);
+    }
+#endif
 
     if (stolen_focus == XCB_NONE) {
         return 0;
