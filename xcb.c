@@ -29,6 +29,26 @@ extern auth_state_t auth_state;
 xcb_connection_t *conn;
 xcb_screen_t *screen;
 
+static xcb_atom_t _NET_WM_BYPASS_COMPOSITOR = XCB_NONE;
+void _init_net_wm_bypass_compositor(xcb_connection_t *conn) {
+    if (_NET_WM_BYPASS_COMPOSITOR != XCB_NONE) {
+        /* already initialized */
+        return;
+    }
+    xcb_generic_error_t *err;
+    xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(
+        conn,
+        xcb_intern_atom(conn, 0, strlen("_NET_WM_BYPASS_COMPOSITOR"), "_NET_WM_BYPASS_COMPOSITOR"),
+        &err);
+    if (atom_reply == NULL) {
+        fprintf(stderr, "X11 Error %d\n", err->error_code);
+        free(err);
+        return;
+    }
+    _NET_WM_BYPASS_COMPOSITOR = atom_reply->atom;
+    free(atom_reply);
+}
+
 #define curs_invisible_width 8
 #define curs_invisible_height 8
 
@@ -157,6 +177,17 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
                         8,
                         2 * (strlen("i3lock") + 1),
                         "i3lock\0i3lock\0");
+
+    const uint32_t bypass_compositor = 1; /* disable compositing */
+    _init_net_wm_bypass_compositor(conn);
+    xcb_change_property(conn,
+                        XCB_PROP_MODE_REPLACE,
+                        win,
+                        _NET_WM_BYPASS_COMPOSITOR,
+                        XCB_ATOM_CARDINAL,
+                        32,
+                        1,
+                        &bypass_compositor);
 
     /* Map the window (= make it visible) */
     xcb_map_window(conn, win);
