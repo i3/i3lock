@@ -23,6 +23,7 @@
 
 #include "cursors.h"
 #include "unlock_indicator.h"
+#include "xinput.h"
 
 extern auth_state_t auth_state;
 
@@ -303,7 +304,11 @@ bool grab_pointer_and_keyboard(xcb_connection_t *conn, xcb_screen_t *screen, xcb
         }
     }
 
-    return (tries > 0);
+    if (tries == 0) {
+      return false;
+    }
+
+    return xinput_grab(screen->root);
 }
 
 xcb_cursor_t create_cursor(xcb_connection_t *conn, xcb_screen_t *screen, xcb_window_t win, int choice) {

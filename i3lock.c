@@ -47,6 +47,7 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "dpi.h"
+#include "xinput.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -1196,6 +1197,8 @@ int main(int argc, char *argv[]) {
     randr_init(&randr_base, screen->root);
     randr_query(screen->root);
 
+    xinput_init();
+
     last_resolution[0] = screen->width_in_pixels;
     last_resolution[1] = screen->height_in_pixels;
 
@@ -1310,6 +1313,7 @@ int main(int argc, char *argv[]) {
     DEBUG("restoring focus to X11 window 0x%08x\n", stolen_focus);
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
     xcb_ungrab_keyboard(conn, XCB_CURRENT_TIME);
+    xinput_ungrab();
     xcb_destroy_window(conn, win);
     set_focused_window(conn, screen->root, stolen_focus);
     xcb_aux_sync(conn);
