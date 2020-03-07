@@ -1,9 +1,7 @@
 i3lock - improved screen locker
 ===============================
 
-# This project is not maintained
-
-This project has been relatively unmaintained for the past year or so, and might potentially be archived some time in 2020 if no other maintainer(s) take over. If you're interested, feel free to email me or just fork i3lock-color.
+  ### Don't worry, this project is now maintained by [Raymo111](https://github.com/Raymo111).
 
 _This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to [eBrnd](https://github.com/eBrnd/) !_
 
