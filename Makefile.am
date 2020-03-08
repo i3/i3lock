@@ -48,7 +48,7 @@ i3lock_SOURCES = \
 	cursors.h \
 	dpi.c \
 	dpi.h \
-	fonts.h
+	fonts.h \
 	jpg.c \
 	jpg.h \
 	i3lock.c \
@@ -61,7 +61,7 @@ i3lock_SOURCES = \
 	unlock_indicator.c \
 	unlock_indicator.h \
 	xcb.c \
-	xcb.h \
+	xcb.h
 
 EXTRA_DIST = \
 	$(pamd_files) \
