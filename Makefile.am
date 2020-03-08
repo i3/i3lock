@@ -42,26 +42,26 @@ i3lock_LDADD = \
 	$(CODE_COVERAGE_LDFLAGS)
 
 i3lock_SOURCES = \
+	blur.c \
+	blur.h \
+	blur_simd.c \
 	cursors.h \
 	dpi.c \
 	dpi.h \
+	fonts.h
+	jpg.c \
+	jpg.h \
 	i3lock.c \
 	i3lock.h \
 	randr.c \
 	randr.h \
+	rgba.h \
+	tinyexpr.c \
+	tinyexpr.h \
 	unlock_indicator.c \
 	unlock_indicator.h \
 	xcb.c \
 	xcb.h \
-	tinyexpr.c \
-	tinyexpr.h \
-	blur_simd.c \
-	blur.c \
-	blur.h \
-	jpg.c \
-	jpg.h \
-	fonts.h
-
 
 EXTRA_DIST = \
 	$(pamd_files) \
