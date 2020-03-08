@@ -3,16 +3,8 @@ name: Build Test
 on:
   push:
     branches: [ master ]
-    paths:
-    - '!**.md'
-    - '!LICENSE'
-    - '!.gitignore'
   pull_request:
     branches: [ master ]
-    paths:
-    - '!**.md'
-    - '!LICENSE'
-    - '!.gitignore'
 
 jobs:
   build:
