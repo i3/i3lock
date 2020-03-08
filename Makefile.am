@@ -7,6 +7,8 @@ bin_PROGRAMS = i3lock
 
 dist_man1_MANS = i3lock.1
 
+DISTCLEANFILES = i3lock-color-*.tar.bz2
+
 pamddir = $(sysconfdir)/pam.d
 pamd_files = pam/i3lock
 pamd_DATA = $(pamd_files)
