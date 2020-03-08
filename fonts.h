@@ -5,7 +5,7 @@
 #include <cairo-ft.h>
 #include <stdbool.h>
 
-#include "rgba.h"
+#include <rgba.h>
 
 #define VERIF_FONT  0
 #define WRONG_FONT  1
