@@ -62,39 +62,10 @@ If there's no packaged version available - think carefully, since you're using a
 
 i3lock now uses GNU autotools for building; you'll need to do something like `autoreconf -i && ./configure && make` to build.
 
-### Required Packages
-- pkg-config
-- libxcb
-- libxcb-util
-- libpam-dev
-- libcairo-dev
-- libfontconfig-dev
-- libxcb-composite0
-- libxcb-composite0-dev
-- libxcb-xinerama
-- libxcb-randr
-- libev
-- libx11-xcb-dev
-- libxkbcommon >= 0.5.0
-- libxkbcommon-x11 >= 0.5.0
-- libjpeg-turbo >= 1.4.90
-
-#### Required Packages (Fedora 31)
-- cairo-devel
-- libev
-- libev-devel
-- libjpeg-devel
-- libjpeg-turbo
-- libxcb
-- libxkbcommon
-- libxkbcommon-x11
-- libxkbcommon-x11-devel
-- pam-devel
-- pkg-config
-- xcb-util-devel
-- xcb-util-image
-- xcb-util-image-devel
-- xcb-util-xrm-devel
+### Get Dependencies (Ubuntu 18.04 LTS)
+```
+sudo apt install pkg-config libpam0g-dev libcairo2-dev libfontconfig1-dev libxcb-composite0 libxcb-composite0-dev libev-dev libx11-xcb-dev libxcb-xkb-dev libxcb-xinerama0-dev libxcb-randr0-dev libxcb-image0-dev libxcb-util-dev libxcb-xrm-dev libxkbcommon-dev libxkbcommon-x11-dev libjpeg-dev
+```
 
 ## Arch Linux Packages
 [Stable version in Community](https://www.archlinux.org/packages/community/x86_64/i3lock-color/)
