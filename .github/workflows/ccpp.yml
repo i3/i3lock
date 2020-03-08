@@ -22,7 +22,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: autoreconf
-    - run: autoreconf --force --install
+      run: autoreconf --force --install
     - name: configure
       run: ./configure --disable-sanitizers
     - name: make
