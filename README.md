@@ -96,7 +96,7 @@ i3lock now uses GNU autotools for building; you'll need to do something like `au
 - xcb-util-image-devel
 - xcb-util-xrm-devel
 
-## Arch Package
+## Arch Linux Packages
 [Stable version in Community](https://www.archlinux.org/packages/community/x86_64/i3lock-color/)
 
 [Git Version on AUR](https://aur.archlinux.org/packages/i3lock-color-git/)
