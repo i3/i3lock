@@ -1,35 +1,42 @@
-i3lock - improved screen locker
-===============================
+# i3lock - improved screen locker
 
-  ### Don't worry, this project is now maintained by [Raymo111](https://github.com/Raymo111).
+![Language count](https://img.shields.io/github/languages/count/Raymo111/i3lock-color)
+![Top language](https://img.shields.io/github/languages/top/Raymo111/i3lock-color)
+![Repo size](https://img.shields.io/github/repo-size/Raymo111/i3lock-color)
+![Open issues](https://img.shields.io/github/issues-raw/Raymo111/i3lock-color)
+![Closed issues](https://img.shields.io/github/issues-closed-raw/Raymo111/i3lock-color?color=brightgreen)
+![Open PRs](https://img.shields.io/github/issues-pr-raw/Raymo111/i3lock-color?label=open%20PRs)
+![Closed PRs](https://img.shields.io/github/issues-pr-closed-raw/Raymo111/i3lock-color?color=brightgreen&label=closed%20PRs)
+![Contributor count](https://img.shields.io/github/contributors/Raymo111/i3lock-color)
+![GitHub Release Date](https://img.shields.io/github/release-date/Raymo111/i3lock-color?label=latest%20release&logo=github)
+![Commits](https://img.shields.io/github/commits-since/Raymo111/i3lock-color/latest?include_prereleases&sort=semver)
+![Latest commit](https://img.shields.io/github/last-commit/Raymo111/i3lock-color)
+![Arch Linux package](https://img.shields.io/archlinux/v/community/x86_64/i3lock-color?logo=arch%20linux&label=Community%20version)
+![AUR git ver](https://img.shields.io/aur/version/i3lock-color-git?label=AUR%20git%20ver)
+![AUR votes](https://img.shields.io/aur/votes/i3lock-color-git)
+![GitHub forks](https://img.shields.io/github/forks/Raymo111/i3lock-color?logo=github)
+![GitHub stars](https://img.shields.io/github/stars/Raymo111/i3lock-color?logo=github)
+![GitHub watchers](https://img.shields.io/github/watchers/Raymo111/i3lock-color?logo=github)
+![Maintenance](https://img.shields.io/maintenance/yes/2020)
 
-_This is just a re-patched version of i3lock with the commits from [i3lock-color](https://github.com/eBrnd/i3lock-color); all the credit for the color functionality goes to [eBrnd](https://github.com/eBrnd/) !_
+**A re-patched version of i3lock with color functionality by [eBrnd](https://github.com/eBrnd/i3lock-color), started by [PandorasFox](https://github.com/PandorasFox/) (2015-2020), and now maintained by [Raymo111](https://github.com/Raymo111)**
 
-![i3lock-color in action. Why are you reading this?](https://github.com/PandorasFox/i3lock-color/raw/master/screenshot.png "Screenshot sample")
+![i3lock-color in action](screenshot.png "Screenshot sample")
 
-i3lock is a simple screen locker like slock. After starting it, you will
-see a white screen (you can configure the color/an image). You can return
-to your screen by entering your password.
+i3lock is a simple screen locker like slock. After starting it, you will see a white screen (you can configure the color/an image). You can return to your screen by entering your password.
 
 Many little improvements have been made to i3lock over time:
 
-- i3lock forks, so you can combine it with an alias to suspend to RAM
-  (run "i3lock && echo mem > /sys/power/state" to get a locked screen
+- i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen
    after waking up your computer from suspend to RAM)
-
-- You can specify either a background color or an image (JPG or PNG), which will be
-  displayed while your screen is locked.
-
+- You can specify either a background color or an image (JPG or PNG), which will be displayed while your screen is locked.
 - You can specify whether i3lock should bell upon a wrong password.
+- i3lock uses PAM and therefore is compatible with LDAP etc. On OpenBSD, i3lock uses the bsd\_auth(3) framework.
 
-- i3lock uses PAM and therefore is compatible with LDAP etc.
-  On OpenBSD i3lock uses the bsd\_auth(3) framework.
+## Additional features in i3lock-color
+You can also specify additional options, as detailed in the manpage. This includes, but is not limited to:
 
-## Additional features in this fork
-
-You can also specify additional options, as detailed in the manpage. This includes, but is not limited to, the following:
-
-  - Color options for the following:
+- Color options for:
     - verification ring
     - interior ring color
     - ring interior line color
@@ -46,8 +53,7 @@ You can also specify additional options, as detailed in the manpage. This includ
   - A new bar indicator, which replaces the ring indicator with its own set of options
     - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
 
-# Building
-
+## Building
 Before you build - check and see if there's a packaged version available for your distro (there usually is, either in a community repo/PPA).
 
 If there's no packaged version available - think carefully, since you're using a forked screen locker at your own risk.
@@ -56,7 +62,7 @@ If there's no packaged version available - think carefully, since you're using a
 
 i3lock now uses GNU autotools for building; you'll need to do something like `autoreconf -i && ./configure && make` to build.
 
-## Required Packages
+### Required Packages
 - pkg-config
 - libxcb
 - libxcb-util
@@ -72,6 +78,7 @@ i3lock now uses GNU autotools for building; you'll need to do something like `au
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
 - libjpeg-turbo >= 1.4.90
+
 #### Required Packages (Fedora 31)
 - cairo-devel
 - libev
@@ -89,28 +96,23 @@ i3lock now uses GNU autotools for building; you'll need to do something like `au
 - xcb-util-image-devel
 - xcb-util-xrm-devel
 
-##### Aur Package
-[Stable](https://aur.archlinux.org/packages/i3lock-color/)
+## Arch Package
+[Stable version in Community](https://www.archlinux.org/packages/community/x86_64/i3lock-color/)
 
-[Git](https://aur.archlinux.org/packages/i3lock-color-git)
+[Git Version on AUR](https://aur.archlinux.org/packages/i3lock-color-git/)
 
-##### FreeBSD port
+## FreeBSD port
 [i3lock-color-port](https://github.com/rkashapov/i3lock-color-port/)
 
-Running i3lock
--------------
-Simply invoke the 'i3lock' command. To get out of it, enter your password and
-press enter.
+## Running i3lock
+Simply invoke the 'i3lock' command. To get out of it, enter your password and press enter.
 
-A [sample script](https://github.com/PandorasFox/i3lock-color/blob/master/lock.sh) is included in this repository. [Here](https://streamable.com/fpl46) is a short clip of that script in action!
+A [sample script](lock.sh) is included in this repository. [See the script in action](https://streamable.com/fpl46)
 
-On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
-authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
+On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
-Building i3lock
----------------
-First install the dependencies listed in requirements section, then run these
-commands (might need to be adapted to your OS):
+## Building i3lock
+First install the dependencies listed in requirements section, then run these commands (might need to be adapted to your OS):
 ```
 autoreconf --force --install
 
@@ -125,6 +127,5 @@ mkdir -p build && cd build/
 make
 ```
 
-Upstream
---------
-Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for additional features on top of regular i3lock at https://github.com/PandorasFox/i3lock-color.
+## Upstream
+Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for additional features on top of regular i3lock at https://github.com/Raymo111/i3lock-color.
