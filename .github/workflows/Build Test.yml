@@ -1,0 +1,33 @@
+name: Build Test
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+    - '!**.md'
+    - '!LICENSE'
+    - '!.gitignore'
+  pull_request:
+    branches: [ master ]
+    paths:
+    - '!**.md'
+    - '!LICENSE'
+    - '!.gitignore'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: autoreconf
+      run: autoreconf --force --install
+    - name: configure
+      run: ./configure --disable-sanitizers
+    - name: make
+      run: make
+    - name: make check
+      run: make check
+    - name: make distcheck
+      run: make distcheck
