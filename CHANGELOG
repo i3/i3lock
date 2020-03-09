@@ -1,3 +1,11 @@
+2019-07-21 i3lock 2.12
+
+ • remove stray \n from error messages
+ • capitalize unlock indicator contents
+ • set WM_CLASS property
+ • reference modifier as “Super”, not “Win”
+ • add --raw option to read image as raw bytes
+
 2018-10-18 i3lock 2.11.1
 
  • Fix dist tarball by including I3LOCK_VERSION
