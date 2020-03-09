@@ -19,7 +19,7 @@
 ![GitHub watchers](https://img.shields.io/github/watchers/Raymo111/i3lock-color)
 ![Maintenance](https://img.shields.io/maintenance/yes/2020)
 
-**A re-patched version of i3lock with color functionality by [eBrnd](https://github.com/eBrnd/i3lock-color), started by [PandorasFox](https://github.com/PandorasFox/) (2015-2020), and now maintained by [Raymo111](https://github.com/Raymo111)**
+**A re-patched version of i3lock with color functionality by [eBrnd](https://github.com/eBrnd/i3lock-color), started by [PandorasFox](https://github.com/PandorasFox/) (2015-2020), and now maintained and being developed by [Raymo111](https://github.com/Raymo111)**
 
 ![i3lock-color in action](screenshot.png "Screenshot sample")
 
@@ -27,9 +27,8 @@ i3lock is a simple screen locker like slock. After starting it, you will see a w
 
 Many little improvements have been made to i3lock over time:
 
-- i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen
-   after waking up your computer from suspend to RAM)
-- You can specify either a background color or an image (JPG or PNG), which will be displayed while your screen is locked.
+- i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen after waking up your computer from suspend to RAM)
+- You can specify either a background color or an image (JPG or PNG), which will be displayed while your screen is locked. Note that i3lock is not an 	image manipulation software. If you need to resize the image to fill the screen or similar, use existing tooling to do this before passing it to i3lock. I hope to add this functionality to i3lock-color in the near future.
 - You can specify whether i3lock should bell upon a wrong password.
 - i3lock uses PAM and therefore is compatible with LDAP etc. On OpenBSD, i3lock uses the bsd\_auth(3) framework.
 
@@ -83,7 +82,7 @@ A [sample script](lock.sh) is included in this repository. [See the script in ac
 On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
 ## Building i3lock
-First install the dependencies listed in requirements section, then run these commands (might need to be adapted to your OS):
+First install the dependencies above, then run these commands (might need to be adapted to your OS):
 ```
 autoreconf --force --install
 
