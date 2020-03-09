@@ -37,20 +37,20 @@ Many little improvements have been made to i3lock over time:
 You can also specify additional options, as detailed in the manpage. This includes, but is not limited to:
 
 - Color options for:
-    - verification ring
-    - interior ring color
-    - ring interior line color
-    - key highlight color
-    - backspace highlight color
-    - text colors for most/all strings
+    - Verification ring
+    - Interior ring color
+    - Ring interior line color
+    - Key highlight color
+    - Backspace highlight color
+    - Text colors for most/all strings
     - Changing all of the above depending on PAM's authentication status
-  - Blurring the current screen and using that as the lock background    
-  - Showing a clock in the indicator
-  - refreshing on a timer, instead of on each keypress
-  - Positioning the various UI elements
-  - Changing the ring radius and thickness, as well as text size
-  - Passthrough media keys
-  - A new bar indicator, which replaces the ring indicator with its own set of options
+- Blurring the current screen and using that as the lock background    
+- Showing a clock in the indicator
+- Refreshing on a timer, instead of on each keypress
+- Positioning the various UI elements
+- Changing the ring radius and thickness, as well as text size
+- Passthrough media keys
+- A new bar indicator, which replaces the ring indicator with its own set of options
     - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
 
 ## Building
