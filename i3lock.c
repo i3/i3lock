@@ -1386,7 +1386,6 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
-        {"no-verify", no_argument, NULL, 'x'},
 
         // options for unlock indicator colors
         {"insidevercolor", required_argument, NULL, 300},
@@ -1486,6 +1485,7 @@ int main(int argc, char *argv[]) {
         {"redraw-thread", no_argument, NULL, 900},
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
+        {"no-verify", no_argument, NULL, 905},
 
         // slideshow options
         {"slideshow-interval", required_argument, NULL, 903},
@@ -1553,9 +1553,6 @@ int main(int argc, char *argv[]) {
                 break;
             case 'f':
                 show_failed_attempts = true;
-                break;
-            case 'x':
-                no_verify = true;
                 break;
             case 'r':
                 if (internal_line_source != 0) {
@@ -2028,6 +2025,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 904:
                 slideshow_random_selection = true;
+                break;
+            case 905:
+                no_verify = true;
                 break;
             case 998:
                 image_raw_format = strdup(optarg);
