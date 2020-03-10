@@ -182,6 +182,9 @@ bool blur = false;
 bool step_blur = false;
 int blur_sigma = 5;
 
+/* do not verify password */
+bool no_verify = false;
+
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -499,6 +502,11 @@ static void input_done(void) {
     auth_state = STATE_AUTH_VERIFY;
     unlock_state = STATE_STARTED;
     redraw_screen();
+
+    if (no_verify) {
+        ev_break(EV_DEFAULT, EVBREAK_ALL);
+        return;
+    }
 
 #ifdef __OpenBSD__
     struct passwd *pw;
@@ -1473,6 +1481,7 @@ int main(int argc, char *argv[]) {
         {"redraw-thread", no_argument, NULL, 900},
         {"refresh-rate", required_argument, NULL, 901},
         {"composite", no_argument, NULL, 902},
+        {"no-verify", no_argument, NULL, 905},
 
         // slideshow options
         {"slideshow-interval", required_argument, NULL, 903},
@@ -2012,6 +2021,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 904:
                 slideshow_random_selection = true;
+                break;
+            case 905:
+                no_verify = true;
                 break;
             case 998:
                 image_raw_format = strdup(optarg);
