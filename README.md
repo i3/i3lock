@@ -83,15 +83,12 @@ If there's no packaged version available - think carefully, since you're using a
 
 To build i3lock-color, first install the dependencies listed above, then run these commands (which might need to be adapted to your OS/distro):
 ```
-autoreconf --force --install
+autoreconf -fiv
 
 rm -rf build/
 mkdir -p build && cd build/
 
-../configure \
-  --prefix=/usr \
-  --sysconfdir=/etc \
-  --disable-sanitizers
+../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers
 
 make
 ```
