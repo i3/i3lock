@@ -303,7 +303,7 @@ static void draw_text(cairo_t *ctx, text_t text) {
             break;
         case 0:
         default:
-            x = text.x - ((extents.width / 2) + (extents.x_bearing / 2));
+            x = text.x - extents.x_advance / 2;
             break;
     }
 

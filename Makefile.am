@@ -7,6 +7,8 @@ bin_PROGRAMS = i3lock
 
 dist_man1_MANS = i3lock.1
 
+DISTCLEANFILES = i3lock-color-*.tar.bz2
+
 pamddir = $(sysconfdir)/pam.d
 pamd_files = pam/i3lock
 pamd_DATA = $(pamd_files)
@@ -42,26 +44,26 @@ i3lock_LDADD = \
 	$(CODE_COVERAGE_LDFLAGS)
 
 i3lock_SOURCES = \
+	blur.c \
+	blur.h \
+	blur_simd.c \
 	cursors.h \
 	dpi.c \
 	dpi.h \
+	fonts.h \
+	jpg.c \
+	jpg.h \
 	i3lock.c \
 	i3lock.h \
 	randr.c \
 	randr.h \
+	rgba.h \
+	tinyexpr.c \
+	tinyexpr.h \
 	unlock_indicator.c \
 	unlock_indicator.h \
 	xcb.c \
-	xcb.h \
-	tinyexpr.c \
-	tinyexpr.h \
-	blur_simd.c \
-	blur.c \
-	blur.h \
-	jpg.c \
-	jpg.h \
-	fonts.h
-
+	xcb.h
 
 EXTRA_DIST = \
 	$(pamd_files) \

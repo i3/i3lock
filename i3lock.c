@@ -120,15 +120,15 @@ int layout_align = 0;
 int modif_align = 0;
 int greeter_align = 0;
 
-char time_format[32] = "%H:%M:%S\0";
-char date_format[32] = "%A, %m %Y\0";
+char time_format[64] = "%H:%M:%S\0";
+char date_format[64] = "%A, %m %Y\0";
 
-char verif_font[32] = "sans-serif\0";
-char wrong_font[32] = "sans-serif\0";
-char layout_font[32] = "sans-serif\0";
-char time_font[32] = "sans-serif\0";
-char date_font[32] = "sans-serif\0";
-char greeter_font[32] = "sans-serif\0";
+char verif_font[64] = "sans-serif\0";
+char wrong_font[64] = "sans-serif\0";
+char layout_font[64] = "sans-serif\0";
+char time_font[64] = "sans-serif\0";
+char date_font[64] = "sans-serif\0";
+char greeter_font[64] = "sans-serif\0";
 
 char* fonts[6] = {
     verif_font,
@@ -190,6 +190,7 @@ xcb_window_t win;
 static xcb_cursor_t cursor;
 #ifndef __OpenBSD__
 static pam_handle_t *pam_handle;
+static bool pam_cleanup;
 #endif
 int input_position = 0;
 /* Holds the password you enter (in UTF-8). */
@@ -530,7 +531,7 @@ static void input_done(void) {
          * credentials like kerberos /tmp/krb5cc_pam_* files which may of been left behind if the
          * refresh of the credentials failed. */
         pam_setcred(pam_handle, PAM_REFRESH_CRED);
-        pam_end(pam_handle, PAM_SUCCESS);
+        pam_cleanup = true;
 
         ev_break(EV_DEFAULT, EVBREAK_ALL);
         return;
@@ -1362,11 +1363,6 @@ int main(int argc, char *argv[]) {
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
 #endif
-#if defined(__linux__)
-    bool lock_tty_switching = false;
-    int term = -1;
-#endif
-
     int curs_choice = CURS_NONE;
     int o;
     int longoptind = 0;
@@ -1737,40 +1733,40 @@ int main(int argc, char *argv[]) {
 
 			// Font stuff
             case 520:
-                if (strlen(optarg) > 31) {
-                    errx(1, "time font string can be at most 31 characters\n");
+                if (strlen(optarg) > 63) {
+                    errx(1, "time font string can be at most 63 characters\n");
                 }
                 strcpy(fonts[TIME_FONT],optarg);
                 break;
             case 521:
-                if (strlen(optarg) > 31) {
-                    errx(1, "date font string can be at most 31 characters\n");
+                if (strlen(optarg) > 63) {
+                    errx(1, "date font string can be at most 63 characters\n");
                 }
                 strcpy(fonts[DATE_FONT],optarg);
                 break;
             case 522:
-                if (strlen(optarg) > 31) {
-                    errx(1, "verif font string can be at most 31 "
+                if (strlen(optarg) > 63) {
+                    errx(1, "verif font string can be at most 63 "
                             "characters\n");
                 }
                 strcpy(fonts[VERIF_FONT],optarg);
                 break;
             case 523:
-                if (strlen(optarg) > 31) {
-                    errx(1, "wrong font string can be at most 31 "
+                if (strlen(optarg) > 63) {
+                    errx(1, "wrong font string can be at most 63 "
                             "characters\n");
                 }
                 strcpy(fonts[WRONG_FONT],optarg);
                 break;
             case 524:
-                if (strlen(optarg) > 31) {
-                    errx(1, "layout font string can be at most 31 characters\n");
+                if (strlen(optarg) > 63) {
+                    errx(1, "layout font string can be at most 63 characters\n");
                 }
                 strcpy(fonts[LAYOUT_FONT],optarg);
                 break;
             case 525:
-                if (strlen(optarg) > 31) {
-                    errx(1, "greeter font string can be at most 31 characters\n");
+                if (strlen(optarg) > 63) {
+                    errx(1, "greeter font string can be at most 63 characters\n");
                 }
                 strcpy(fonts[GREETER_FONT],optarg);
                 break;
@@ -2305,6 +2301,12 @@ int main(int argc, char *argv[]) {
         }
     }
     ev_loop(main_loop, 0);
+
+#ifndef __OpenBSD__
+    if (pam_cleanup) {
+        pam_end(pam_handle, PAM_SUCCESS);
+    }
+#endif
 
     if (stolen_focus == XCB_NONE) {
         return 0;

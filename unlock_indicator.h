@@ -4,7 +4,7 @@
 #include <ev.h>
 #include <xcb/xcb.h>
 
-#include "fonts.h"
+#include <fonts.h>
 
 typedef enum {
     STATE_STARTED = 0,           /* default state */
