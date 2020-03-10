@@ -36,13 +36,13 @@ Many little improvements have been made to i3lock over time:
 You can also specify additional options, as detailed in the manpage. This includes, but is not limited to:
 
 - Color options for:
-    - Verification ring
-    - Interior ring color
-    - Ring interior line color
-    - Key highlight color
-    - Backspace highlight color
-    - Text colors for most/all strings
-    - Changing all of the above depending on PAM's authentication status
+	- Verification ring
+	- Interior ring color
+	- Ring interior line color
+	- Key highlight color
+	- Backspace highlight color
+	- Text colors for most/all strings
+	- Changing all of the above depending on PAM's authentication status
 - Blurring the current screen and using that as the lock background    
 - Showing a clock in the indicator
 - Refreshing on a timer, instead of on each keypress
@@ -50,39 +50,38 @@ You can also specify additional options, as detailed in the manpage. This includ
 - Changing the ring radius and thickness, as well as text size
 - Passthrough media keys
 - A new bar indicator, which replaces the ring indicator with its own set of options
-    - An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
+	- An experimental thread for driving the redraw ticks, so that things like the bar/clock still update when PAM is blocking
 
-## Building
+## Dependencies
+The following dependencies will need to be installed for a successful build, depending on your OS/distro.
+
+### Ubuntu 18.04 LTS
+Run this command to install all dependencies:
+```
+sudo apt install pkg-config libpam0g-dev libcairo2-dev libfontconfig1-dev libxcb-composite0-dev libev-dev libx11-xcb-dev libxcb-xkb-dev libxcb-xinerama0-dev libxcb-randr0-dev libxcb-image0-dev libxcb-util-dev libxcb-xrm-dev libxkbcommon-dev libxkbcommon-x11-dev libjpeg-dev
+```
+
+## Arch Linux
+- cairo
+- fontconfig
+- libev
+- libjpeg-turbo
+- libxinerama
+- libxkbcommon-x11
+- libxrandr
+- pam
+- pkgconf
+- xcb-util-image
+- xcb-util-xrm
+
+## Building i3lock-color
 Before you build - check and see if there's a packaged version available for your distro (there usually is, either in a community repo/PPA).
 
 If there's no packaged version available - think carefully, since you're using a forked screen locker at your own risk.
 
-**If you want to build a non-debug version, you should tag your build before configuring.** For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info. Issues asking about ASAN/complaints about i3lock-color being slow / etc will likely be closed.
+**If you want to build a non-debug version, you should tag your build before configuring.** For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info. Issues asking about ASAN/complaints about i3lock-color being slow / etc will likely be closed. i3lock-color uses GNU autotools for building.
 
-i3lock now uses GNU autotools for building; you'll need to do something like `autoreconf -i && ./configure && make` to build.
-
-### Get Dependencies (Ubuntu 18.04 LTS)
-```
-sudo apt install pkg-config libpam0g-dev libcairo2-dev libfontconfig1-dev libxcb-composite0 libxcb-composite0-dev libev-dev libx11-xcb-dev libxcb-xkb-dev libxcb-xinerama0-dev libxcb-randr0-dev libxcb-image0-dev libxcb-util-dev libxcb-xrm-dev libxkbcommon-dev libxkbcommon-x11-dev libjpeg-dev
-```
-
-## Arch Linux Packages
-[Stable version in Community](https://www.archlinux.org/packages/community/x86_64/i3lock-color/)
-
-[Git Version on AUR](https://aur.archlinux.org/packages/i3lock-color-git/)
-
-## FreeBSD port
-[i3lock-color-port](https://github.com/rkashapov/i3lock-color-port/)
-
-## Running i3lock
-Simply invoke the 'i3lock' command. To get out of it, enter your password and press enter.
-
-A [sample script](lock.sh) is included in this repository. [See the script in action](https://streamable.com/fpl46)
-
-On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
-
-## Building i3lock
-First install the dependencies above, then run these commands (might need to be adapted to your OS):
+To build i3lock-color, first install the dependencies listed above, then run these commands (which might need to be adapted to your OS/distro):
 ```
 autoreconf --force --install
 
@@ -96,6 +95,21 @@ mkdir -p build && cd build/
 
 make
 ```
+
+## Arch Linux Packages
+[Stable version in Community](https://www.archlinux.org/packages/community/x86_64/i3lock-color/)
+
+[Git Version on AUR](https://aur.archlinux.org/packages/i3lock-color-git/)
+
+## FreeBSD port
+[i3lock-color-port](https://github.com/rkashapov/i3lock-color-port/)
+
+## Running i3lock-color
+Simply invoke the 'i3lock' command. To get out of it, enter your password and press enter.
+
+A [sample script](lock.sh) is included in this repository. [See the script in action](https://streamable.com/fpl46)
+
+On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
 
 ## Upstream
 Please submit pull requests for i3lock things to https://github.com/i3/i3lock and pull requests for additional features on top of regular i3lock at https://github.com/Raymo111/i3lock-color.
