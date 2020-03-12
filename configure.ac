@@ -156,5 +156,5 @@ AS_HELP_STRING([enabled sanitizers:], [${ax_enabled_sanitizers}])
 
 To compile, run:
 
-  cd `pwd` && make -j8
+  cd `pwd` && make
 --------------------------------------------------------------------------------"
