@@ -88,18 +88,24 @@ the remaining bits, in that order.
 \&	--raw=1920x1080:rgb
 .Ve
 
-.BR
 You can use ImageMagick’s
 .IR convert(1)
 program to feed raw images into i3lock:
 
-.BR
 .Vb 6
 \&	convert wallpaper.jpg RGB:- | i3lock --raw 3840x2160:rgb --image /dev/stdin
 .Ve
 
 This allows you to load a variety of image formats without i3lock having to
 support each one explicitly.
+
+You can also use it to resize images to the screen ratio:
+
+.Vb 6
+\&	convert wallpaper.jpg -resize $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/') RGB:- | i3lock --raw $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/'):rgb --image /dev/stdin
+.Ve
+
+Note that $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/') gets you the current screen dimensions in the wxh (e.g. 1920x1080) format.
 
 .TP
 .BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
