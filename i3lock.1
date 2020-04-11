@@ -108,9 +108,9 @@ You can also use it to resize images to the screen ratio:
 Note that $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/') gets you the current screen dimensions in the wxh (e.g. 1920x1080) format.
 
 .TP
-.BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
-Turn the screen into the given color instead of white. Color must be given in 3-byte
-format: rrggbb (i.e. ff0000 is red).
+.BI \-c\  rrggbbaa \fR,\ \fB\-\-color= rrggbbaa
+Turn the screen into the given color instead of white. Color must be given in 4-byte
+format: rrggbbaa (i.e. ff0000ff is opaque red).
 
 .TP
 .B \-t, \-\-tiling

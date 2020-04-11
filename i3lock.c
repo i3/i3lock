@@ -70,7 +70,7 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
-char color[7] = "ffffff";
+char color[9] = "ffffffff";
 
 /* options for unlock indicator colors */
 char insidevercolor[9] = "006effbf";
@@ -1497,6 +1497,13 @@ int main(int argc, char *argv[]) {
     char *optstring = "hvnbdc:p:ui:teI:frsS:kB:m";
     char *arg = NULL;
     int opt = 0;
+
+#define parse_color(acolor)\
+    arg = optarg;\
+    if (arg[0] == '#') arg++;\
+    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", acolor) != 1)\
+        errx(1, #acolor " is invalid, color must be given in 4-byte format: rrggbbaa\n");
+
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1512,18 +1519,6 @@ int main(int argc, char *argv[]) {
                 break;
             case 'I': {
                 fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
-                break;
-            }
-            case 'c': {
-                arg = optarg;
-
-                /* Skip # if present */
-                if (arg[0] == '#')
-                    arg++;
-
-                if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
-                    errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb");
-
                 break;
             }
             case 'u':
@@ -1575,11 +1570,9 @@ int main(int argc, char *argv[]) {
                 break;
 
             // Begin colors
-			#define parse_color(color)\
-                arg = optarg;\
-                if (arg[0] == '#') arg++;\
-                if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", color) != 1)\
-                    errx(1, #color " is invalid, color must be given in 4-byte format: rrggbbaa\n");
+            case 'c':
+            parse_color(color);
+                break;
             case 300:
                 parse_color(insidevercolor);
                 break;
@@ -2206,14 +2199,16 @@ int main(int argc, char *argv[]) {
         cairo_surface_destroy(xcb_img);
     }
 
-    /* Pixmap on which the image is rendered to (if any) */
-    xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
-
     xcb_window_t stolen_focus = find_focused_window(conn, screen->root);
 
     /* Open the fullscreen window, already with the correct pixmap in place */
-    win = open_fullscreen_window(conn, screen, color, bg_pixmap);
-    xcb_free_pixmap(conn, bg_pixmap);
+    win = open_fullscreen_window(conn, screen, color);
+
+    xcb_pixmap_t pixmap = create_bg_pixmap(conn, win, last_resolution, color);
+    draw_image(last_resolution, pixmap);
+    xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[]){pixmap});
+
+    xcb_free_pixmap(conn, pixmap);
     if (blur_pixmap) {
         xcb_free_pixmap(conn, *blur_pixmap);
         free(blur_pixmap);

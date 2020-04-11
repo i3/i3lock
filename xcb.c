@@ -82,15 +82,36 @@ static unsigned char mask_windows_bits[] = {
     0x80, 0x01};
 
 static uint32_t get_colorpixel(char *hex) {
-    char strgroups[3][3] = {{hex[0], hex[1], '\0'},
+    char strgroups[4][3] = {{hex[0], hex[1], '\0'},
                             {hex[2], hex[3], '\0'},
-                            {hex[4], hex[5], '\0'}};
-    uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
+                            {hex[4], hex[5], '\0'},
+                            {hex[6], hex[4], '\0'}};
+    uint32_t rgb16[4] = {(strtol(strgroups[0], NULL, 16)),
                          (strtol(strgroups[1], NULL, 16)),
-                         (strtol(strgroups[2], NULL, 16))};
+                         (strtol(strgroups[2], NULL, 16)),
+                         (strtol(strgroups[3], NULL, 16))};
 
-    return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
+    return (rgb16[3] << 24) + (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
 }
+
+xcb_visualtype_t *get_visualtype_by_depth(uint16_t depth, xcb_screen_t *root_screen) {
+    xcb_depth_iterator_t depth_iter;
+
+    depth_iter = xcb_screen_allowed_depths_iterator(root_screen);
+    for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
+        if (depth_iter.data->depth != depth)
+            continue;
+
+        xcb_visualtype_iterator_t visual_iter;
+
+        visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+        if (!visual_iter.rem)
+            continue;
+        return visual_iter.data;
+    }
+    return NULL;
+}
+
 
 xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     xcb_visualtype_t *visual_type = NULL;
@@ -114,10 +135,9 @@ xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     return NULL;
 }
 
-xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32_t *resolution, char *color) {
+xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_drawable_t win, u_int32_t *resolution, char *color) {
     xcb_pixmap_t bg_pixmap = xcb_generate_id(conn);
-    xcb_create_pixmap(conn, scr->root_depth, bg_pixmap, scr->root,
-                      resolution[0], resolution[1]);
+    xcb_create_pixmap(conn, 32, bg_pixmap, win, resolution[0], resolution[1]);
 
     /* Generate a Graphics Context and fill the pixmap with background color
      * (for images that are smaller than your screen) */
@@ -131,9 +151,9 @@ xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32
     return bg_pixmap;
 }
 
-xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color, xcb_pixmap_t pixmap) {
+xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color) {
     uint32_t mask = 0;
-    uint32_t values[3];
+    uint32_t values[5];
     xcb_window_t win = xcb_generate_id(conn);
     xcb_window_t parent_win = scr->root;
 
@@ -161,26 +181,32 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
         }
     }
 
-    if (pixmap == XCB_NONE) {
-        mask |= XCB_CW_BACK_PIXEL;
-        values[0] = get_colorpixel(color);
-    } else {
-        mask |= XCB_CW_BACK_PIXMAP;
-        values[0] = pixmap;
-    }
+
+    xcb_visualid_t visual = get_visualtype_by_depth(32, scr)->visual_id;
+    xcb_colormap_t win_colormap = xcb_generate_id(conn);
+    xcb_create_colormap(conn, XCB_COLORMAP_ALLOC_NONE, win_colormap, scr->root, visual);
+
+    mask |= XCB_CW_BACK_PIXEL;
+    values[0] = get_colorpixel(color);
+
+    mask |= XCB_CW_BORDER_PIXEL;
+    values[1] = 0x00000000;
 
     mask |= XCB_CW_OVERRIDE_REDIRECT;
-    values[1] = 1;
+    values[2] = 1;
 
     mask |= XCB_CW_EVENT_MASK;
-    values[2] = XCB_EVENT_MASK_EXPOSURE |
+    values[3] = XCB_EVENT_MASK_EXPOSURE |
                 XCB_EVENT_MASK_KEY_PRESS |
                 XCB_EVENT_MASK_KEY_RELEASE |
                 XCB_EVENT_MASK_VISIBILITY_CHANGE |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
+    mask |= XCB_CW_COLORMAP;
+    values[4] = win_colormap;
+
     xcb_create_window(conn,
-                      XCB_COPY_FROM_PARENT,
+                      32,
                       win, /* the window id */
                       parent_win,
                       0, 0,
@@ -188,7 +214,7 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
                       scr->height_in_pixels, /* dimensions */
                       0,                     /* border = 0, we draw our own */
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                      XCB_WINDOW_CLASS_COPY_FROM_PARENT, /* copy visual from parent */
+                      visual, /* copy visual from parent */
                       mask,
                       values);
 
