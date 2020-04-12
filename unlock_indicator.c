@@ -677,14 +677,12 @@ static void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
  */
 void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
     const double scaling_factor = get_dpi_value() / 96.0;
-    xcb_pixmap_t bg_pixmap = XCB_NONE;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
         scaling_factor, button_diameter_physical);
 
     if (!vistype)
         vistype = get_visualtype_by_depth(32, screen);
-    bg_pixmap = create_bg_pixmap(conn, screen, resolution, color);
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
      * depending on the amount of screens) unlock indicators on.
@@ -1064,7 +1062,6 @@ void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
     cairo_destroy(xcb_ctx);
-    return bg_pixmap;
 }
 
 /*
