@@ -1501,8 +1501,14 @@ int main(int argc, char *argv[]) {
 #define parse_color(acolor)\
     arg = optarg;\
     if (arg[0] == '#') arg++;\
+    if (strlen(arg) == 6) {\
+      /* If 6 digits given, assume RGB and pad 0xff for alpha */\
+      char padded[9] = "ffffffff"; \
+      strncpy( padded, arg, 6 );\
+      arg = padded;\
+    }\
     if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", acolor) != 1)\
-        errx(1, #acolor " is invalid, color must be given in 4-byte format: rrggbbaa\n");
+        errx(1, #acolor " is invalid, color must be given in 3 or 4-byte format: rrggbb[aa]\n");
 
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
