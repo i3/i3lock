@@ -84,17 +84,12 @@ If there's no packaged version available - think carefully, since you're using a
 
 **If you want to build a non-debug version, you should tag your build before configuring.** For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info. Issues asking about ASAN/complaints about i3lock-color being slow / etc will likely be closed. i3lock-color uses GNU autotools for building.
 
-To build i3lock-color, first install the dependencies listed above, then run these commands (which might need to be adapted to your OS/distro):
+To build i3lock-color, first install the dependencies listed above, then run:
 ```
-autoreconf -fiv
-
-rm -rf build/
-mkdir -p build && cd build/
-
-../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers
-
-make
+chmod +x make.sh
+./make.sh
 ```
+You may choose to modify the script based on your needs/OS/distro.
 
 ## Arch Linux Packages
 [Stable version in Community](https://www.archlinux.org/packages/community/x86_64/i3lock-color/)
