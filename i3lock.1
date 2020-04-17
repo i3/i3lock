@@ -37,16 +37,15 @@ screen (you can configure the color/an image). You can return to your screen by
 entering your password.
 
 .SH IMPROVEMENTS
-
 .IP \[bu] 2
-i3lock forks, so you can combine it with an alias to suspend to RAM (run "i3lock && echo mem > /sys/power/state" to get a locked screen after waking up your computer from suspend to RAM)
+i3lock forks, so you can combine it with an alias to suspend to RAM
+(run "i3lock && echo mem > /sys/power/state" to get a locked screen after waking up your computer from suspend to RAM)
 .IP \[bu]
 You can specify either a background color or a PNG image which will be displayed while your screen is locked.
 .IP \[bu]
 You can specify whether i3lock should bell upon a wrong password.
 .IP \[bu]
 i3lock uses PAM and therefore is compatible with LDAP, etc.
-
 
 .SH OPTIONS
 .TP
@@ -87,7 +86,6 @@ the remaining bits, in that order.
 .Vb 6
 \&	--raw=1920x1080:rgb
 .Ve
-
 You can use ImageMagick’s
 .IR convert(1)
 program to feed raw images into i3lock:
@@ -95,22 +93,21 @@ program to feed raw images into i3lock:
 .Vb 6
 \&	convert wallpaper.jpg RGB:- | i3lock --raw 3840x2160:rgb --image /dev/stdin
 .Ve
-
 This allows you to load a variety of image formats without i3lock having to
 support each one explicitly.
-
 You can also use it to resize images to the screen ratio:
 
 .Vb 6
 \&	convert wallpaper.jpg -resize $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/') RGB:- | i3lock --raw $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/'):rgb --image /dev/stdin
 .Ve
-
-Note that $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/') gets you the current screen dimensions in the wxh (e.g. 1920x1080) format.
+Note that $(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/')
+gets you the current screen dimensions in the wxh (e.g. 1920x1080) format.
 
 .TP
-.BI \-c\  rrggbb \fR,\ \fB\-\-color= rrggbb
-Turn the screen into the given color instead of white. Color must be given in 3-byte
-format: rrggbb (i.e. ff0000 is red).
+.BI \-c\  rrggbbaa \fR,\ \fB\-\-color= rrggbbaa
+Turn the screen into the given color instead of white. Color must be given in 4-byte
+format: rrggbbaa (i.e. ff0000ff is opaque red).
+Use the last byte for alpha. Setting this below FF (i.e. ff000088) will allow your screen to be shown translucently if you use a compositor (e.g. compton, xcompmgr). 
 
 .TP
 .B \-t, \-\-tiling
@@ -154,6 +151,8 @@ Note that this number is zero indexed. The ordering is dependent on libxinerama.
 .B \-B=sigma, \-\-blur=sigma
 Captures the screen and blurs it using the given sigma (radius).
 Images may still be overlaid over the blurred screenshot.
+As an alternative to this option, you could specify a translucent background color
+(-c option) with a fully transparent or translucent color, and use a compositor to perform blurring (e.g. compton, picom).
 
 .TP
 .B \-\-indicator
@@ -164,23 +163,21 @@ Forces the indicator to always be visible, instead of only showing on activity.
 Displays the keylayout. Positionable similar to date, time, and indicator. Modes are as follows:
 .RS
 .RS
-
 0 - Displays the full string returned by the query, i.e. "English (US)"
-
 1 - Displays up until the first parenthesis, i.e. "English"
-
 2 - Displays just the contents of the parenthesis, i.e. "US"
-
 .RE
 .RE
 
 .TP
 .B \-k, \-\-clock, \-\-force\-clock
-Displays the clock. \-\-force\-clock also displays the clock when there's indicator text (useful for when the clock is not positioned with the indicator).
+Displays the clock. \-\-force\-clock also displays the clock when there's indicator text
+(useful for when the clock is not positioned with the indicator).
 
 .TP
 .B \-\-composite
-Some compositors have problems with i3lock trying to render over them, so this argument is disabled by default. However, some will work properly with it, so it's been left enabled.
+Some compositors have problems with i3lock trying to render over them, so this argument is disabled by default.
+However, some will work properly with it, so it's been left enabled.
 
 .TP
 .B \-\-pass\-media\-keys
@@ -260,19 +257,13 @@ Sets the color of the keyboard layout text.
 .TP
 .B \-\-indpos="x position:y position"
 Sets the position for the unlock indicator. Valid variables include:
-
 .RS
 .RS
 x - x position of the current display. Corresponds to the leftmost row of pixels on that display.
-
 y - y position of the current display. Corresponds to the topmost row of pixels on that display.
-
 w - width of the current display.
-
 h - height of the current display.
-
 r - the unlock indicator radius.
-
 .RE
 .RE
 
@@ -287,28 +278,21 @@ Sets the format used for generating the time string. See strftime(3) for a full 
 .TP
 .B \-\-timepos="x position:y position"
 Sets the position for the time string. All the variables from \-\-indpos may be used, in addition to:
-
 .RS
 .RS
 ix - the x value of the indicator on the current display.
-
 iy - the y value of the indicator on the current display.
-
 .RE
 .RE
 
 .TP
 .B \-\-time\-align, \-\-date\-align, \-\-layout\-align, \-\-verif\-align, \-\-wrong\-align, \-\-modif\-align, \-\-greeter\-align
 Sets the text alignment of the time, date, keylayout, verification text, wrong text, modifier text and greeter text.
-
 .RS
 .RS
 0 - centered (default)
-
 1 - left aligned
-
 2 - right aligned
-
 .RE
 .RE
 
@@ -331,13 +315,10 @@ Sets the font size used to render various strings.
 .TP
 .B \-\-datepos="x position:y position"
 Sets the position for the date string. All the variables from \-\-indpos and \-\-timepos may be used, in addition to:
-
 .RS
 .RS
 tx - the computed x value of the timestring, for the current display.
-
 ty - the computed y value of the timestring, for the current display.
-
 .RE
 .RE
 
@@ -355,7 +336,8 @@ Sets the position for the date string. All the variables from \-\-indpos and \-\
 
 .TP
 .B \-\-refresh\-rate=seconds\-as\-double
-The refresh rate of the indicator, given in seconds. This should automatically align itself, but is somewhat buggy currently. Values less than one will work, but may result in poor system performance.
+The refresh rate of the indicator, given in seconds. This should automatically align itself, but is somewhat buggy currently.
+Values less than one will work, but may result in poor system performance.
 
 .TP
 .B \-\-veriftext="text"
@@ -391,7 +373,8 @@ Replaces the usual ring indicator with a bar indicator, with a variety of option
 
 .TP
 .B \-\-redraw\-thread
-Starts a separate thread for redrawing the screen. Potentially worse for security, but makes the bar indicator still do its usual periodic redraws when PAM is authenticating.
+Starts a separate thread for redrawing the screen. Potentially worse for security, but makes the bar indicator still do
+its usual periodic redraws when PAM is authenticating.
 
 .TP
 .B \-\-bar\-direction={0, 1, 2}
@@ -407,15 +390,18 @@ Sets whether the bar is vertically or horizontally oriented. Defaults to horizon
 
 .TP
 .B \-\-bar\-step
-Sets the step that each bar decreases by when a key is pressed. A random bar is set to its max height, and then each neighbor is set to (height - step*distance).
+Sets the step that each bar decreases by when a key is pressed. A random bar is set to its max height,
+and then each neighbor is set to (height - step*distance).
 
 .TP
 .B \-\-bar\-max\-height
-The maximum height a bar can get to. When a key is pressed, a random bar is set to this value, and then its neighbors are set to its height, minus the step value.
+The maximum height a bar can get to. When a key is pressed, a random bar is set to this value,
+and then its neighbors are set to its height, minus the step value.
 
 .TP
 .B \-\-bar\-base\-width
-The thickness of the "base" bar that all the bars originate from. This bar also takes on the ring verif and wrong colors to give authentication feedback.
+The thickness of the "base" bar that all the bars originate from.
+This bar also takes on the ring verif and wrong colors to give authentication feedback.
 
 .TP
 .B \-\-bar\-color
@@ -427,24 +413,21 @@ The value by which the bars decrease each time the screen is redrawn.
 
 .TP
 .B \-\-bar\-position
-Works similarly to the time/date/indicator expressions. If the bar is horizontal, this sets the vertical offset from the top edge. If it's vertically oriented, this sets the horizontal offset from the left edge.
+Works similarly to the time/date/indicator expressions. If the bar is horizontal, this sets the vertical offset from the top edge.
+If it's vertically oriented, this sets the horizontal offset from the left edge.
 
 .TP
 .B \-\-no\-verify
-Do not verify the password entered by the user and unlock immediately. Use only for quickly testing new configurations and remember to remove to actually lock your screen!
-
-
+Do not verify the password entered by the user and unlock immediately.
+.B Use only for quickly testing new configurations and remember to remove to actually lock your screen!
 
 .SH DPMS
-
 The \-d (\-\-dpms) option was removed from i3lock in version 2.8. There were
 plenty of use-cases that were not properly addressed, and plenty of bugs
 surrounding that feature. While features are not normally removed from i3 and
 its tools, we felt the need to make an exception in this case.
-
 Users who wish to explicitly enable DPMS only when their screen is locked can
 use a wrapper script around i3lock like the following:
-
 .Vb 6
 \&	#!/bin/sh
 \&	revert() {
@@ -455,7 +438,6 @@ use a wrapper script around i3lock like the following:
 \&	i3lock -n
 \&	revert
 .Ve
-
 The \-I (\-\-inactivity\-timeout=seconds) was removed because it only makes sense with DPMS.
 
 .SH SEE ALSO

@@ -71,7 +71,7 @@ unsigned long lastCheck;
 /* Whether the image should be tiled. */
 extern bool tile;
 /* The background color to use (in hex). */
-extern char color[7];
+extern char color[9];
 /* indicator color options */
 extern char insidevercolor[9];
 extern char insidewrongcolor[9];
@@ -675,16 +675,14 @@ static void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
  * resolution and returns it.
  *
  */
-xcb_pixmap_t draw_image(uint32_t *resolution) {
+void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
     const double scaling_factor = get_dpi_value() / 96.0;
-    xcb_pixmap_t bg_pixmap = XCB_NONE;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
         scaling_factor, button_diameter_physical);
 
     if (!vistype)
-        vistype = get_root_visual_type(screen);
-    bg_pixmap = create_bg_pixmap(conn, screen, resolution, color);
+        vistype = get_visualtype_by_depth(32, screen);
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
      * depending on the amount of screens) unlock indicators on.
@@ -696,7 +694,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     //    cairo_set_font_face(ctx, get_font_face(0));
 
-    cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
+    cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, drawable, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
     /*update image according to the slideshow_interval*/
@@ -1064,7 +1062,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
     cairo_destroy(xcb_ctx);
-    return bg_pixmap;
 }
 
 /*
@@ -1073,12 +1070,11 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d) @ [%lu]\n", unlock_state, auth_state, (unsigned long)time(NULL));
-    xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
-    xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
-    /* XXX: Possible optimization: Only update the area in the middle of the
-     * screen instead of the whole screen. */
+    xcb_pixmap_t pixmap = create_bg_pixmap(conn, win, last_resolution, color);
+    draw_image(last_resolution, pixmap);
+    xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){pixmap});
     xcb_clear_area(conn, 0, win, 0, 0, last_resolution[0], last_resolution[1]);
-    xcb_free_pixmap(conn, bg_pixmap);
+    xcb_free_pixmap(conn, pixmap);
     xcb_flush(conn);
 }
 
