@@ -107,7 +107,7 @@ gets you the current screen dimensions in the wxh (e.g. 1920x1080) format.
 .BI \-c\  rrggbbaa \fR,\ \fB\-\-color= rrggbbaa
 Turn the screen into the given color instead of white. Color must be given in 4-byte
 format: rrggbbaa (i.e. ff0000ff is opaque red).
-Use the last byte for alpha. Setting this below FF will allow your screen to be shown translucently. (i.e. ff000088).
+Use the last byte for alpha. Setting this below FF (i.e. ff000088) will allow your screen to be shown translucently if you use a compositor (e.g. compton, xcompmgr). 
 
 .TP
 .B \-t, \-\-tiling
@@ -151,6 +151,8 @@ Note that this number is zero indexed. The ordering is dependent on libxinerama.
 .B \-B=sigma, \-\-blur=sigma
 Captures the screen and blurs it using the given sigma (radius).
 Images may still be overlaid over the blurred screenshot.
+As an alternative to this option, you could specify a translucent background color
+(-c option) with a fully transparent or translucent color, and use a compositor to perform blurring (e.g. compton, picom).
 
 .TP
 .B \-\-indicator
