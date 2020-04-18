@@ -38,7 +38,8 @@ typedef struct {
     double bar_offset;
 } DrawData;
 
-void draw_image(uint32_t* resolution, xcb_drawable_t drawable);
+void render_lock(uint32_t* resolution, xcb_drawable_t drawable);
+void draw_image(uint32_t* resolution, cairo_t* xcb_ctx);
 void init_colors_once(void);
 void redraw_screen(void);
 void clear_indicator(void);

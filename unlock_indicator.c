@@ -13,6 +13,7 @@
 #include <string.h>
 #include <math.h>
 #include <xcb/xcb.h>
+#include <xcb/randr.h>
 #include <ev.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -68,7 +69,8 @@ extern bool slideshow_random_selection;
 
 unsigned long lastCheck;
 
-/* Whether the image should be tiled. */
+/* Whether the image should be tiled or centered. */
+extern bool centered;
 extern bool tile;
 /* The background color to use (in hex). */
 extern char color[9];
@@ -659,11 +661,9 @@ static void draw_elements(cairo_t *const ctx, DrawData const *const draw_data) {
 }
 
 /*
- * Draws global image with fill color onto a pixmap with the given
- * resolution and returns it.
- *
+ * Renders the lock screen on the provided drawable with the given resolution.
  */
-void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
+void render_lock(uint32_t *resolution, xcb_drawable_t drawable) {
     const double scaling_factor = get_dpi_value() / 96.0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
@@ -707,19 +707,7 @@ void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
             cairo_set_source_surface(xcb_ctx, blur_img, 0, 0);
             cairo_paint(xcb_ctx);
         } else {  // img can no longer be non-NULL if blur_img is not null
-            if (!tile) {
-                cairo_set_source_surface(xcb_ctx, img, 0, 0);
-                cairo_paint(xcb_ctx);
-            } else {
-                /* create a pattern and fill a rectangle as big as the screen */
-                cairo_pattern_t *pattern;
-                pattern = cairo_pattern_create_for_surface(img);
-                cairo_set_source(xcb_ctx, pattern);
-                cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-                cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
-                cairo_fill(xcb_ctx);
-                cairo_pattern_destroy(pattern);
-            }
+            draw_image(resolution, xcb_ctx);
         }
     } else {
         cairo_set_source_rgba(xcb_ctx, background.red, background.green, background.blue, background.alpha);
@@ -1052,14 +1040,70 @@ void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
     cairo_destroy(xcb_ctx);
 }
 
+/**
+ * Draws the configured image on the provided context. The image is drawn centered on all monitors, tiled, or just
+ * painted starting from 0,0.
+ */
+void draw_image(uint32_t* resolution, cairo_t* xcb_ctx) {
+    if (centered) {
+        double image_width = cairo_image_surface_get_width(img);
+        double image_height = cairo_image_surface_get_height(img);
+
+        xcb_randr_get_screen_resources_current_reply_t *reply = xcb_randr_get_screen_resources_current_reply(
+                conn, xcb_randr_get_screen_resources_current(conn, screen->root), NULL);
+
+        xcb_timestamp_t timestamp = reply->config_timestamp;
+        int len = xcb_randr_get_screen_resources_current_outputs_length(reply);
+        xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(reply);
+
+        // For every output
+        for (int i = 0; i < len; i++) {
+            xcb_randr_get_output_info_reply_t *output = xcb_randr_get_output_info_reply(
+                    conn, xcb_randr_get_output_info(conn, randr_outputs[i], timestamp), NULL);
+            if (output == NULL)
+                continue;
+
+            if (output->crtc == XCB_NONE || output->connection == XCB_RANDR_CONNECTION_DISCONNECTED)
+                continue;
+
+            xcb_randr_get_crtc_info_cookie_t infoCookie = xcb_randr_get_crtc_info(conn, output->crtc,
+                                                                                  timestamp);
+            xcb_randr_get_crtc_info_reply_t *crtc = xcb_randr_get_crtc_info_reply(conn, infoCookie, NULL);
+
+            // Paint around center of monitor
+            double origin_x = crtc->x + (crtc->width / 2.0 - image_width / 2.0);
+            double origin_y = crtc->y + (crtc->height / 2.0 - image_height / 2.0);
+
+            cairo_set_source_surface(xcb_ctx, img, origin_x, origin_y);
+            cairo_paint(xcb_ctx);
+
+            free(crtc);
+            free(output);
+        }
+    }  else if (tile) {
+        /* create a pattern and fill a rectangle as big as the screen */
+        cairo_pattern_t *pattern;
+        pattern = cairo_pattern_create_for_surface(img);
+        cairo_set_source(xcb_ctx, pattern);
+        cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+        cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+        cairo_fill(xcb_ctx);
+        cairo_pattern_destroy(pattern);
+    } else {
+        cairo_set_source_surface(xcb_ctx, img, 0, 0);
+        cairo_paint(xcb_ctx);
+    }
+
+}
+
 /*
- * Calls draw_image on a new pixmap and swaps that with the current pixmap
+ * Calls render_lock on a new pixmap and swaps that with the current pixmap
  *
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d) @ [%lu]\n", unlock_state, auth_state, (unsigned long)time(NULL));
     xcb_pixmap_t pixmap = create_bg_pixmap(conn, win, last_resolution, color);
-    draw_image(last_resolution, pixmap);
+    render_lock(last_resolution, pixmap);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){pixmap});
     xcb_clear_area(conn, 0, win, 0, 0, last_resolution[0], last_resolution[1]);
     xcb_free_pixmap(conn, pixmap);

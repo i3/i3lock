@@ -229,6 +229,7 @@ int slideshow_interval = 10;
 bool slideshow_random_selection = false;
 
 bool tile = false;
+bool centered = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 bool pass_media_keys = false;
@@ -1379,6 +1380,7 @@ int main(int argc, char *argv[]) {
         {"image", required_argument, NULL, 'i'},
         {"raw", required_argument, NULL, 998},
         {"tiling", no_argument, NULL, 't'},
+        {"centered", no_argument, NULL, 'C'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -1494,7 +1496,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:m";
+    char *optstring = "hvnbdc:p:ui:tCeI:frsS:kB:m";
     char *arg = NULL;
     int opt = 0;
 
@@ -1534,7 +1536,16 @@ int main(int argc, char *argv[]) {
                 image_path = strdup(optarg);
                 break;
             case 't':
+                if(centered) {
+                    errx(EXIT_FAILURE, "i3lock-color: Options tiling and centered conflict.");
+                }
                 tile = true;
+                break;
+            case 'C':
+                if(tile) {
+                    errx(EXIT_FAILURE, "i3lock-color: Options tiling and centered conflict.");
+                }
+                centered = true;
                 break;
             case 'p':
                 if (!strcmp(optarg, "win")) {
@@ -2183,21 +2194,8 @@ int main(int argc, char *argv[]) {
 
         blur_image_surface(blur_img, blur_sigma);
         if (img) {
-            if (!tile) {
-                cairo_set_source_surface(ctx, img, 0, 0);
-                cairo_paint(ctx);
-            } else {
-                /* create a pattern and fill a rectangle as big as the screen */
-                cairo_pattern_t *pattern;
-                pattern = cairo_pattern_create_for_surface(img);
-                cairo_set_source(ctx, pattern);
-                cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-                cairo_rectangle(ctx, 0, 0, last_resolution[0], last_resolution[1]);
-                cairo_fill(ctx);
-                cairo_pattern_destroy(pattern);
-            }
-            cairo_set_source_surface(ctx, img, 0, 0);
-            cairo_paint(ctx);
+            // Display image centered on all outputs.
+            draw_image(last_resolution, ctx);
             cairo_surface_destroy(img);
             img = NULL;
         }
@@ -2211,7 +2209,7 @@ int main(int argc, char *argv[]) {
     win = open_fullscreen_window(conn, screen, color);
 
     xcb_pixmap_t pixmap = create_bg_pixmap(conn, win, last_resolution, color);
-    draw_image(last_resolution, pixmap);
+    render_lock(last_resolution, pixmap);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[]){pixmap});
 
     xcb_free_pixmap(conn, pixmap);
