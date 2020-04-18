@@ -1260,13 +1260,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (debug_mode) {
-        if (dpms)
-            fprintf(stderr, "dpms: enabled\n");
-        else
-            fprintf(stderr, "dpms: Disabled\n");
-    }
-
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
     init_dpi();
