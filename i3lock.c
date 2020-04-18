@@ -2195,21 +2195,7 @@ int main(int argc, char *argv[]) {
         blur_image_surface(blur_img, blur_sigma);
         if (img) {
             // Display image centered on all outputs.
-            if (centered) {
-                draw_on_all_outputs(ctx);
-            } else if (tile) {
-                /* create a pattern and fill a rectangle as big as the screen */
-                cairo_pattern_t *pattern;
-                pattern = cairo_pattern_create_for_surface(img);
-                cairo_set_source(ctx, pattern);
-                cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-                cairo_rectangle(ctx, 0, 0, last_resolution[0], last_resolution[1]);
-                cairo_fill(ctx);
-                cairo_pattern_destroy(pattern);
-            } else {
-                cairo_set_source_surface(ctx, img, 0, 0);
-                cairo_paint(ctx);
-            }
+            draw_image(last_resolution, ctx);
             cairo_surface_destroy(img);
             img = NULL;
         }
@@ -2223,7 +2209,7 @@ int main(int argc, char *argv[]) {
     win = open_fullscreen_window(conn, screen, color);
 
     xcb_pixmap_t pixmap = create_bg_pixmap(conn, win, last_resolution, color);
-    draw_image(last_resolution, pixmap);
+    render_lock(last_resolution, pixmap);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[]){pixmap});
 
     xcb_free_pixmap(conn, pixmap);
