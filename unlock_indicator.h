@@ -39,6 +39,7 @@ typedef struct {
 } DrawData;
 
 void draw_image(uint32_t* resolution, xcb_drawable_t drawable);
+void draw_on_all_outputs(cairo_t* xcb_ctx);
 void init_colors_once(void);
 void redraw_screen(void);
 void clear_indicator(void);

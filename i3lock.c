@@ -229,6 +229,7 @@ int slideshow_interval = 10;
 bool slideshow_random_selection = false;
 
 bool tile = false;
+bool centered = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 bool pass_media_keys = false;
@@ -1379,6 +1380,7 @@ int main(int argc, char *argv[]) {
         {"image", required_argument, NULL, 'i'},
         {"raw", required_argument, NULL, 998},
         {"tiling", no_argument, NULL, 't'},
+        {"centered", no_argument, NULL, 'C'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -1494,7 +1496,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:frsS:kB:m";
+    char *optstring = "hvnbdc:p:ui:tCeI:frsS:kB:m";
     char *arg = NULL;
     int opt = 0;
 
@@ -1534,7 +1536,16 @@ int main(int argc, char *argv[]) {
                 image_path = strdup(optarg);
                 break;
             case 't':
+                if(centered) {
+                    errx(EXIT_FAILURE, "i3lock-color: Options tiling and centered conflict.");
+                }
                 tile = true;
+                break;
+            case 'C':
+                if(tile) {
+                    errx(EXIT_FAILURE, "i3lock-color: Options tiling and centered conflict.");
+                }
+                centered = true;
                 break;
             case 'p':
                 if (!strcmp(optarg, "win")) {
@@ -2183,10 +2194,10 @@ int main(int argc, char *argv[]) {
 
         blur_image_surface(blur_img, blur_sigma);
         if (img) {
-            if (!tile) {
-                cairo_set_source_surface(ctx, img, 0, 0);
-                cairo_paint(ctx);
-            } else {
+            // Display image centered on all outputs.
+            if (centered) {
+                draw_on_all_outputs(ctx);
+            } else if (tile) {
                 /* create a pattern and fill a rectangle as big as the screen */
                 cairo_pattern_t *pattern;
                 pattern = cairo_pattern_create_for_surface(img);
@@ -2195,9 +2206,10 @@ int main(int argc, char *argv[]) {
                 cairo_rectangle(ctx, 0, 0, last_resolution[0], last_resolution[1]);
                 cairo_fill(ctx);
                 cairo_pattern_destroy(pattern);
+            } else {
+                cairo_set_source_surface(ctx, img, 0, 0);
+                cairo_paint(ctx);
             }
-            cairo_set_source_surface(ctx, img, 0, 0);
-            cairo_paint(ctx);
             cairo_surface_destroy(img);
             img = NULL;
         }
