@@ -315,13 +315,11 @@ static void input_done(void) {
         errx(1, "unknown uid %u.", getuid());
 
     if (auth_userokay(pw->pw_name, NULL, NULL, password) != 0) {
-        if (debug_mode)
-            fprintf(stderr, "successfully authenticated\n");
+        DEBUG("successfully authenticated\n");
 
         clear_password_memory();
 
-        /* Turn the screen on, as it may have been turned off
-         * on release of the 'enter' key. */
+        // make sure monitor is on
         turn_monitors_on();
 
         ev_break(EV_DEFAULT, EVBREAK_ALL);
@@ -329,13 +327,11 @@ static void input_done(void) {
     }
 #else
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
-        if (debug_mode)
-            fprintf(stderr, "successfully authenticated\n");
+        DEBUG("successfully authenticated\n");
 
         clear_password_memory();
 
-        /* Turn the screen on, as it may have been turned off
-         * on release of the 'enter' key. */
+        // make sure monitor is on
         turn_monitors_on();
 
         /* PAM credentials should be refreshed, this will for example update any kerberos tickets.
@@ -1167,9 +1163,6 @@ int main(int argc, char *argv[]) {
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
-
-    if (debug_mode)
-        dont_fork = true;
 
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
