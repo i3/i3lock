@@ -65,6 +65,7 @@ sudo apt install pkg-config libpam0g-dev libcairo2-dev libfontconfig1-dev libxcb
 ```
 
 ## Arch Linux
+- autoconf
 - cairo
 - fontconfig
 - libev
