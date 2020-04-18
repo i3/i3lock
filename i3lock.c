@@ -9,6 +9,7 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -18,6 +19,7 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
+#include <xcb/dpms.h>
 #include <err.h>
 #include <errno.h>
 #include <assert.h>
@@ -33,7 +35,7 @@
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon-x11.h>
-#include <cairo.h>
+#include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
 #ifdef __OpenBSD__
 #include <strings.h> /* explicit_bzero(3) */
@@ -67,16 +69,21 @@ static pam_handle_t *pam_handle;
 static bool pam_cleanup;
 #endif
 int input_position = 0;
+time_t last_keypress = 0;
+
 /* Holds the password you enter (in UTF-8). */
 static char password[512];
 static bool beep = false;
 bool debug_mode = false;
+static bool dpms = true;
+int inactivity_timeout = 30;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_auth_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
+static struct ev_timer *dpms_timeout;
 static struct ev_timer *discard_passwd_timeout;
 extern unlock_state_t unlock_state;
 extern auth_state_t auth_state;
@@ -218,7 +225,7 @@ ev_timer *stop_timer(ev_timer *timer_obj) {
 }
 
 /*
- * Neccessary calls after ending input via enter or others
+ * Necessary calls after ending input via enter or others
  *
  */
 static void finish_input(void) {
@@ -254,6 +261,22 @@ static void clear_auth_wrong(EV_P_ ev_timer *w, int revents) {
     }
 }
 
+static void turn_monitors_on(void) {
+    if (dpms) {
+        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
+        if (dont_fork)
+            fprintf(stderr, "dpms: monitor on\n");
+    }
+}
+
+static void turn_monitors_off(void) {
+    if (dpms && (time(0) - last_keypress) >= inactivity_timeout) {
+        dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
+        if (dont_fork)
+            fprintf(stderr, "dpms: monitor off\n");
+    }
+}
+
 static void clear_indicator_cb(EV_P_ ev_timer *w, int revents) {
     clear_indicator();
     STOP_TIMER(clear_indicator_timeout);
@@ -263,6 +286,12 @@ static void clear_input(void) {
     input_position = 0;
     clear_password_memory();
     password[input_position] = '\0';
+}
+
+static void turn_off_monitors_cb(EV_P_ ev_timer *w, int revents) {
+        turn_monitors_off();
+
+        STOP_TIMER(dpms_timeout);
 }
 
 static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
@@ -283,16 +312,32 @@ static void input_done(void) {
         errx(1, "unknown uid %u.", getuid());
 
     if (auth_userokay(pw->pw_name, NULL, NULL, password) != 0) {
-        DEBUG("successfully authenticated\n");
+        if (debug_mode || dont_fork)
+            fprintf(stderr, "successfully authenticated\n");
+
+        STOP_TIMER(dpms_timeout);
+
         clear_password_memory();
+
+        /* Turn the screen on, as it may have been turned off
+         * on release of the 'enter' key. */
+        turn_monitors_on();
 
         ev_break(EV_DEFAULT, EVBREAK_ALL);
         return;
     }
 #else
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
-        DEBUG("successfully authenticated\n");
+        if (debug_mode || dont_fork)
+            fprintf(stderr, "successfully authenticated\n");
+
         clear_password_memory();
+
+        STOP_TIMER(dpms_timeout);
+
+        /* Turn the screen on, as it may have been turned off
+         * on release of the 'enter' key. */
+        turn_monitors_on();
 
         /* PAM credentials should be refreshed, this will for example update any kerberos tickets.
          * Related to credentials pam_end() needs to be called to cleanup any temporary
@@ -306,7 +351,7 @@ static void input_done(void) {
     }
 #endif
 
-    if (debug_mode)
+    if (debug_mode || dont_fork)
         fprintf(stderr, "Authentication failure\n");
 
     /* Get state of Caps and Num lock modifiers, to be displayed in
@@ -907,6 +952,14 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
+        // make sure monitor is off after any activity
+        last_keypress = time(0);
+        
+        STOP_TIMER(dpms_timeout);
+
+        START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
+            turn_off_monitors_cb);
+
         switch (type) {
             case XCB_KEY_PRESS:
                 handle_key_press((xcb_key_press_event_t *)event);
@@ -1052,10 +1105,16 @@ int main(int argc, char *argv[]) {
                 beep = true;
                 break;
             case 'd':
-                fprintf(stderr, "DPMS support has been removed from i3lock. Please see the manpage i3lock(1).\n");
+                dpms = false;
                 break;
             case 'I': {
-                fprintf(stderr, "Inactivity timeout only makes sense with DPMS, which was removed. Please see the manpage i3lock(1).\n");
+                int time = 0;
+
+                if (sscanf(optarg, "%d", &time) != 1 || time < 0)
+                    errx(EXIT_FAILURE, "invalid timeout, it must be a positive integer\n");
+                
+                inactivity_timeout = time;
+
                 break;
             }
             case 'c': {
@@ -1105,6 +1164,12 @@ int main(int argc, char *argv[]) {
                                    " [-i image.png] [-t] [-e] [-I timeout] [-f]");
         }
     }
+
+    if (debug_mode)
+        fprintf(stderr, "Debug mode on\n");
+
+    if (dont_fork)
+        fprintf(stderr, "Verbose mode on\n");
 
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
@@ -1188,6 +1253,26 @@ int main(int argc, char *argv[]) {
     }
 
     load_compose_table(locale);
+
+    /* if DPMS is enabled, check if the X server really supports it */
+    if (dpms) {
+        xcb_dpms_capable_cookie_t dpmsc = xcb_dpms_capable(conn);
+        xcb_dpms_capable_reply_t *dpmsr;
+        if ((dpmsr = xcb_dpms_capable_reply(conn, dpmsc, NULL))) {
+            if (!dpmsr->capable) {
+                fprintf(stderr, "Warning: Disabling DPMS, X server not DPMS capable\n");
+                dpms = false;
+            }
+            free(dpmsr);
+        }
+    }
+
+    if (debug_mode || dont_fork) {
+        if (dpms)
+            fprintf(stderr, "DPMS enabled\n");
+        else
+            fprintf(stderr, "DPMS Disabled\n");
+    }
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
@@ -1291,11 +1376,19 @@ int main(int argc, char *argv[]) {
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
     ev_prepare_start(main_loop, xcb_prepare);
 
+    turn_monitors_off();
+
+    START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
+        turn_off_monitors_cb);
+
     /* Invoke the event callback once to catch all the events which were
      * received up until now. ev will only pick up new events (when the X11
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
+
+    if (debug_mode || dont_fork)
+        fprintf(stderr, "i3lock exited.\n");
 
 #ifndef __OpenBSD__
     if (pam_cleanup) {

@@ -18,6 +18,9 @@ i3lock \- improved screen locker
 .RB [\|\-v\|]
 .RB [\|\-n\|]
 .RB [\|\-b\|]
+.RB [\|\-d\|]
+.RB [\|\-I
+.IR inactivity timeout\|]
 .RB [\|\-i
 .IR image.png \|]
 .RB [\|\-c
@@ -68,6 +71,19 @@ Disable the unlock indicator. i3lock will by default show an unlock indicator
 after pressing keys. This will give feedback for every keypress and it will
 show you the current PAM state (whether your password is currently being
 verified or whether it is wrong).
+
+.TP
+.B \-d, \-\-dpms
+Disable turning off your screen (default) . Note that, when you do not specify this option, DPMS will turn 
+off your screen after 15 minutes of inactivity anyways (if you did not disable this in 
+your X server).
+
+.TP
+.BI \-I\  seconds \fR,\ \fB\-\-inactivity-timeout= seconds
+Specifies the number of seconds i3lock will wait for another password before
+turning off the monitors, in case you entered a wrong password or canceled by
+pressing Escape. Only makes sense together with \-d. If omitted, the default is
+30 seconds.
 
 .TP
 .BI \-i\  path \fR,\ \fB\-\-image= path
@@ -136,29 +152,6 @@ Show the number of failed attempts, if any.
 .B \-\-debug
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
-
-.SH DPMS
-
-The \-d (\-\-dpms) option was removed from i3lock in version 2.8. There were
-plenty of use-cases that were not properly addressed, and plenty of bugs
-surrounding that feature. While features are not normally removed from i3 and
-its tools, we felt the need to make an exception in this case.
-
-Users who wish to explicitly enable DPMS only when their screen is locked can
-use a wrapper script around i3lock like the following:
-
-.Vb 6
-\&	#!/bin/sh
-\&	revert() {
-\&	  xset dpms 0 0 0
-\&	}
-\&	trap revert HUP INT TERM
-\&	xset +dpms dpms 5 5 5
-\&	i3lock -n
-\&	revert
-.Ve
-
-The \-I (-\-inactivity-timeout=seconds) was removed because it only makes sense with DPMS.
 
 .SH SEE ALSO
 .IR xautolock(1)

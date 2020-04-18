@@ -40,6 +40,7 @@ Requirements
 - libxkbcommon >= 0.5.0
 - libxkbcommon-x11 >= 0.5.0
 - libxcb-image
+- libxcb-dpms0
 - libxcb-xrm
 
 Running i3lock
@@ -57,7 +58,15 @@ i3lock unless you have a reason to do so.
 
 First install the dependencies listed in requirements section, then run these
 commands (might need to be adapted to your OS):
-```
+
+```bash
+
+sudo apt install -y --no-install-recommends \
+    build-essential clang git autoconf automake libxcb-randr0-dev pkg-config libpam0g-dev \
+    libcairo2-dev libxcb1-dev libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev \
+    libxcb-xrm-dev libev-dev libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
+    libxkbcommon-x11-dev
+
 autoreconf --force --install
 
 rm -rf build/
@@ -73,4 +82,5 @@ make
 
 Upstream
 --------
+
 Please submit pull requests to https://github.com/i3/i3lock
