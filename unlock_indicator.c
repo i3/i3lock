@@ -1052,6 +1052,10 @@ void render_lock(uint32_t *resolution, xcb_drawable_t drawable) {
     cairo_destroy(xcb_ctx);
 }
 
+/**
+ * Draws the configured image on the provided context. The image is drawn centered on all monitors, tiled, or just
+ * painted starting from 0,0.
+ */
 void draw_image(uint32_t* resolution, cairo_t* xcb_ctx) {
     if (centered) {
         double image_width = cairo_image_surface_get_width(img);
@@ -1064,6 +1068,7 @@ void draw_image(uint32_t* resolution, cairo_t* xcb_ctx) {
         int len = xcb_randr_get_screen_resources_current_outputs_length(reply);
         xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(reply);
 
+        // For every output
         for (int i = 0; i < len; i++) {
             xcb_randr_get_output_info_reply_t *output = xcb_randr_get_output_info_reply(
                     conn, xcb_randr_get_output_info(conn, randr_outputs[i], timestamp), NULL);
@@ -1077,6 +1082,7 @@ void draw_image(uint32_t* resolution, cairo_t* xcb_ctx) {
                                                                                   timestamp);
             xcb_randr_get_crtc_info_reply_t *crtc = xcb_randr_get_crtc_info_reply(conn, infoCookie, NULL);
 
+            // Paint around center of monitor
             double origin_x = crtc->x + (crtc->width / 2.0 - image_width / 2.0);
             double origin_y = crtc->y + (crtc->height / 2.0 - image_height / 2.0);
 
