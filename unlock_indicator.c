@@ -189,8 +189,7 @@ rgba_t bshl16;
 rgba_t sep16;
 rgba_t bar16;
 rgba_t greeter16;
-// just rgb
-rgb_t rgb16;
+rgba_t background;
 
 // experimental bar stuff
 
@@ -575,23 +574,12 @@ static void colorgen(rgba_str_t *tmp, const char *src, rgba_t *dest) {
     dest->alpha = strtol(tmp->alpha, NULL, 16) / 255.0;
 }
 
-static void colorgen_rgb(rgb_str_t *tmp, const char *src, rgb_t *dest) {
-    set_color(tmp->red, src, 0);
-    set_color(tmp->green, src, 2);
-    set_color(tmp->blue, src, 4);
-
-    dest->red = strtol(tmp->red, NULL, 16) / 255.0;
-    dest->green = strtol(tmp->green, NULL, 16) / 255.0;
-    dest->blue = strtol(tmp->blue, NULL, 16) / 255.0;
-}
-
 void init_colors_once(void) {
 
     /* initialize for slideshow time interval */
     lastCheck = (unsigned long)time(NULL);
 
     rgba_str_t tmp;
-    rgb_str_t tmp_rgb;
 
     /* build indicator color arrays */
     colorgen(&tmp, insidevercolor, &insidever16);
@@ -611,7 +599,7 @@ void init_colors_once(void) {
     colorgen(&tmp, separatorcolor, &sep16);
     colorgen(&tmp, bar_base_color, &bar16);
     colorgen(&tmp, greetercolor, &greeter16);
-    colorgen_rgb(&tmp_rgb, color, &rgb16);
+    colorgen(&tmp, color, &background);
 }
 
 static te_expr *compile_expression(const char *const from, const char *expression, const te_variable *variables, int var_count) {
@@ -734,7 +722,7 @@ void draw_image(uint32_t *resolution, xcb_drawable_t drawable) {
             }
         }
     } else {
-        cairo_set_source_rgb(xcb_ctx, rgb16.red, rgb16.green, rgb16.blue);
+        cairo_set_source_rgba(xcb_ctx, background.red, background.green, background.blue, background.alpha);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
     }
