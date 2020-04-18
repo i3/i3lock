@@ -75,7 +75,7 @@ time_t last_keypress = 0;
 static char password[512];
 static bool beep = false;
 bool debug_mode = false;
-static bool dpms = true;
+static bool dpms = false;
 int inactivity_timeout = 30;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
@@ -264,6 +264,9 @@ static void clear_auth_wrong(EV_P_ ev_timer *w, int revents) {
 
 static void turn_monitors_on(void) {
     if (dpms) {
+
+        STOP_TIMER(dpms_timeout);
+
         dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
         if (verbose_mode)
             fprintf(stderr, "dpms: monitor on\n");
@@ -316,8 +319,6 @@ static void input_done(void) {
         if (debug_mode || verbose_mode)
             fprintf(stderr, "successfully authenticated\n");
 
-        STOP_TIMER(dpms_timeout);
-
         clear_password_memory();
 
         /* Turn the screen on, as it may have been turned off
@@ -333,8 +334,6 @@ static void input_done(void) {
             fprintf(stderr, "successfully authenticated\n");
 
         clear_password_memory();
-
-        STOP_TIMER(dpms_timeout);
 
         /* Turn the screen on, as it may have been turned off
          * on release of the 'enter' key. */
@@ -953,13 +952,16 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        // make sure monitor is off after any activity
-        last_keypress = time(0);
-        
-        STOP_TIMER(dpms_timeout);
+        if (dpms) {
 
-        START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
-            turn_off_monitors_cb);
+            // make sure monitor is off after any activity
+            last_keypress = time(0);
+
+            STOP_TIMER(dpms_timeout);
+
+            START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
+                turn_off_monitors_cb);
+        }
 
         switch (type) {
             case XCB_KEY_PRESS:
@@ -1107,7 +1109,7 @@ int main(int argc, char *argv[]) {
                 beep = true;
                 break;
             case 'd':
-                dpms = false;
+                dpms = true;
                 break;
             case 'I': {
                 int time = 0;
@@ -1169,15 +1171,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (debug_mode) {
+    if (debug_mode)
         verbose_mode = true;
-        fprintf(stderr, "Debug mode on\n");
-    }
 
-    if (verbose_mode) {
+    if (verbose_mode)
         dont_fork = true;
-        fprintf(stderr, "Verbose mode on\n");
-    }
 
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
@@ -1277,9 +1275,9 @@ int main(int argc, char *argv[]) {
 
     if (debug_mode || verbose_mode) {
         if (dpms)
-            fprintf(stderr, "DPMS enabled\n");
+            fprintf(stderr, "dpms: enabled\n");
         else
-            fprintf(stderr, "DPMS Disabled\n");
+            fprintf(stderr, "dpms: Disabled\n");
     }
 
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
@@ -1385,9 +1383,6 @@ int main(int argc, char *argv[]) {
     ev_prepare_start(main_loop, xcb_prepare);
 
     turn_monitors_off();
-
-    START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
-        turn_off_monitors_cb);
 
     /* Invoke the event callback once to catch all the events which were
      * received up until now. ev will only pick up new events (when the X11
