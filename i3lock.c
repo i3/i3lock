@@ -80,6 +80,7 @@ int inactivity_timeout = 30;
 bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
+static bool verbose_mode = false;
 struct ev_loop *main_loop;
 static struct ev_timer *clear_auth_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
@@ -264,7 +265,7 @@ static void clear_auth_wrong(EV_P_ ev_timer *w, int revents) {
 static void turn_monitors_on(void) {
     if (dpms) {
         dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
-        if (dont_fork)
+        if (verbose_mode)
             fprintf(stderr, "dpms: monitor on\n");
     }
 }
@@ -272,7 +273,7 @@ static void turn_monitors_on(void) {
 static void turn_monitors_off(void) {
     if (dpms && (time(0) - last_keypress) >= inactivity_timeout) {
         dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_OFF);
-        if (dont_fork)
+        if (verbose_mode)
             fprintf(stderr, "dpms: monitor off\n");
     }
 }
@@ -312,7 +313,7 @@ static void input_done(void) {
         errx(1, "unknown uid %u.", getuid());
 
     if (auth_userokay(pw->pw_name, NULL, NULL, password) != 0) {
-        if (debug_mode || dont_fork)
+        if (debug_mode || verbose_mode)
             fprintf(stderr, "successfully authenticated\n");
 
         STOP_TIMER(dpms_timeout);
@@ -328,7 +329,7 @@ static void input_done(void) {
     }
 #else
     if (pam_authenticate(pam_handle, 0) == PAM_SUCCESS) {
-        if (debug_mode || dont_fork)
+        if (debug_mode || verbose_mode)
             fprintf(stderr, "successfully authenticated\n");
 
         clear_password_memory();
@@ -351,7 +352,7 @@ static void input_done(void) {
     }
 #endif
 
-    if (debug_mode || dont_fork)
+    if (debug_mode || verbose_mode)
         fprintf(stderr, "Authentication failure\n");
 
     /* Get state of Caps and Num lock modifiers, to be displayed in
@@ -1078,6 +1079,7 @@ int main(int argc, char *argv[]) {
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL, 'p'},
         {"debug", no_argument, NULL, 0},
+        {"verbose", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
         {"image", required_argument, NULL, 'i'},
@@ -1155,6 +1157,8 @@ int main(int argc, char *argv[]) {
                     debug_mode = true;
                 else if (strcmp(longopts[longoptind].name, "raw") == 0)
                     image_raw_format = strdup(optarg);
+                else if (strcmp(longopts[longoptind].name, "verbose") == 0)
+                    verbose_mode = true;
                 break;
             case 'f':
                 show_failed_attempts = true;
@@ -1165,11 +1169,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (debug_mode)
+    if (debug_mode) {
+        verbose_mode = true;
         fprintf(stderr, "Debug mode on\n");
+    }
 
-    if (dont_fork)
+    if (verbose_mode) {
+        dont_fork = true;
         fprintf(stderr, "Verbose mode on\n");
+    }
 
     /* We need (relatively) random numbers for highlighting a random part of
      * the unlock indicator upon keypresses. */
@@ -1267,7 +1275,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (debug_mode || dont_fork) {
+    if (debug_mode || verbose_mode) {
         if (dpms)
             fprintf(stderr, "DPMS enabled\n");
         else
@@ -1386,9 +1394,6 @@ int main(int argc, char *argv[]) {
      * file descriptor becomes readable). */
     ev_invoke(main_loop, xcb_check, 0);
     ev_loop(main_loop, 0);
-
-    if (debug_mode || dont_fork)
-        fprintf(stderr, "i3lock exited.\n");
 
 #ifndef __OpenBSD__
     if (pam_cleanup) {
