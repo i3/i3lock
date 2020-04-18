@@ -263,7 +263,6 @@ static void clear_auth_wrong(EV_P_ ev_timer *w, int revents) {
 
 static void turn_monitors_on(void) {
     if (dpms) {
-
         STOP_TIMER(dpms_timeout);
 
         dpms_set_mode(conn, XCB_DPMS_DPMS_MODE_ON);
@@ -292,9 +291,9 @@ static void clear_input(void) {
 }
 
 static void turn_off_monitors_cb(EV_P_ ev_timer *w, int revents) {
-        turn_monitors_off();
+    turn_monitors_off();
 
-        STOP_TIMER(dpms_timeout);
+    STOP_TIMER(dpms_timeout);
 }
 
 static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
@@ -987,14 +986,13 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
         }
 
         if (dpms) {
-
             // make sure monitor is off after any activity
             last_keypress = time(0);
 
             STOP_TIMER(dpms_timeout);
 
             START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
-                turn_off_monitors_cb);
+                        turn_off_monitors_cb);
         }
 
         free(event);
@@ -1111,7 +1109,7 @@ int main(int argc, char *argv[]) {
                 // wait at less 5 seconds for input timeout before dpms off
                 if (sscanf(optarg, "%d", &time) != 1 || time < 5)
                     errx(EXIT_FAILURE, "invalid timeout, it must large then 5 seconds\n");
-                
+
                 inactivity_timeout = time;
 
                 break;
