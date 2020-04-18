@@ -951,17 +951,6 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        if (dpms) {
-
-            // make sure monitor is off after any activity
-            last_keypress = time(0);
-
-            STOP_TIMER(dpms_timeout);
-
-            START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
-                turn_off_monitors_cb);
-        }
-
         switch (type) {
             case XCB_KEY_PRESS:
                 handle_key_press((xcb_key_press_event_t *)event);
@@ -999,6 +988,17 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
                     randr_query(screen->root);
                     handle_screen_resize();
                 }
+        }
+
+        if (dpms) {
+
+            // make sure monitor is off after any activity
+            last_keypress = time(0);
+
+            STOP_TIMER(dpms_timeout);
+
+            START_TIMER(dpms_timeout, TSTAMP_N_SECS(inactivity_timeout),
+                turn_off_monitors_cb);
         }
 
         free(event);
@@ -1112,8 +1112,9 @@ int main(int argc, char *argv[]) {
             case 'I': {
                 int time = 0;
 
-                if (sscanf(optarg, "%d", &time) != 1 || time < 0)
-                    errx(EXIT_FAILURE, "invalid timeout, it must be a positive integer\n");
+                // wait at less 5 seconds for input timeout before dpms off
+                if (sscanf(optarg, "%d", &time) != 1 || time < 5)
+                    errx(EXIT_FAILURE, "invalid timeout, it must large then 5 seconds\n");
                 
                 inactivity_timeout = time;
 
