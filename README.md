@@ -87,8 +87,8 @@ If there's no packaged version available - think carefully, since you're using a
 
 To build i3lock-color, first install the dependencies listed above, then run:
 ```
-chmod +x make.sh
-./make.sh
+chmod +x build.sh
+./build.sh
 ```
 You may choose to modify the script based on your needs/OS/distro.
 
