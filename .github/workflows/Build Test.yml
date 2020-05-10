@@ -1,16 +1,9 @@
 name: Build Test
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
+on: [push, pull_request]
 jobs:
   build:
-
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
@@ -18,8 +11,15 @@ jobs:
     - name: Make build script executable
       run: chmod +x build.sh
     - name: Run build script
-      run: ./build.sh
+		  run: ./build.sh
     - name: make check
       run: cd build && make check
     - name: make distcheck
       run: cd build && make distcheck
+  gen-bin:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v1
+      with:
+        name: i3lock
+        path: build/i3lock
