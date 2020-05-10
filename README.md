@@ -97,8 +97,8 @@ chmod +x build.sh
 ```
 To install after building, run:
 ```
-chmod +x install.sh
-./install.sh
+chmod +x install-i3lock-color.sh
+./install-i3lock-color.sh
 ```
 You may choose to modify the script based on your needs/OS/distro.
 

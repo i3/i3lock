@@ -6,6 +6,6 @@ mkdir -p build && cd build/
 
 ../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers
 
-make install
+sudo make install
 
-install -Dm644 LICENSE "/usr/share/licenses/i3lock-color/LICENSE"
+sudo install -Dm644 LICENSE "/usr/share/licenses/i3lock-color/LICENSE"
