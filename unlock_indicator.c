@@ -2,7 +2,8 @@
  * vim:ts=4:sw=4:expandtab
  *
  * © 2010 Michael Stapelberg
- * © 2010 Cassandra Fox
+ * © 2015 Cassandra Fox
+ * © 2020 Raymond Li
  *
  * See LICENSE for licensing information
  *
