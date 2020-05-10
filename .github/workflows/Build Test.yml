@@ -11,7 +11,7 @@ jobs:
     - name: Make build script executable
       run: chmod +x build.sh
     - name: Run build script
-		  run: ./build.sh
+      run: ./build.sh
     - name: make check
       run: cd build && make check
     - name: make distcheck
