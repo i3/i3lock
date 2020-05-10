@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - run: ls -lah /home/runner/work/i3lock-color && ls -lah /home/runner/work/i3lock-color/build && ls -lah /home/runner/work/i3lock-color/i3lock-color && ls -lah /home/runner/work/i3lock-color/i3lock-color/build
+    - run: ls -lah /home/runner/work/i3lock-color && ls -lah /home/runner/work/i3lock-color/i3lock-color && ls -lah /home/runner/work/i3lock-color/i3lock-color/build
     - uses: actions/upload-artifact@v2
       with:
         name: i3lock
