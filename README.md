@@ -85,12 +85,20 @@ If there's no packaged version available - think carefully, since you're using a
 
 **If you want to build a non-debug version, you should tag your build before configuring.** For example: `git tag -f "git-$(git rev-parse --short HEAD)"` will add a tag with the short commit ID, which will be used for the version info. Issues asking about ASAN/complaints about i3lock-color being slow / etc will likely be closed. i3lock-color uses GNU autotools for building.
 
-To build i3lock-color, first install the dependencies listed above, then clone the repo and run the build script:
+To use i3lock-color, first install the dependencies listed above, then clone the repo:
 ```
 git clone https://github.com/Raymo111/i3lock-color.git
 cd i3lock-color
+```
+To build without installing, run:
+```
 chmod +x build.sh
 ./build.sh
+```
+To install after building, run:
+```
+chmod +x install.sh
+./install.sh
 ```
 You may choose to modify the script based on your needs/OS/distro.
 
