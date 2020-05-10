@@ -6,17 +6,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Install dependencies
+    - name: Install deps
       run: sudo apt install pkg-config libpam0g-dev libcairo2-dev libfontconfig1-dev libxcb-composite0-dev libev-dev libx11-xcb-dev libxcb-xkb-dev libxcb-xinerama0-dev libxcb-randr0-dev libxcb-image0-dev libxcb-util-dev libxcb-xrm-dev libxkbcommon-dev libxkbcommon-x11-dev libjpeg-dev
-    - name: Make build script executable
-      run: chmod +x build.sh
-    - name: Run build script
-      run: ./build.sh
-    - name: make check
-      run: cd build && make check
-    - name: make distcheck
-      run: cd build && make distcheck
-    - run: ls -lah /home/runner/work/i3lock-color/i3lock-color && ls -lah /home/runner/work/i3lock-color/i3lock-color/build
+    - run: chmod +x build.sh
+    - run: ./build.sh
+    - run: cd build && make check
+    - run: cd build && make distcheck
+    - name: Upload binary artifact
     - uses: actions/upload-artifact@v2
       with:
         name: i3lock
