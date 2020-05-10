@@ -16,7 +16,11 @@ jobs:
       run: cd build && make check
     - name: make distcheck
       run: cd build && make distcheck
+  bin:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
     - uses: actions/download-artifact@v1
       with:
-        name: build/i3lock
+        name: i3lock-color/build/i3lock
         path: i3lock
