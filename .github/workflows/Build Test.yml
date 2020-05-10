@@ -13,7 +13,7 @@ jobs:
     - run: cd build && make check
     - run: cd build && make distcheck
     - name: Upload binary artifact
-    - uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v2
       with:
         name: i3lock
         path: /home/runner/work/i3lock-color/i3lock-color/build/i3lock
