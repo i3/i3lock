@@ -20,6 +20,6 @@ jobs:
     - name: Run build script
       run: ./build.sh
     - name: make check
-      run: make check
+      run: cd build && make check
     - name: make distcheck
       run: make distcheck
