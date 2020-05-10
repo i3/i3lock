@@ -16,9 +16,6 @@ jobs:
       run: cd build && make check
     - name: make distcheck
       run: cd build && make distcheck
-  gen-bin:
-    runs-on: ubuntu-latest
-    steps:
     - uses: actions/download-artifact@v1
       with:
         name: i3lock
