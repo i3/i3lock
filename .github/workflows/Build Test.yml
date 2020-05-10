@@ -22,4 +22,4 @@ jobs:
     - name: make check
       run: cd build && make check
     - name: make distcheck
-      run: make distcheck
+      run: cd build && make distcheck
