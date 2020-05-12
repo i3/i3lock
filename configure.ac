@@ -2,7 +2,7 @@
 # Run autoreconf -fi to generate a configure script from this file.
 
 AC_PREREQ([2.69])
-AC_INIT([i3lock-color], [2.12.c.1], [https://github.com/Raymo11/i3lock-color/issues])
+AC_INIT([i3lock-color], [2.12.c.3], [https://github.com/Raymo11/i3lock-color/issues])
 # For AX_EXTEND_SRCDIR
 AX_ENABLE_BUILDDIR
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall no-dist-gzip dist-bzip2])
