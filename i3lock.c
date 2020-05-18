@@ -1500,13 +1500,13 @@ int main(int argc, char *argv[]) {
     char *optstring = "hvnbdc:p:ui:tCeI:frsS:kB:m";
     char *arg = NULL;
     int opt = 0;
+    char padded[9] = "ffffffff"; \
 
 #define parse_color(acolor)\
     arg = optarg;\
     if (arg[0] == '#') arg++;\
     if (strlen(arg) == 6) {\
       /* If 6 digits given, assume RGB and pad 0xff for alpha */\
-      char padded[9] = "ffffffff"; \
       strncpy( padded, arg, 6 );\
       arg = padded;\
     }\
@@ -1589,7 +1589,7 @@ int main(int argc, char *argv[]) {
 
             // Begin colors
             case 'c':
-            parse_color(color);
+                parse_color(color);
                 break;
             case 300:
                 parse_color(insidevercolor);
