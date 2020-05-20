@@ -72,6 +72,7 @@ static char password[512];
 static bool beep = false;
 bool debug_mode = false;
 bool unlock_indicator = true;
+bool text_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
@@ -1027,6 +1028,7 @@ int main(int argc, char *argv[]) {
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
         {"no-unlock-indicator", no_argument, NULL, 'u'},
+        {"remove-text-indicator", no_argument, NULL, 'r'},
         {"image", required_argument, NULL, 'i'},
         {"raw", required_argument, NULL, 0},
         {"tiling", no_argument, NULL, 't'},
@@ -1072,6 +1074,9 @@ int main(int argc, char *argv[]) {
             }
             case 'u':
                 unlock_indicator = false;
+                break;
+            case 'r':
+                text_indicator = false;
                 break;
             case 'i':
                 image_path = strdup(optarg);

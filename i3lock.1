@@ -26,6 +26,7 @@ i3lock \- improved screen locker
 .RB [\|\-p
 .IR pointer\|]
 .RB [\|\-u\|]
+.RB [\|\-r\|]
 .RB [\|\-e\|]
 .RB [\|\-f\|]
 
@@ -66,6 +67,13 @@ like when opening your laptop in a boring lecture.
 .B \-u, \-\-no-unlock-indicator
 Disable the unlock indicator. i3lock will by default show an unlock indicator
 after pressing keys. This will give feedback for every keypress and it will
+show you the current PAM state (whether your password is currently being
+verified or whether it is wrong).
+
+.TP
+.B \-r, \-\-remove-text-indicator
+Disable the text indicator. i3lock will by default display text to indicate the
+state of the lock. This will give feedback when locking or unlocking and it will
 show you the current PAM state (whether your password is currently being
 verified or whether it is wrong).
 

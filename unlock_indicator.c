@@ -46,6 +46,9 @@ extern uint32_t last_resolution[2];
 /* Whether the unlock indicator is enabled (defaults to true). */
 extern bool unlock_indicator;
 
+/* Whether the text indicator is enabled (defaults to true). */
+extern bool text_indicator;
+
 /* List of pressed modifiers, or NULL if none are pressed. */
 extern char *modifier_string;
 
@@ -235,7 +238,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
                 break;
         }
 
-        if (text) {
+        if (text && text_indicator) {
             cairo_text_extents_t extents;
             double x, y;
 
