@@ -11,7 +11,7 @@ RUN echo 'APT::Acquire::Retries "5";' > /etc/apt/apt.conf.d/80retry
 # (3608 kB/s)). Hence, let’s stick with httpredir.debian.org (default) for now.
 
 # Install mk-build-deps (for installing the i3 build dependencies),
-# clang and clang-format-3.8 (for checking formatting and building with clang),
+# clang and clang-format-9 (for checking formatting and building with clang),
 # lintian (for checking spelling errors),
 # test suite dependencies (for running tests)
 RUN apt-get update && \
@@ -19,7 +19,7 @@ RUN apt-get update && \
     build-essential clang git autoconf automake libxcb-randr0-dev pkg-config libpam0g-dev \
     libcairo2-dev libxcb1-dev libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev \
     libxcb-xrm-dev libev-dev libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
-    libxkbcommon-x11-dev && \
+    libxkbcommon-x11-dev clang-format-9 && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src
