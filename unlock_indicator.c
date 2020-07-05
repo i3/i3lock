@@ -86,8 +86,7 @@ auth_state_t auth_state;
  * resolution and returns it.
  *
  */
-xcb_pixmap_t draw_image(uint32_t *resolution) {
-    xcb_pixmap_t bg_pixmap = XCB_NONE;
+void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
     const double scaling_factor = get_dpi_value() / 96.0;
     int button_diameter_physical = ceil(scaling_factor * BUTTON_DIAMETER);
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
@@ -95,7 +94,7 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     if (!vistype)
         vistype = get_root_visual_type(screen);
-    bg_pixmap = create_bg_pixmap(conn, screen, resolution, color);
+
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
      * depending on the amount of screens) unlock indicators on. */
@@ -104,6 +103,19 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
 
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
+
+    /* After the first iteration, the pixmap will still contain the previous
+     * contents. Explicitly clear the entire pixmap with the background color
+     * first to get back into a defined state: */
+    char strgroups[3][3] = {{color[0], color[1], '\0'},
+                            {color[2], color[3], '\0'},
+                            {color[4], color[5], '\0'}};
+    uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
+                         (strtol(strgroups[1], NULL, 16)),
+                         (strtol(strgroups[2], NULL, 16))};
+    cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
+    cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+    cairo_fill(xcb_ctx);
 
     if (img) {
         if (!tile) {
@@ -119,16 +131,6 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
             cairo_fill(xcb_ctx);
             cairo_pattern_destroy(pattern);
         }
-    } else {
-        char strgroups[3][3] = {{color[0], color[1], '\0'},
-                                {color[2], color[3], '\0'},
-                                {color[4], color[5], '\0'}};
-        uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
-                             (strtol(strgroups[1], NULL, 16)),
-                             (strtol(strgroups[2], NULL, 16))};
-        cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
-        cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
-        cairo_fill(xcb_ctx);
     }
 
     if (unlock_indicator &&
@@ -329,7 +331,18 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
     cairo_destroy(xcb_ctx);
-    return bg_pixmap;
+}
+
+static xcb_pixmap_t bg_pixmap = XCB_NONE;
+
+/*
+ * Releases the current background pixmap so that the next redraw_screen() call
+ * will allocate a new one with the updated resolution.
+ *
+ */
+void free_bg_pixmap(void) {
+    xcb_free_pixmap(conn, bg_pixmap);
+    bg_pixmap = XCB_NONE;
 }
 
 /*
@@ -338,12 +351,16 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
  */
 void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
-    xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
+    if (bg_pixmap == XCB_NONE) {
+        DEBUG("allocating pixmap for %d x %d px\n", last_resolution[0], last_resolution[1]);
+        bg_pixmap = create_bg_pixmap(conn, screen, last_resolution, color);
+    }
+
+    draw_image(bg_pixmap, last_resolution);
     xcb_change_window_attributes(conn, win, XCB_CW_BACK_PIXMAP, (uint32_t[1]){bg_pixmap});
     /* XXX: Possible optimization: Only update the area in the middle of the
      * screen instead of the whole screen. */
     xcb_clear_area(conn, 0, win, 0, 0, last_resolution[0], last_resolution[1]);
-    xcb_free_pixmap(conn, bg_pixmap);
     xcb_flush(conn);
 }
 
