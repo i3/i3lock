@@ -7,11 +7,7 @@ language: c
 compiler:
   - gcc
   - clang
-addons:
-  apt:
-    packages:
-    - clang-format-3.5
 script:
-  - clang-format-3.5 -i *.[ch] && git diff --exit-code || (echo 'Code was not formatted using clang-format!'; false)
   - docker build --pull --no-cache --rm -t=i3lock -f travis/Dockerfile .
+  - docker run -e CC=$CC -v $PWD:/usr/src:rw i3lock /bin/sh -c 'clang-format-9 -i *.[ch] && git diff --exit-code || (echo "Code was not formatted using clang-format!"; false)'
   - docker run -e CC=$CC -v $PWD:/usr/src:rw i3lock /bin/sh -c 'autoreconf -fi && mkdir -p build && cd build && (../configure || (cat config.log; false)) && make -j V=1 CFLAGS="-Wformat -Wformat-security -Wextra -Wno-unused-parameter -Werror"'
