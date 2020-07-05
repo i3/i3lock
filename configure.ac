@@ -74,6 +74,8 @@ AC_SEARCH_LIBS([floor], [m], , [AC_MSG_FAILURE([cannot find the required floor()
 # libev does not ship with a pkg-config file :(.
 AC_SEARCH_LIBS([ev_run], [ev], , [AC_MSG_FAILURE([cannot find the required ev_run() function despite trying to link with -lev])])
 
+AC_SEARCH_LIBS([dlopen], [dl])
+
 AC_SEARCH_LIBS([shm_open], [rt])
 
 # Only disable PAM on OpenBSD where i3lock uses BSD Auth instead

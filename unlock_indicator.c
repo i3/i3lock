@@ -21,6 +21,7 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "dpi.h"
+#include "i3lock_ext.h"
 
 #define BUTTON_RADIUS 90
 #define BUTTON_SPACE (BUTTON_RADIUS + 5)
@@ -61,6 +62,8 @@ extern char color[7];
 extern bool show_failed_attempts;
 /* Number of failed unlock attempts. */
 extern int failed_attempts;
+
+extern struct i3lock_ext *ext;
 
 /*******************************************************************************
  * Variables defined in xcb.c.
@@ -129,6 +132,10 @@ xcb_pixmap_t draw_image(uint32_t *resolution) {
         cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
         cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
         cairo_fill(xcb_ctx);
+    }
+
+    if (ext && ext->draw_bg) {
+        ext->draw_bg(xcb_ctx);
     }
 
     if (unlock_indicator &&

@@ -40,6 +40,7 @@
 #endif
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
+#include <dlfcn.h>
 
 #include "i3lock.h"
 #include "xcb.h"
@@ -47,6 +48,7 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "dpi.h"
+#include "i3lock_ext.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -97,6 +99,13 @@ cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+
+static void *ext_handle = NULL;
+struct i3lock_ext *ext = NULL;
+
+static const struct i3lock_extapi extapi = {
+    .redraw = redraw_screen,
+};
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -1005,11 +1014,33 @@ static void raise_loop(xcb_window_t window) {
     }
 }
 
+static void init_ext(const char *path) {
+    ext_handle = dlopen(path, RTLD_NOW);
+    if (ext_handle == NULL) {
+        fprintf(stderr, "Could not load extension \"%s\": %s\n",
+                path, dlerror());
+        return;
+    }
+
+    ext = dlsym(ext_handle, "i3lock_ext");
+    if (ext == NULL) {
+        fprintf(stderr, "Could not load symbol \"i3lock_ext\": %s\n", dlerror());
+        dlclose(ext_handle);
+        ext_handle = NULL;
+        return;
+    }
+
+    if (ext->init) {
+        ext->init(&extapi);
+    }
+}
+
 int main(int argc, char *argv[]) {
     struct passwd *pw;
     char *username;
     char *image_path = NULL;
     char *image_raw_format = NULL;
+    char *extension_path = NULL;
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -1033,6 +1064,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"extension", required_argument, NULL, 'x'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -1040,7 +1072,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fx:";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1100,9 +1132,12 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'x':
+                extension_path = strdup(optarg);
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-x lib.so]");
         }
     }
 
@@ -1220,6 +1255,12 @@ int main(int argc, char *argv[]) {
     free(image_path);
     free(image_raw_format);
 
+    if (extension_path) {
+        init_ext(extension_path);
+        free(extension_path);
+        extension_path = NULL;
+    }
+
     /* Pixmap on which the image is rendered to (if any) */
     xcb_pixmap_t bg_pixmap = draw_image(last_resolution);
 
@@ -1313,6 +1354,10 @@ int main(int argc, char *argv[]) {
     xcb_destroy_window(conn, win);
     set_focused_window(conn, screen->root, stolen_focus);
     xcb_aux_sync(conn);
+
+    if (ext_handle) {
+        dlclose(ext_handle);
+    }
 
     return 0;
 }
