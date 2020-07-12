@@ -41,6 +41,8 @@ i3lock_SOURCES = \
 	cursors.h \
 	dpi.c \
 	dpi.h \
+	explicit_bzero.c \
+	explicit_bzero.h \
 	i3lock.c \
 	i3lock.h \
 	randr.c \
