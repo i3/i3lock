@@ -1,6 +1,3 @@
-/* SPDX-License-Identifier: MIT */
-/* Copyright (c) 2020 Michael Ortmann */
-
 #include <config.h>
 
 #ifndef HAVE_EXPLICIT_BZERO
