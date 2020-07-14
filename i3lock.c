@@ -27,7 +27,6 @@
 #include <security/pam_appl.h>
 #endif
 #include <getopt.h>
-#include <string.h>
 #include <ev.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
@@ -35,6 +34,9 @@
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
+#ifdef HAVE_EXPLICIT_BZERO
+#include <strings.h> /* explicit_bzero(3) */
+#endif
 #include <xcb/xcb_aux.h>
 #include <xcb/randr.h>
 
@@ -44,7 +46,6 @@
 #include "unlock_indicator.h"
 #include "randr.h"
 #include "dpi.h"
-#include "explicit_bzero.h"
 
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
@@ -95,13 +96,6 @@ cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
-
-/*
- * Clears the memory which stored the password to be a bit safer against
- * cold-boot attacks.
- *
- */
-#define clear_password_memory() explicit_bzero(password, strlen(password))
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -172,6 +166,29 @@ static bool load_compose_table(const char *locale) {
     xkb_compose_state = new_compose_state;
 
     return true;
+}
+
+/*
+ * Clears the memory which stored the password to be a bit safer against
+ * cold-boot attacks.
+ *
+ */
+static void clear_password_memory(void) {
+#ifdef HAVE_EXPLICIT_BZERO
+    /* Use explicit_bzero(3) which was explicitly designed not to be
+     * optimized out by the compiler. */
+    explicit_bzero(password, strlen(password));
+#else
+    /* A volatile pointer to the password buffer to prevent the compiler from
+     * optimizing this out. */
+    volatile char *vpassword = password;
+    for (size_t c = 0; c < sizeof(password); c++)
+        /* We store a non-random pattern which consists of the (irrelevant)
+         * index plus (!) the value of the beep variable. This prevents the
+         * compiler from optimizing the calls away, since the value of 'beep'
+         * is not known at compile-time. */
+        vpassword[c] = c + (int)beep;
+#endif
 }
 
 ev_timer *start_timer(ev_timer *timer_obj, ev_tstamp timeout, ev_callback_t callback) {
