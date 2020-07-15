@@ -27,7 +27,6 @@
 #include <security/pam_appl.h>
 #endif
 #include <getopt.h>
-#include <string.h>
 #include <ev.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
@@ -35,7 +34,7 @@
 #include <xkbcommon/xkbcommon-x11.h>
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
-#ifdef __OpenBSD__
+#ifdef HAVE_EXPLICIT_BZERO
 #include <strings.h> /* explicit_bzero(3) */
 #endif
 #include <xcb/xcb_aux.h>
@@ -175,7 +174,7 @@ static bool load_compose_table(const char *locale) {
  *
  */
 static void clear_password_memory(void) {
-#ifdef __OpenBSD__
+#ifdef HAVE_EXPLICIT_BZERO
     /* Use explicit_bzero(3) which was explicitly designed not to be
      * optimized out by the compiler. */
     explicit_bzero(password, strlen(password));

@@ -66,6 +66,7 @@ AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([atexit dup2 ftruncate getcwd gettimeofday localtime_r memchr memset mkdir rmdir setlocale socket strcasecmp strchr strdup strerror strncasecmp strndup strrchr strspn strstr strtol strtoul], , [AC_MSG_FAILURE([cannot find the $ac_func function, which i3lock requires])])
+AC_CHECK_FUNCS([explicit_bzero])
 
 # Checks for libraries.
 
