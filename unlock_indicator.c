@@ -54,6 +54,8 @@ extern cairo_surface_t *img;
 
 /* Whether the image should be tiled. */
 extern bool tile;
+/* Wheter the image should fit the screen */
+extern bool bgfill;
 /* The background color to use (in hex). */
 extern char color[7];
 
@@ -80,6 +82,29 @@ static xcb_visualtype_t *vistype;
  * indicator. */
 unlock_state_t unlock_state;
 auth_state_t auth_state;
+
+void scale_img(uint32_t *resolution){
+    int width = cairo_image_surface_get_width(img);
+    int height = cairo_image_surface_get_height(img);
+    
+    int wScaleFactor = resolution[0]/width;
+    int hScaleFactor = resolution[1]/height;
+    
+    cairo_surface_t *result = cairo_surface_create_similar(
+        img,
+        cairo_surface_get_content(img),
+        width * wScaleFactor,
+        height * hScaleFactor
+    );
+    cairo_t *cr = cairo_create(result);
+    cairo_scale(cr, hScaleFactor, wScaleFactor);
+    cairo_set_source_surface(cr, img, 0, 0);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+    cairo_surface_destroy(img);
+    img = result;
+}
 
 /*
  * Draws global image with fill color onto a pixmap with the given
@@ -118,6 +143,9 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
     cairo_fill(xcb_ctx);
 
     if (img) {
+        if(bgfill){
+            scale_img(resolution);
+        }
         if (!tile) {
             cairo_set_source_surface(xcb_ctx, img, 0, 0);
             cairo_paint(xcb_ctx);

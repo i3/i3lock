@@ -94,6 +94,7 @@ static int randr_base = -1;
 
 cairo_surface_t *img = NULL;
 bool tile = false;
+bool bgfill = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
 
@@ -1029,6 +1030,7 @@ int main(int argc, char *argv[]) {
         {"image", required_argument, NULL, 'i'},
         {"raw", required_argument, NULL, 0},
         {"tiling", no_argument, NULL, 't'},
+        {"bgfill", no_argument, NULL, 'g'},
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
@@ -1039,7 +1041,7 @@ int main(int argc, char *argv[]) {
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:tgeI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1078,6 +1080,9 @@ int main(int argc, char *argv[]) {
             case 't':
                 tile = true;
                 break;
+            case 'g':
+                bgfill = true;
+                break;
             case 'p':
                 if (!strcmp(optarg, "win")) {
                     curs_choice = CURS_WIN;
@@ -1101,7 +1106,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-g] [-e] [-I timeout] [-f]");
         }
     }
 
