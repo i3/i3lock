@@ -1038,6 +1038,8 @@ int main(int argc, char *argv[]) {
         err(EXIT_FAILURE, "getpwuid() failed");
     if ((username = pw->pw_name) == NULL)
         errx(EXIT_FAILURE, "pw->pw_name is NULL.");
+    if (getenv("WAYLAND_DISPLAY") != NULL)
+        errx(EXIT_FAILURE, "i3lock doesn't support wayland");
 
     char *optstring = "hvnbdc:p:ui:teI:f";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
