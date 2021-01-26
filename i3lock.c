@@ -4,7 +4,9 @@
  * © 2010 Michael Stapelberg
  *
  * See LICENSE for licensing information
- *
+ * 
+ * black lives matter
+ * 
  */
 #include <config.h>
 
