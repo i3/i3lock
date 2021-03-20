@@ -23,6 +23,7 @@
 
 #include "cursors.h"
 #include "unlock_indicator.h"
+#include "xcb.h"
 
 extern auth_state_t auth_state;
 
@@ -73,15 +74,8 @@ static unsigned char mask_windows_bits[] = {
     0xf7, 0x00, 0xf3, 0x00, 0xe1, 0x01, 0xe0, 0x01, 0xc0, 0x03, 0xc0, 0x03,
     0x80, 0x01};
 
-static uint32_t get_colorpixel(char *hex) {
-    char strgroups[3][3] = {{hex[0], hex[1], '\0'},
-                            {hex[2], hex[3], '\0'},
-                            {hex[4], hex[5], '\0'}};
-    uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
-                         (strtol(strgroups[1], NULL, 16)),
-                         (strtol(strgroups[2], NULL, 16))};
-
-    return (rgb16[0] << 16) + (rgb16[1] << 8) + rgb16[2];
+static uint32_t get_colorpixel(rgba_t hex) {
+    return (hex.red << 16) + (hex.green << 8) + hex.blue;
 }
 
 xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
@@ -106,7 +100,7 @@ xcb_visualtype_t *get_root_visual_type(xcb_screen_t *screen) {
     return NULL;
 }
 
-xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32_t *resolution, char *color) {
+xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32_t *resolution, rgba_t color) {
     xcb_pixmap_t bg_pixmap = xcb_generate_id(conn);
     xcb_create_pixmap(conn, scr->root_depth, bg_pixmap, scr->root,
                       resolution[0], resolution[1]);
@@ -123,7 +117,7 @@ xcb_pixmap_t create_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32
     return bg_pixmap;
 }
 
-xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, char *color, xcb_pixmap_t pixmap) {
+xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, rgba_t color, xcb_pixmap_t pixmap) {
     uint32_t mask = 0;
     uint32_t values[3];
     xcb_window_t win = xcb_generate_id(conn);

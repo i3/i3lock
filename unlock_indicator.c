@@ -54,8 +54,27 @@ extern cairo_surface_t *img;
 
 /* Whether the image should be tiled. */
 extern bool tile;
-/* The background color to use (in hex). */
-extern char color[7];
+/* The colors to use (as rgb(a)). */
+extern rgba_t background_color;
+extern rgba_t normal_font_color;
+extern rgba_t normal_ring_color;
+extern rgba_t normal_interior_color;
+extern rgba_t normal_border_color;
+extern rgba_t verify_font_color;
+extern rgba_t verify_ring_color;
+extern rgba_t verify_interior_color;
+extern rgba_t verify_border_color;
+extern rgba_t fail_font_color;
+extern rgba_t fail_ring_color;
+extern rgba_t fail_interior_color;
+extern rgba_t fail_border_color;
+extern rgba_t attempt_font_color;
+extern rgba_t keypress_color;
+extern rgba_t backspace_color;
+extern char font_family[64];
+extern cairo_font_slant_t font_slant;
+extern cairo_font_weight_t font_weight;
+extern float font_size;
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -104,16 +123,12 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
     cairo_surface_t *xcb_output = cairo_xcb_surface_create(conn, bg_pixmap, vistype, resolution[0], resolution[1]);
     cairo_t *xcb_ctx = cairo_create(xcb_output);
 
+    cairo_font_face_t *font_face = cairo_toy_font_face_create(font_family, font_slant, font_weight);
+
     /* After the first iteration, the pixmap will still contain the previous
      * contents. Explicitly clear the entire pixmap with the background color
      * first to get back into a defined state: */
-    char strgroups[3][3] = {{color[0], color[1], '\0'},
-                            {color[2], color[3], '\0'},
-                            {color[4], color[5], '\0'}};
-    uint32_t rgb16[3] = {(strtol(strgroups[0], NULL, 16)),
-                         (strtol(strgroups[1], NULL, 16)),
-                         (strtol(strgroups[2], NULL, 16))};
-    cairo_set_source_rgb(xcb_ctx, rgb16[0] / 255.0, rgb16[1] / 255.0, rgb16[2] / 255.0);
+    cairo_set_source_rgb(xcb_ctx, background_color.red / 255.0, background_color.green / 255.0, background_color.blue / 255.0);
     cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
     cairo_fill(xcb_ctx);
 
@@ -150,18 +165,22 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, 0, 114.0 / 255, 255.0 / 255, 0.75);
+                cairo_set_source_rgba(ctx, verify_interior_color.red / 255.0, verify_interior_color.green / 255.0,
+                                      verify_interior_color.blue / 255.0, verify_interior_color.alpha);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, fail_interior_color.red / 255.0, fail_interior_color.green / 255.0,
+                                      fail_interior_color.blue / 255.0, fail_interior_color.alpha);
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                    cairo_set_source_rgba(ctx, fail_interior_color.red / 255.0, fail_interior_color.green / 255.0,
+                                          fail_interior_color.blue / 255.0, fail_interior_color.alpha);
                     break;
                 }
-                cairo_set_source_rgba(ctx, 0, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, normal_interior_color.red / 255.0, normal_interior_color.green / 255.0,
+                                      normal_interior_color.blue / 255.0, normal_interior_color.alpha);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -169,25 +188,28 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgb(ctx, 51.0 / 255, 0, 250.0 / 255);
+                cairo_set_source_rgba(ctx, verify_ring_color.red / 255.0, verify_ring_color.green / 255.0,
+                                      verify_ring_color.blue / 255.0, verify_ring_color.alpha);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                cairo_set_source_rgba(ctx, fail_ring_color.red / 255.0, fail_ring_color.green / 255.0,
+                                      fail_ring_color.blue / 255.0, fail_ring_color.alpha);
                 break;
             case STATE_AUTH_IDLE:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                    cairo_set_source_rgba(ctx, fail_ring_color.red / 255.0, fail_ring_color.green / 255.0,
+                                          fail_ring_color.blue / 255.0, fail_ring_color.alpha);
                     break;
                 }
 
-                cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
+                cairo_set_source_rgba(ctx, normal_ring_color.red / 255.0, normal_ring_color.green / 255.0,
+                                      normal_ring_color.blue / 255.0, normal_ring_color.alpha);
                 break;
         }
         cairo_stroke(ctx);
 
         /* Draw an inner seperator line. */
-        cairo_set_source_rgb(ctx, 0, 0, 0);
         cairo_set_line_width(ctx, 2.0);
         cairo_arc(ctx,
                   BUTTON_CENTER /* x */,
@@ -195,6 +217,29 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
                   BUTTON_RADIUS - 5 /* radius */,
                   0,
                   2 * M_PI);
+
+        switch (auth_state) {
+            case STATE_AUTH_VERIFY:
+            case STATE_AUTH_LOCK:
+                cairo_set_source_rgba(ctx, verify_border_color.red / 255.0, verify_border_color.green / 255.0,
+                                      verify_border_color.blue / 255.0, verify_border_color.alpha);
+                break;
+            case STATE_AUTH_WRONG:
+            case STATE_I3LOCK_LOCK_FAILED:
+                cairo_set_source_rgba(ctx, fail_border_color.red / 255.0, fail_border_color.green / 255.0,
+                                      fail_border_color.blue / 255.0, fail_border_color.alpha);
+                break;
+            case STATE_AUTH_IDLE:
+                if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    cairo_set_source_rgba(ctx, fail_border_color.red / 255.0, fail_border_color.green / 255.0,
+                                          fail_border_color.blue / 255.0, fail_border_color.alpha);
+                    break;
+                }
+
+                cairo_set_source_rgba(ctx, normal_border_color.red / 255.0, normal_border_color.green / 255.0,
+                                      normal_border_color.blue / 255.0, normal_border_color.alpha);
+                break;
+        }
         cairo_stroke(ctx);
 
         cairo_set_line_width(ctx, 10.0);
@@ -204,24 +249,35 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgb(ctx, 0, 0, 0);
-        cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-        cairo_set_font_size(ctx, 28.0);
+        cairo_set_font_face(ctx, font_face);
+        cairo_set_font_size(ctx, font_size);
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
+                cairo_set_source_rgba(ctx, verify_font_color.red / 255.0, verify_font_color.green / 255.0,
+                                      verify_font_color.blue / 255.0, verify_font_color.alpha);
                 text = "Verifying…";
                 break;
             case STATE_AUTH_LOCK:
+                cairo_set_source_rgba(ctx, verify_font_color.red / 255.0, verify_font_color.green / 255.0,
+                                      verify_font_color.blue / 255.0, verify_font_color.alpha);
                 text = "Locking…";
                 break;
             case STATE_AUTH_WRONG:
+                cairo_set_source_rgba(ctx, fail_font_color.red / 255.0, fail_font_color.green / 255.0,
+                                      fail_font_color.blue / 255.0, fail_font_color.alpha);
                 text = "Wrong!";
                 break;
             case STATE_I3LOCK_LOCK_FAILED:
+                cairo_set_source_rgba(ctx, fail_font_color.red / 255.0, fail_font_color.green / 255.0,
+                                      fail_font_color.blue / 255.0, fail_font_color.alpha);
                 text = "Lock failed!";
                 break;
             default:
+                cairo_set_source_rgba(ctx, normal_font_color.red / 255.0, normal_font_color.green / 255.0,
+                                      normal_font_color.blue / 255.0, normal_font_color.alpha);
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                    cairo_set_source_rgba(ctx, fail_font_color.red / 255.0, fail_font_color.green / 255.0,
+                                          fail_font_color.blue / 255.0, fail_font_color.alpha);
                     text = "No input";
                 }
                 if (show_failed_attempts && failed_attempts > 0) {
@@ -231,8 +287,9 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
                         snprintf(buf, sizeof(buf), "%d", failed_attempts);
                         text = buf;
                     }
-                    cairo_set_source_rgb(ctx, 1, 0, 0);
-                    cairo_set_font_size(ctx, 32.0);
+                    cairo_set_source_rgba(ctx, attempt_font_color.red / 255.0, attempt_font_color.green / 255.0,
+                                          attempt_font_color.blue / 255.0, attempt_font_color.alpha);
+                    cairo_set_font_size(ctx, font_size * 1.15);
                 }
                 break;
         }
@@ -254,7 +311,7 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
             cairo_text_extents_t extents;
             double x, y;
 
-            cairo_set_font_size(ctx, 14.0);
+            cairo_set_font_size(ctx, font_size / 2.0);
 
             cairo_text_extents(ctx, modifier_string, &extents);
             x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
@@ -280,16 +337,19 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
-                cairo_set_source_rgb(ctx, 51.0 / 255, 219.0 / 255, 0);
+                cairo_set_source_rgba(ctx, keypress_color.red / 255.0, keypress_color.green / 255.0,
+                                      keypress_color.blue / 255.0, keypress_color.alpha);
             } else {
                 /* For backspace, we use red. */
-                cairo_set_source_rgb(ctx, 219.0 / 255, 51.0 / 255, 0);
+                cairo_set_source_rgba(ctx, backspace_color.red / 255.0, backspace_color.green / 255.0,
+                                      backspace_color.blue / 255.0, backspace_color.alpha);
             }
             cairo_stroke(ctx);
 
             /* Draw two little separators for the highlighted part of the
              * unlock indicator. */
-            cairo_set_source_rgb(ctx, 0, 0, 0);
+            cairo_set_source_rgba(ctx, normal_border_color.red / 255.0, normal_border_color.green / 255.0,
+                                  normal_border_color.blue / 255.0, normal_border_color.alpha);
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
@@ -327,6 +387,7 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         cairo_fill(xcb_ctx);
     }
 
+    cairo_font_face_destroy(font_face);
     cairo_surface_destroy(xcb_output);
     cairo_surface_destroy(output);
     cairo_destroy(ctx);
@@ -353,7 +414,7 @@ void redraw_screen(void) {
     DEBUG("redraw_screen(unlock_state = %d, auth_state = %d)\n", unlock_state, auth_state);
     if (bg_pixmap == XCB_NONE) {
         DEBUG("allocating pixmap for %d x %d px\n", last_resolution[0], last_resolution[1]);
-        bg_pixmap = create_bg_pixmap(conn, screen, last_resolution, color);
+        bg_pixmap = create_bg_pixmap(conn, screen, last_resolution, background_color);
     }
 
     draw_image(bg_pixmap, last_resolution);

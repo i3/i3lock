@@ -15,7 +15,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <err.h>
@@ -57,7 +56,27 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
-char color[7] = "ffffff";
+rgba_t background_color = {255, 255, 255, 1};
+rgba_t normal_font_color = {0, 0, 0, 1};
+rgba_t normal_ring_color = {51, 125, 0, 1};
+rgba_t normal_interior_color = {0, 0, 0, 0.75};
+rgba_t normal_border_color = {0, 0, 0, 1};
+rgba_t verify_font_color = {0, 0, 0, 1};
+rgba_t verify_ring_color = {51, 0, 250, 1};
+rgba_t verify_interior_color = {0, 114, 255, 0.75};
+rgba_t verify_border_color = {0, 0, 0, 1};
+rgba_t fail_font_color = {0, 0, 0, 1};
+rgba_t fail_ring_color = {125, 51, 0, 1};
+rgba_t fail_interior_color = {250, 0, 0, 0.75};
+rgba_t fail_border_color = {0, 0, 0, 1};
+rgba_t attempt_font_color = {255, 0, 0, 1};
+rgba_t keypress_color = {51, 219, 0, 1};
+rgba_t backspace_color = {219, 51, 0, 1};
+char font_family[64] = {"sans-serif"};
+cairo_font_slant_t font_slant = CAIRO_FONT_SLANT_NORMAL;
+cairo_font_weight_t font_weight = CAIRO_FONT_WEIGHT_NORMAL;
+float font_size = 28.0;
+
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
@@ -106,6 +125,41 @@ bool skip_repeated_empty_password = false;
  */
 static void u8_dec(char *s, int *i) {
     (void)(isutf(s[--(*i)]) || isutf(s[--(*i)]) || isutf(s[--(*i)]) || --(*i));
+}
+
+/*
+ * Converts a rgb(a) hex color string to a rgba struct.
+ * The hex string may start with an optional '#'.
+ * If the hex string does not contain a alpha value it will default to 1.
+ *
+ */
+bool hex_to_rgba(char *hex, rgba_t *rgba) {
+    if (hex[0] == '#') {
+        hex++;
+    }
+
+    size_t len = strlen(hex);
+    char hex_color[9] = {0};
+    if (sscanf(hex, "%08[0-9a-fA-F]", hex_color) && !(len == 6 || len == 8)) {
+        return false;
+    }
+
+    char strgroups[4][3] = {{hex_color[0], hex_color[1], '\0'},
+                            {hex_color[2], hex_color[3], '\0'},
+                            {hex_color[4], hex_color[5], '\0'},
+                            {'\0', '\0', '\0'}};
+    rgba->red = strtol(strgroups[0], NULL, 16);
+    rgba->green = strtol(strgroups[1], NULL, 16);
+    rgba->blue = strtol(strgroups[2], NULL, 16);
+    if (hex_color[6] == '\0') {
+        rgba->alpha = 1;
+    } else {
+        strgroups[3][0] = hex_color[6];
+        strgroups[3][1] = hex_color[7];
+        rgba->alpha = strtol(strgroups[3], NULL, 16);
+    }
+
+    return true;
 }
 
 /*
@@ -166,6 +220,100 @@ static bool load_compose_table(const char *locale) {
     xkb_compose_state = new_compose_state;
 
     return true;
+}
+
+/*
+ * Tries loading a color preference from the X resource database.
+ *
+ */
+static void load_color_from_xrm(xcb_xrm_database_t *database, char *name, rgba_t *color) {
+    char *value;
+    if (xcb_xrm_resource_get_string(database, name, NULL, &value) == 0) {
+        if (!hex_to_rgba(value, color)) {
+            fprintf(stderr, "[i3lock] color `%s` for `%s` is invalid, falling back to default\n", value, name);
+        }
+        free(value);
+    }
+}
+
+/*
+ * Tries loading font preference from the X resource database.
+ *
+ */
+static void load_font_from_xrm(xcb_xrm_database_t *database) {
+    char *value;
+    if (xcb_xrm_resource_get_string(database, "i3lock.Lockscreen.font", NULL, &value) == 0) {
+        strtok(value, "-");
+        char *token = strtok(NULL, "-");
+        if (token != NULL && *token != '*') {
+            strncpy(font_family, token, 63);
+        }
+
+        token = strtok(NULL, "-");
+        if (token != NULL && *token != '*' && strncmp(token, "medium", 6) != 0) {
+            if (strncmp(token, "bold", 4) == 0) {
+                font_weight = CAIRO_FONT_WEIGHT_BOLD;
+            } else {
+                fprintf(stderr, "[i3lock] font weight `%s` is invalid, falling back to default\n", token);
+            }
+        }
+
+        token = strtok(NULL, "-");
+        if (token != NULL && *token != '*' && *token != 'r') {
+            if (*token == 'i') {
+                font_slant = CAIRO_FONT_SLANT_ITALIC;
+            } else if (*token == 'o') {
+                font_slant = CAIRO_FONT_SLANT_OBLIQUE;
+            } else {
+                fprintf(stderr, "[i3lock] font slant `%s` is invalid, falling back to default\n", token);
+            }
+        }
+
+        strtok(NULL, "-");
+        strtok(NULL, "-");
+        token = strtok(NULL, "-");
+        if (token != NULL && *token != '*') {
+            font_size = strtod(token, NULL);
+            if (font_size == 0.0) {
+                fprintf(stderr, "[i3lock] font size `%s` is invalid, falling back to default\n", token);
+                font_size = 28.0;
+            }
+        }
+
+        free(value);
+    }
+}
+
+/*
+ * Loads resources from the X resource database.
+ *
+ */
+static void load_xresources() {
+    xcb_xrm_database_t *database = xcb_xrm_database_from_default(conn);
+    if (!database) {
+        /* no appropriate database was found, so we don't load any preferences */
+        return;
+    }
+
+    load_color_from_xrm(database, "i3lock.Lockscreen.background.color", &background_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.font.normal.color", &normal_font_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.ring.normal.color", &normal_ring_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.interior.normal.color", &normal_interior_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.border.normal.color", &normal_border_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.font.verify.color", &verify_font_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.ring.verify.color", &verify_ring_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.interior.verify.color", &verify_interior_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.border.verify.color", &verify_border_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.font.fail.color", &fail_font_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.ring.fail.color", &fail_ring_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.interior.fail.color", &fail_interior_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.border.fail.color", &fail_border_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.font.attempts.color", &attempt_font_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.keypress.color", &keypress_color);
+    load_color_from_xrm(database, "i3lock.Lockscreen.backspace.color", &backspace_color);
+    load_font_from_xrm(database);
+
+    xcb_xrm_database_free(database);
 }
 
 /*
@@ -1009,6 +1157,7 @@ int main(int argc, char *argv[]) {
     char *username;
     char *image_path = NULL;
     char *image_raw_format = NULL;
+    char bg_color[7] = {0};
 #ifndef __OpenBSD__
     int ret;
     struct pam_conv conv = {conv_callback, NULL};
@@ -1066,7 +1215,7 @@ int main(int argc, char *argv[]) {
                 if (arg[0] == '#')
                     arg++;
 
-                if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", color) != 1)
+                if (strlen(arg) != 6 || sscanf(arg, "%06[0-9a-fA-F]", bg_color) != 1)
                     errx(EXIT_FAILURE, "color is invalid, it must be given in 3-byte hexadecimal format: rrggbb");
 
                 break;
@@ -1190,6 +1339,16 @@ int main(int argc, char *argv[]) {
 
     load_compose_table(locale);
 
+    load_xresources();
+    if (*bg_color != 0) {
+        rgba_t bg_color_rgba;
+        hex_to_rgba(bg_color, &bg_color_rgba);
+        background_color.red = bg_color_rgba.red;
+        background_color.green = bg_color_rgba.green;
+        background_color.blue = bg_color_rgba.blue;
+    }
+    background_color.alpha = 1;
+
     screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
     init_dpi();
@@ -1222,13 +1381,13 @@ int main(int argc, char *argv[]) {
     free(image_raw_format);
 
     /* Pixmap on which the image is rendered to (if any) */
-    xcb_pixmap_t bg_pixmap = create_bg_pixmap(conn, screen, last_resolution, color);
+    xcb_pixmap_t bg_pixmap = create_bg_pixmap(conn, screen, last_resolution, background_color);
     draw_image(bg_pixmap, last_resolution);
 
     xcb_window_t stolen_focus = find_focused_window(conn, screen->root);
 
     /* Open the fullscreen window, already with the correct pixmap in place */
-    win = open_fullscreen_window(conn, screen, color, bg_pixmap);
+    win = open_fullscreen_window(conn, screen, background_color, bg_pixmap);
     xcb_free_pixmap(conn, bg_pixmap);
 
     cursor = create_cursor(conn, screen, win, curs_choice);

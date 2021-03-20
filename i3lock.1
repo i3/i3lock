@@ -137,6 +137,76 @@ Show the number of failed attempts, if any.
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
 
+.SH STYLING
+
+Basic styling of colors and fonts is available through the X resource database system,
+for example by specifying them in the $HOME/.Xresources file.
+
+Most available options are of the format
+
+.RS
+i3lock.Lockscreen.\fBCOMPONENT\fR.\fBSTATE\fR.color:\ \fI#rrggbbaa\fR
+.RE
+
+where \fBCOMPONENT\fR may be one of
+
+.RS
+.TS
+tab (@);
+l l.
+ring@the indicator ring
+interior@the interior of the ring
+border@the border separating the ring, interior and keypress-indicator
+font@the font
+.TE
+.RE
+
+and \fBSTATE\fR may be one of
+
+.RS
+.TS
+tab (@);
+l l.
+normal@default state
+verify@on verification
+fail@on failure/locking
+.TE
+.RE
+
+The leading '#' and the alpha value of the color are optional.
+Other formats, such as named colors, are not supported.
+
+Additionally, the following options are available:
+
+.TP
+.BI i3lock.Lockscreen.background.color: \ #rrggbb
+Sets the background color. The command-line option \-c (\-\-color) will override this setting.
+A alpha value will be ignored on this option for security reasons.
+
+.TP
+.BI i3lock.Lockscreen.font.attempts.color: \ #rrggbbaa
+Sets the font color for the text showing the number of failed attempts (\-f, \-\-show-failed-attempts).
+
+.TP
+.BI i3lock.Lockscreen.keypress.color: \ #rrggbbaa
+Sets the color of the indicator shown when a key is pressed.
+
+.TP
+.BI i3lock.Lockscreen.backspace.color: \ #rrggbbaa
+Sets the color of the indicator shown when backspace is pressed.
+
+.TP
+.BI i3lock.Lockscreen.font:\ \fI\-*\-family\-weight\-slant\-*\-*\-pixelsize\-\fR
+Sets the font using the XLFD format. Supports a shortend form where later parts
+of the format may be ommited entirely (as in the example above). Other font
+options than those given in the example above are ignored.
+.br
+For \fIweight\fR only the options "medium" and "bold" are supported.
+.br
+For \fIslant\fR only 'r' (roman, ie. regular/upright), 's' (slanted) and 'o' (oblique) are supported.
+.br
+For \fIpixelsize\fR only the pixel size form is supported, the matrix form is not supported. This value is used as base font size, additional font sizes are calculated from it.
+
 .SH DPMS
 
 The \-d (\-\-dpms) option was removed from i3lock in version 2.8. There were
