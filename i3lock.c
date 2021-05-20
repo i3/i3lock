@@ -57,7 +57,7 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
-char color[7] = "ffffff";
+char color[7] = "a3a3a3";
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
