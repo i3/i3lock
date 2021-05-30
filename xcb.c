@@ -10,6 +10,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_image.h>
 #include <xcb/xcb_atom.h>
+#include <xcb/dpms.h>
 #include <xcb/xcb_aux.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,6 +201,16 @@ xcb_window_t open_fullscreen_window(xcb_connection_t *conn, xcb_screen_t *scr, c
     xcb_aux_sync(conn);
 
     return win;
+}
+
+/*
+ * Set the dpms level to 'mode'.
+ *
+ */
+void dpms_set_mode(xcb_connection_t *conn, xcb_dpms_dpms_mode_t mode) {
+    xcb_dpms_enable(conn);
+    xcb_dpms_force_level(conn, mode);
+    xcb_flush(conn);
 }
 
 /*
