@@ -44,8 +44,16 @@ Requirements
 
 Running i3lock
 -------------
-Simply invoke the 'i3lock' command. To get out of it, enter your password and
-press enter.
+
+To test i3lock, you can directly run the `i3lock` command. To get out of it,
+enter your password and press enter.
+
+For a more permanent setup, we strongly recommend using `xss-lock` so that the
+screen is locked *before* your laptop suspends:
+
+```
+xss-lock --transfer-sleep-lock -- i3lock --nofork
+```
 
 On OpenBSD the `i3lock` binary needs to be setgid `auth` to call the
 authentication helpers, e.g. `/usr/libexec/auth/login_passwd`.
