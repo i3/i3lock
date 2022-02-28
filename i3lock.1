@@ -29,6 +29,20 @@ i3lock \- improved screen locker
 .RB [\|\-e\|]
 .RB [\|\-f\|]
 
+.SH RECOMMENDED USAGE
+.RB xss-lock
+.RB --transfer-sleep-lock
+.RB --
+.RB i3lock
+.RB --nofork
+
+Using
+.B xss-lock
+ensures that your screen is locked before your laptop suspends.
+
+Notably, using a systemd service file is not adequate, as it will not delay
+suspend until your screen is locked.
+
 .SH DESCRIPTION
 .B i3lock
 is a simple screen locker like slock. After starting it, you will see a white
@@ -161,8 +175,8 @@ use a wrapper script around i3lock like the following:
 The \-I (-\-inactivity-timeout=seconds) was removed because it only makes sense with DPMS.
 
 .SH SEE ALSO
-.IR xautolock(1)
-\- use i3lock as your screen saver
+.IR xss-lock(1)
+\- hooks up i3lock to the systemd login manager
 
 .IR convert(1)
 \- feed a wide variety of image formats to i3lock
