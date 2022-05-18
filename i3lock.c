@@ -372,7 +372,7 @@ static void handle_key_press(xcb_key_press_event_t *event) {
                 return;
             case XKB_COMPOSE_COMPOSED:
                 /* xkb_compose_state_get_utf8 doesn't include the terminating byte in the return value
-             * as xkb_keysym_to_utf8 does. Adding one makes the variable n consistent. */
+                 * as xkb_keysym_to_utf8 does. Adding one makes the variable n consistent. */
                 n = xkb_compose_state_get_utf8(xkb_compose_state, buffer, sizeof(buffer)) + 1;
                 ksym = xkb_compose_state_get_one_sym(xkb_compose_state);
                 composed = true;
