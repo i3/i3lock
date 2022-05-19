@@ -1,0 +1,34 @@
+name: GitHub Actions
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: build and test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    env:
+      CC: ${{ matrix.compiler }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+    - name: fetch or build Docker container
+      run: |
+        docker build --pull --no-cache --rm -t=i3lock -f travis/Dockerfile .
+        docker run -e CC -v $PWD:/usr/src:rw i3lock /bin/sh -c 'git config --global --add safe.directory /usr/src && mkdir build && cd build && CFLAGS="-Wformat -Wformat-security -Wextra -Wno-unused-parameter -Werror" meson .. && ninja'
+  formatting:
+    name: Check formatting
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y clang-format-11
+    - name: Check formatting
+      run: clang-format-11 --dry-run --Werror $(git ls-files '*.c' 'include/*.h')

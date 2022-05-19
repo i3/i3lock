@@ -16,10 +16,10 @@ RUN echo 'APT::Acquire::Retries "5";' > /etc/apt/apt.conf.d/80retry
 # test suite dependencies (for running tests)
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    build-essential clang git autoconf automake libxcb-randr0-dev pkg-config libpam0g-dev \
+    build-essential clang git meson libxcb-randr0-dev pkg-config libpam0g-dev \
     libcairo2-dev libxcb1-dev libxcb-dpms0-dev libxcb-image0-dev libxcb-util0-dev \
     libxcb-xrm-dev libev-dev libxcb-xinerama0-dev libxcb-xkb-dev libxkbcommon-dev \
-    libxkbcommon-x11-dev clang-format-9 && \
+    libxkbcommon-x11-dev  && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src
