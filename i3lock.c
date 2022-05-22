@@ -987,6 +987,18 @@ int main(int argc, char *argv[]) {
         {"beep", no_argument, NULL, 'b'},
         {"dpms", no_argument, NULL, 'd'},
         {"color", required_argument, NULL, 'c'},
+        // START Additional Color Options...
+        {"ivcolor", required_argument, NULL, 0},
+        {"iwcolor", required_argument, NULL, 0},
+        {"icolor", required_argument, NULL, 0},
+        {"rvcolor", required_argument, NULL, 0},
+        {"rwcolor", required_argument, NULL, 0},
+        {"rcolor", required_argument, NULL, 0},
+        {"lcolor", required_argument, NULL, 0},
+        {"tcolor", required_argument, NULL, 0},
+        {"khlcolor", required_argument, NULL, 0},
+        {"bhlcolor", required_argument, NULL, 0},
+        // END Additional Color Options...
         {"pointer", required_argument, NULL, 'p'},
         {"debug", no_argument, NULL, 0},
         {"help", no_argument, NULL, 'h'},
@@ -1062,6 +1074,86 @@ int main(int argc, char *argv[]) {
                     debug_mode = true;
                 else if (strcmp(longopts[longoptind].name, "raw") == 0)
                     image_raw_format = strdup(optarg);
+                else if (strcmp(longopts[longoptind].name, "ivcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", ivcolor) != 1)
+                        errx(1, "ivcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "iwcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", iwcolor) != 1)
+                        errx(1, "iwcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "icolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", icolor) != 1)
+                        errx(1, "icolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "rvcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", rvcolor) != 1)
+                        errx(1, "rvcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "rwcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", rwcolor) != 1)
+                        errx(1, "rwcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "rcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", rcolor) != 1)
+                        errx(1, "rcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "lcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", lcolor) != 1)
+                        errx(1, "lcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "tcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", tcolor) != 1)
+                        errx(1, "tcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "khlcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", khlcolor) != 1)
+                        errx(1, "khlcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
+                else if (strcmp(longopts[longoptind].name, "bhlcolor") == 0) {
+                    char *arg = optarg;
+                    /* Skip # if present */
+                    if (arg[0] == '#')
+                        arg++;
+                    if (strlen(arg) != 8 || sscanf(arg, "%08[0-9a-fA-F]", bhlcolor) != 1)
+                        errx(1, "bhlcolor is invalid, color must be given in 8-byte format: rrggbbaa\n");
+                }
                 break;
             case 'f':
                 show_failed_attempts = true;
