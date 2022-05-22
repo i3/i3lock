@@ -1174,8 +1174,11 @@ int main(int argc, char *argv[]) {
                 show_failed_attempts = true;
                 break;
             default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color(rgb)] [-u] [-p win|default]"
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-ivcolor color(rgba)]"
+                                   " [-iwcolor color(rgba)] [-icolor color(rgba)] [-rvcolor color(rgba)]"
+                                   " [-rwcolor color(rgba)] [-rcolor color(rgba)] [-lcolor color(rgba)]"
+                                   " [-tcolor color(rgba)] [-khlcolor color(rgba)] [-bhlcolor color(rgba)]");
         }
     }
 
