@@ -57,6 +57,18 @@ extern cairo_surface_t *img;
 extern bool tile;
 /* The background color to use (in hex). */
 extern char color[7];
+// START Passcolor...
+extern char ivcolor[9];
+extern char iwcolor[9];
+extern char icolor[9];
+extern char rvcolor[9];
+extern char rwcolor[9];
+extern char rcolor[9];
+extern char lcolor[9];
+extern char tcolor[9];
+extern char khlcolor[9];
+extern char bhlcolor[9];
+// END Passcolor
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
@@ -76,6 +88,89 @@ extern xcb_screen_t *screen;
 /*******************************************************************************
  * Local variables.
  ******************************************************************************/
+
+// START Passcolor...
+char strgroupsiv[4][3] = {{ivcolor[0], ivcolor[1], '\0'},
+                          {ivcolor[2], ivcolor[3], '\0'},
+                          {ivcolor[4], ivcolor[5], '\0'},
+                          {ivcolor[6], ivcolor[7], '\0'}};
+uint32_t iv16[4] = {(strtol(strgroupsiv[0], NULL, 16)),
+                           (strtol(strgroupsiv[1], NULL, 16)),
+                           (strtol(strgroupsiv[2], NULL, 16)),
+                           (strtol(strgroupsiv[3], NULL, 16))};
+char strgroupsiw[4][3] = {{iwcolor[0], iwcolor[1], '\0'},
+                          {iwcolor[2], iwcolor[3], '\0'},
+                          {iwcolor[4], iwcolor[5], '\0'},
+                          {iwcolor[6], iwcolor[7], '\0'}};
+uint32_t iw16[4] = {(strtol(strgroupsiw[0], NULL, 16)),
+                             (strtol(strgroupsiw[1], NULL, 16)),
+                             (strtol(strgroupsiw[2], NULL, 16)),
+                             (strtol(strgroupsiw[3], NULL, 16))};
+char strgroupsi[4][3] = {{icolor[0], icolor[1], '\0'},
+                         {icolor[2], icolor[3], '\0'},
+                         {icolor[4], icolor[5], '\0'},
+                         {icolor[6], icolor[7], '\0'}};
+uint32_t i16[4] = {(strtol(strgroupsi[0], NULL, 16)),
+                        (strtol(strgroupsi[1], NULL, 16)),
+                        (strtol(strgroupsi[2], NULL, 16)),
+                        (strtol(strgroupsi[3], NULL, 16))};
+char strgroupsrv[4][3] = {{rvcolor[0], rvcolor[1], '\0'},
+                          {rvcolor[2], rvcolor[3], '\0'},
+                          {rvcolor[4], rvcolor[5], '\0'},
+                          {rvcolor[6], rvcolor[7], '\0'}};
+uint32_t rv16[4] = {(strtol(strgroupsrv[0], NULL, 16)),
+                         (strtol(strgroupsrv[1], NULL, 16)),
+                         (strtol(strgroupsrv[2], NULL, 16)),
+                         (strtol(strgroupsrv[3], NULL, 16))};
+char strgroupsrw[4][3] = {{rwcolor[0], rwcolor[1], '\0'},
+                          {rwcolor[2], rwcolor[3], '\0'},
+                          {rwcolor[4], rwcolor[5], '\0'},
+                          {rwcolor[6], rwcolor[7], '\0'}};
+uint32_t rw16[4] = {(strtol(strgroupsrw[0], NULL, 16)),
+                           (strtol(strgroupsrw[1], NULL, 16)),
+                           (strtol(strgroupsrw[2], NULL, 16)),
+                           (strtol(strgroupsrw[3], NULL, 16))};
+char strgroupsr[4][3] = {{rcolor[0], rcolor[1], '\0'},
+                         {rcolor[2], rcolor[3], '\0'},
+                         {rcolor[4], rcolor[5], '\0'},
+                         {rcolor[6], rcolor[7], '\0'}};
+uint32_t r16[4] = {(strtol(strgroupsr[0], NULL, 16)),
+                      (strtol(strgroupsr[1], NULL, 16)),
+                      (strtol(strgroupsr[2], NULL, 16)),
+                      (strtol(strgroupsr[3], NULL, 16))};
+char strgroupsl[4][3] = {{lcolor[0], lcolor[1], '\0'},
+                         {lcolor[2], lcolor[3], '\0'},
+                         {lcolor[4], lcolor[5], '\0'},
+                         {lcolor[6], lcolor[7], '\0'}};
+uint32_t l16[4] = {(strtol(strgroupsl[0], NULL, 16)),
+                      (strtol(strgroupsl[1], NULL, 16)),
+                      (strtol(strgroupsl[2], NULL, 16)),
+                      (strtol(strgroupsl[3], NULL, 16))};
+char strgroupst[4][3] = {{tcolor[0], tcolor[1], '\0'},
+                         {tcolor[2], tcolor[3], '\0'},
+                         {tcolor[4], tcolor[5], '\0'},
+                         {tcolor[6], tcolor[7], '\0'}};
+uint32_t t16[4] = {(strtol(strgroupst[0], NULL, 16)),
+                      (strtol(strgroupst[1], NULL, 16)),
+                      (strtol(strgroupst[2], NULL, 16)),
+                      (strtol(strgroupst[3], NULL, 16))};
+char strgroupsk[4][3] = {{khlcolor[0], khlcolor[1], '\0'},
+                         {khlcolor[2], khlcolor[3], '\0'},
+                         {khlcolor[4], khlcolor[5], '\0'},
+                         {khlcolor[6], khlcolor[7], '\0'}};
+uint32_t khl16[4] = {(strtol(strgroupsk[0], NULL, 16)),
+                       (strtol(strgroupsk[1], NULL, 16)),
+                       (strtol(strgroupsk[2], NULL, 16)),
+                       (strtol(strgroupsk[3], NULL, 16))};
+char strgroupsb[4][3] = {{bhlcolor[0], bhlcolor[1], '\0'},
+                         {bhlcolor[2], bhlcolor[3], '\0'},
+                         {bhlcolor[4], bhlcolor[5], '\0'},
+                         {bhlcolor[6], bhlcolor[7], '\0'}};
+uint32_t bhl16[4] = {(strtol(strgroupsb[0], NULL, 16)),
+                      (strtol(strgroupsb[1], NULL, 16)),
+                      (strtol(strgroupsb[2], NULL, 16)),
+                      (strtol(strgroupsb[3], NULL, 16))};
+// END Passcolor
 
 /* Cache the screen’s visual, necessary for creating a Cairo context. */
 static xcb_visualtype_t *vistype;
@@ -191,18 +286,18 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgba(ctx, 0, 114.0 / 255, 255.0 / 255, 0.75);
+                cairo_set_source_rgba(ctx, (double)iv16[0]/255, (double)iv16[1]/255, (double)iv16[2]/255, (double)iv16[3]/255);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, (double)iw16[0]/255, (double)iw16[1]/255, (double)iw16[2]/255, (double)iw16[3]/255);
                 break;
             default:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgba(ctx, 250.0 / 255, 0, 0, 0.75);
+                    cairo_set_source_rgba(ctx, (double)iw16[0]/255, (double)iw16[1]/255, (double)iw16[2]/255, (double)iw16[3]/255);
                     break;
                 }
-                cairo_set_source_rgba(ctx, 0, 0, 0, 0.75);
+                cairo_set_source_rgba(ctx, (double)i16[0]/255, (double)i16[1]/255, (double)i16[2]/255, (double)i16[3]/255);
                 break;
         }
         cairo_fill_preserve(ctx);
@@ -210,25 +305,25 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
-                cairo_set_source_rgb(ctx, 51.0 / 255, 0, 250.0 / 255);
+                cairo_set_source_rgb(ctx, (double)rv16[0]/255, (double)rv16[1]/255, (double)rv16[2]/255, (double)rv16[3]/255);
                 break;
             case STATE_AUTH_WRONG:
             case STATE_I3LOCK_LOCK_FAILED:
-                cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                cairo_set_source_rgb(ctx, (double)rw16[0]/255, (double)rw16[1]/255, (double)rw16[2]/255, (double)rw16[3]/255);
                 break;
             case STATE_AUTH_IDLE:
                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
-                    cairo_set_source_rgb(ctx, 125.0 / 255, 51.0 / 255, 0);
+                    cairo_set_source_rgb(ctx, (double)rw16[0]/255, (double)rw16[1]/255, (double)rw16[2]/255, (double)rw16[3]/255);
                     break;
                 }
 
-                cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
+                cairo_set_source_rgb(ctx, (double)r16[0]/255, (double)r16[1]/255, (double)r16[2]/255, (double)r16[3]/255);
                 break;
         }
         cairo_stroke(ctx);
 
         /* Draw an inner seperator line. */
-        cairo_set_source_rgb(ctx, 0, 0, 0);
+        cairo_set_source_rgba(ctx, (double) l16[0]/255, (double) l16[1]/255, (double) l16[2]/255, (double) l16[3]/255);
         cairo_set_line_width(ctx, 2.0);
         cairo_arc(ctx,
                   BUTTON_CENTER /* x */,
@@ -245,7 +340,7 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         /* We don't want to show more than a 3-digit number. */
         char buf[4];
 
-        cairo_set_source_rgb(ctx, 0, 0, 0);
+        cairo_set_source_rgba(ctx, (double) t16[0]/255, (double) t16[1]/255, (double) t16[2]/255, (double) t16[3]/255);
         cairo_select_font_face(ctx, "sans-serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(ctx, 28.0);
         switch (auth_state) {
@@ -272,7 +367,7 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
                         snprintf(buf, sizeof(buf), "%d", failed_attempts);
                         text = buf;
                     }
-                    cairo_set_source_rgb(ctx, 1, 0, 0);
+                    cairo_set_source_rgba(ctx, (double) t16[0]/255, (double) t16[1]/255, (double) t16[2]/255, (double) t16[3]/255);
                     cairo_set_font_size(ctx, 32.0);
                 }
                 break;
@@ -321,16 +416,16 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
                       highlight_start + (M_PI / 3.0));
             if (unlock_state == STATE_KEY_ACTIVE) {
                 /* For normal keys, we use a lighter green. */
-                cairo_set_source_rgb(ctx, 51.0 / 255, 219.0 / 255, 0);
+                cairo_set_source_rgba(ctx, (double) khl16[0]/255, (double) khl16[1]/255, (double) khl16[2]/255, (double) khl16[3]/255);
             } else {
                 /* For backspace, we use red. */
-                cairo_set_source_rgb(ctx, 219.0 / 255, 51.0 / 255, 0);
+                cairo_set_source_rgba(ctx, (double) bhl16[0]/255, (double) bhl16[1]/255, (double) bhl16[2]/255, (double) bhl16[3]/255);
             }
             cairo_stroke(ctx);
 
             /* Draw two little separators for the highlighted part of the
              * unlock indicator. */
-            cairo_set_source_rgb(ctx, 0, 0, 0);
+            cairo_set_source_rgba(ctx, (double) l16[0]/255, (double) l16[1]/255, (double) l16[2]/255, (double) l16[3]/255);
             cairo_arc(ctx,
                       BUTTON_CENTER /* x */,
                       BUTTON_CENTER /* y */,
