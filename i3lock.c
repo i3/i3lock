@@ -58,6 +58,18 @@ typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
 char color[7] = "a3a3a3";
+// START Passcolors
+char ivcolor[9] = "00f6c177";
+char iwcolor[9] = "00eb6f92";
+char icolor[9] = "002a283e";
+char rvcolor[9] = "40f6c177";
+char rwcolor[9] = "40eb6f92";
+char rcolor[9] = "4056526e";
+char lcolor[9] = "406e6a86";
+char tcolor[9] = "00e0def4";
+char khlcolor[9] = "6056526e";
+char bhlcolor[9] = "6044415a";
+// END Passcolors
 uint32_t last_resolution[2];
 xcb_window_t win;
 static xcb_cursor_t cursor;
