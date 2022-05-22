@@ -28,6 +28,26 @@ i3lock \- improved screen locker
 .RB [\|\-u\|]
 .RB [\|\-e\|]
 .RB [\|\-f\|]
+.RB [\|\-ivcolor
+.IR color(rgba) \|]
+.RB [\|\-iwcolor
+.IR color(rgba) \|]
+.RB [\|\-icolor
+.IR color(rgba) \|]
+.RB [\|\-rvcolor
+.IR color(rgba) \|]
+.RB [\|\-rwcolor
+.IR color(rgba) \|]
+.RB [\|\-rcolor
+.IR color(rgba) \|]
+.RB [\|\-lcolor
+.IR color(rgba) \|]
+.RB [\|\-tcolor
+.IR color(rgba) \|]
+.RB [\|\-khlcolor
+.IR color(rgba) \|]
+.RB [\|\-bhlcolor
+.IR color(rgba) \|]
 
 .SH RECOMMENDED USAGE
 .RB xss-lock
@@ -150,6 +170,67 @@ Show the number of failed attempts, if any.
 .B \-\-debug
 Enables debug logging.
 Note, that this will log the password used for authentication to stdout.
+
+.SH PASSCOLOR
+
+PassColor is the way to customize the way i3lock's unlock indicator looks.
+
+.TP
+.SH Inner Circle
+
+Modifies the background color of the inner circle.
+
+.TP.TP
+.B \-ivcolor\  rrggbbaa
+Changes the background of \fBverifying password\fP phase of big circle.
+
+.TP.TP
+.B \-iwcolor\  rrggbbaa
+Changes the background of \fBwrong password\fP phase of big circle.
+
+
+.TP.TP
+.B \-icolor\  rrggbbaa
+Changes the background of \fBtyping password\fP phase of big circle.
+
+.TP
+.SH Outer Circle/Ring
+
+Changes unlock indicator's outer circle's or ring's background
+
+.TP.TP
+.B \-rvcolor\  rrggbbaa
+Changes the background color of \fBverifying password\fP phase.
+
+.TP.TP
+.B \-rwcolor\  rrggbbaa
+Changes the background color of \fBwrong password\fP phase.
+
+.TP.TP
+.B \-rcolor\  rrggbbaa
+Changes the background color of \fBtyping password\fP phase.
+
+.TP
+.SH Others
+
+Customizes the division line's, text's, keypress', and backspace keypress' color.
+
+.TP.TP
+.B \-lcolor\  rrggbbaa
+Modifies line's color.
+
+.TP.TP
+.B \-tcolor\  rrggbbaa
+Changes text's color.
+
+.TP.TP
+.B \-khlcolor\  rrggbbaa
+Changes the keypress highlights' background color.
+
+.TP.TP
+.B \-bhlcolor\  rrggbbaa
+Changes the backspace keypress highlights' background color.
+
 
 .SH DPMS
 
