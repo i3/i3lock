@@ -57,7 +57,7 @@
 typedef void (*ev_callback_t)(EV_P_ ev_timer *w, int revents);
 static void input_done(void);
 
-char color[7] = "a3a3a3";
+char color[7] = "#2a273f";
 // START Passcolors
 // Big Circle...
 char ivcolor[9] = "f6c177ff"; // Verify...
