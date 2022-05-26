@@ -64,14 +64,7 @@ config_h = declare_dependency(
 # manpages
 ################################################################################
 
-man1 = join_paths(get_option('mandir'), 'man1')
-
-install_data(
-  [
-	'i3lock.1',
-  ],
-  install_dir: man1,
-)
+install_man('i3lock.1')
 
 # Required for e.g. struct ucred to be defined as per unix(7).
 add_project_arguments('-D_GNU_SOURCE', language: 'c')
