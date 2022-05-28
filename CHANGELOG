@@ -1,3 +1,15 @@
+2022-05-28 i3lock 2.14
+
+ • Change default background color to #a3a3a3
+   See https://github.com/i3/i3lock/pull/300 for extensive
+   discussion and rationale for this change.
+ • Recommend using xss-lock to start i3lock in the README
+   and i3lock.1 man page. xss-lock is the best way to ensure
+   your screen truly is locked before your computer suspends.
+ • Display modifier key warning before unlocking, too,
+   not just on failed attempts like before.
+ • Switch build system from autotools to meson.
+
 2020-10-27 i3lock 2.13
 
  • Throw error when trying to start on Wayland
