@@ -1,3 +1,9 @@
+2022-06-21 i3lock 2.14.1
+
+ • unlock indicator: display only caps lock and num lock,
+   not all modifiers like shift (which can leak information
+   about your password to bystanders)
+
 2022-05-28 i3lock 2.14
 
  • Change default background color to #a3a3a3
