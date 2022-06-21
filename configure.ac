@@ -77,6 +77,8 @@ AC_SEARCH_LIBS([ev_run], [ev], , [AC_MSG_FAILURE([cannot find the required ev_ru
 
 AC_SEARCH_LIBS([shm_open], [rt])
 
+AC_SEARCH_LIBS([DGifOpenFileName], [gif])
+
 # Only disable PAM on OpenBSD where i3lock uses BSD Auth instead
 case "$host" in
 	*-openbsd*)

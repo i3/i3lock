@@ -47,6 +47,10 @@
 #include "randr.h"
 #include "dpi.h"
 
+#include <gif_lib.h>
+#include <arpa/inet.h>
+#include <pthread.h>
+
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
 #define START_TIMER(timer_obj, timeout, callback) \
@@ -92,10 +96,23 @@ static uint8_t xkb_base_event;
 static uint8_t xkb_base_error;
 static int randr_base = -1;
 
+struct gif {
+    cairo_surface_t *img;
+    float delay_sec;
+};
+
+struct gif *gif_img = NULL;
+int gif_img_count = 0;
 cairo_surface_t *img = NULL;
 bool tile = false;
 bool ignore_empty_password = false;
 bool skip_repeated_empty_password = false;
+
+enum IMAGE_FORMAT {
+    IMAGE_FORMAT_UNKNOWN,
+    IMAGE_FORMAT_PNG,
+    IMAGE_FORMAT_GIF
+};
 
 /* isutf, u8_dec © 2005 Jeff Bezanson, public domain */
 #define isutf(c) (((c)&0xC0) != 0x80)
@@ -693,6 +710,128 @@ static const struct raw_pixel_format raw_fmt_bgr = {3, 2, 1, 0};
 static const struct raw_pixel_format raw_fmt_bgrx = {4, 2, 1, 0};
 static const struct raw_pixel_format raw_fmt_xbgr = {4, 3, 2, 1};
 
+static cairo_surface_t *read_gif_image(const char *image_path) {
+    int err;
+    int width, stride, height;
+    int bg_idx;
+    uint32_t bg_color;
+    ColorMapObject *cmap;
+    GraphicsControlBlock gc;
+
+    /* Open and load a GIF file */
+    GifFileType *gif = DGifOpenFileName(image_path, &err);
+    if (!gif) {
+        fprintf(stderr, "Could not open GIF file, err=%d\n", err);
+        return NULL;
+    }
+    if (DGifSlurp(gif) != GIF_OK) {
+        printf("Could not read the GIF image\n");
+        goto read_gif_image_clean;
+    }
+
+    /* Load canvas properties */
+    width = gif->SWidth;
+    height = gif->SHeight;
+    cmap = gif->SColorMap;
+    bg_idx = gif->SBackGroundColor;
+    GifColorType *cmap_bg_rgb = cmap->Colors + bg_idx;
+    bg_color = 0 | cmap_bg_rgb->Blue | cmap_bg_rgb->Green<<8 | cmap_bg_rgb->Red<<16;
+    stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, width)/sizeof(uint32_t);
+    if (stride < 0) {
+        fprintf(stderr, "Invalid stride\n");
+        goto read_gif_image_clean;
+    }
+
+    /* Read the images into the RGB buffers */
+    // TODO: check C char specification, whether to just use int
+    gif_img = malloc(gif->ImageCount * sizeof(struct gif));
+    gif_img_count = gif->ImageCount;
+    if (!gif_img) {
+        fprintf(stderr, "Can't allocate memory for GIF image buffers\n");
+        goto read_gif_image_clean;
+    }
+    uint32_t *data_prev = NULL;
+    for (SavedImage *pimg = gif->SavedImages; pimg < gif->SavedImages + gif->ImageCount; ++pimg) {
+        int idx = pimg - gif->SavedImages;
+        /* Create image surface */
+        gif_img[idx].img = cairo_image_surface_create(CAIRO_FORMAT_RGB24, width, height);
+        if (cairo_surface_status(gif_img[idx].img) != CAIRO_STATUS_SUCCESS) {
+            fprintf(stderr, "Could not create surface: %s\n",
+                    cairo_status_to_string(cairo_surface_status(gif_img[idx].img)));
+            goto read_gif_image_clean;
+        }
+        cairo_surface_flush(gif_img[idx].img);
+        uint32_t *data = (uint32_t *)cairo_image_surface_get_data(gif_img[idx].img);
+
+        // TODO: Chek L,R,W,H && color map?
+        /* Find Graphics Control extension and delay */
+        for (int iext = 0; iext < pimg->ExtensionBlockCount; ++iext) {
+            ExtensionBlock *pext = pimg->ExtensionBlocks + iext;
+            switch (pext->Function) {
+                case GRAPHICS_EXT_FUNC_CODE:
+                    DGifExtensionToGCB(pext->ByteCount, pext->Bytes, &gc);
+                    gif_img[idx].delay_sec = gc.DelayTime*0.01;
+                    break;
+                default:
+                    gif_img[idx].delay_sec = 0;
+            }
+        }
+
+        /* Set general image attributes */
+        ColorMapObject *cmap_img = pimg->ImageDesc.ColorMap;
+        if (!cmap_img) cmap_img = cmap;
+        int img_left = pimg->ImageDesc.Left;
+        int img_width = pimg->ImageDesc.Width;
+        int img_right = img_left + img_width;
+        int img_top = pimg->ImageDesc.Top;
+        int img_bottom = img_top + pimg->ImageDesc.Height;
+
+        /* Handle disposal mode */
+        switch (gc.DisposalMode) {
+            case DISPOSE_DO_NOT:
+                if (data_prev) {
+                    memcpy(data, data_prev, width*height*sizeof(uint32_t));
+                } else {
+                    memset(data, 0, width*height*sizeof(uint32_t));
+                }
+                break;
+            case DISPOSE_BACKGROUND:
+                memset(data, bg_color, width*height*sizeof(uint32_t));
+                break;
+            default:
+                memset(data, 0, width*height*sizeof(uint32_t));
+        }
+
+        /* Read RGB */
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                int color_idx;
+                if (x < img_left || x >= img_right || y < img_top || y >= img_bottom) {
+                    color_idx = bg_idx;
+                } else {
+                    color_idx = *(pimg->RasterBits + (x - img_left) + ((y - img_top)*img_width));
+                }
+
+                if (color_idx != gc.TransparentColor) {
+                    GifColorType *cmap_rgb = cmap_img->Colors + color_idx;
+                    uint32_t rgb = 0 | cmap_rgb->Blue | cmap_rgb->Green<<8 | cmap_rgb->Red<<16;
+                    data[x + (y*width)] = rgb;
+                }
+            }
+        }
+        data_prev = data;
+
+        cairo_surface_mark_dirty(gif_img[idx].img);
+    }
+
+read_gif_image_clean:
+    if (!DGifCloseFile(gif, &err)) {
+        fprintf(stderr, "DGifCloseFile failed with err=%d\n", err);
+    }
+
+    return gif_img[0].img;
+}
+
 static cairo_surface_t *read_raw_image(const char *image_path, const char *image_raw_format) {
     cairo_surface_t *img;
 
@@ -786,21 +925,11 @@ static cairo_surface_t *read_raw_image(const char *image_path, const char *image
     return img;
 }
 
-static bool verify_png_image(const char *image_path) {
-    if (!image_path) {
-        return false;
-    }
-
-    /* Check file exists and has correct PNG header */
-    FILE *png_file = fopen(image_path, "r");
-    if (png_file == NULL) {
-        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
-        return false;
-    }
+static bool verify_png_image(FILE *png_file, const char *image_path) {
     unsigned char png_header[8];
     memset(png_header, '\0', sizeof(png_header));
+    fseek(png_file, 0, SEEK_SET);
     int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
-    fclose(png_file);
     if (bytes_read != sizeof(png_header)) {
         fprintf(stderr, "Could not read PNG header from \"%s\"\n", image_path);
         return false;
@@ -810,10 +939,61 @@ static bool verify_png_image(const char *image_path) {
     // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
     static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
     if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
-        fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
         return false;
     }
+
     return true;
+}
+
+static bool verify_gif_image(FILE *gif_file, const char *image_path) {
+    unsigned char gif_header[6] = {0};
+    fseek(gif_file, 0, SEEK_SET);
+    int bytes_read = fread(gif_header, 1, sizeof(gif_header), gif_file);
+    if (bytes_read != sizeof(gif_header)) {
+        fprintf(stderr, "Could not read GIF header from \"%s\"\n", image_path);
+        return false;
+    }
+
+    // Check GIF header according to the specification, available at:
+    // https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+    static const unsigned char GIF_REFERENCE_HEADER[] = {'G', 'I', 'F'};
+    if (memcmp(GIF_REFERENCE_HEADER, gif_header, sizeof(GIF_REFERENCE_HEADER)) == 0) {
+        if (gif_header[3] >= '0' && gif_header[3] <= '9' &&
+            gif_header[4] >= '0' && gif_header[4] <= '9' &&
+            gif_header[5] >= 'a' && gif_header[5] <= 'z') {
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static enum IMAGE_FORMAT verify_image(const char *image_path) {
+    if (!image_path) {
+        return false;
+    }
+
+    /* Check file exists and has correct header */
+    FILE *file = fopen(image_path, "r");
+    if (file == NULL) {
+        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
+        return false;
+    }
+
+    enum IMAGE_FORMAT format = IMAGE_FORMAT_UNKNOWN;
+    if (verify_png_image(file, image_path)) {
+        format = IMAGE_FORMAT_PNG;
+        goto verify_image_clean;
+    }
+    if (verify_gif_image(file, image_path)) {
+        format = IMAGE_FORMAT_GIF;
+        goto verify_image_clean;
+    }
+
+verify_image_clean:
+    fclose(file);
+    return format;
 }
 
 #ifndef __OpenBSD__
@@ -1002,6 +1182,17 @@ static void raise_loop(xcb_window_t window) {
         }
         free(event);
     }
+}
+
+void gif_anim_loop(struct ev_loop *loop, struct ev_timer *timer, int delay) {
+    static int img_count = 0;
+
+    if (++img_count >= gif_img_count) img_count = 0;
+    img = gif_img[img_count].img;
+    redraw_screen();
+    ev_timer_stop(loop, timer);
+    ev_timer_set(timer, gif_img[img_count].delay_sec, 0.);
+    ev_timer_start(loop, timer);
 }
 
 int main(int argc, char *argv[]) {
@@ -1207,14 +1398,24 @@ int main(int argc, char *argv[]) {
         /* Read image. 'read_raw_image' returns NULL on error,
          * so we don't have to handle errors here. */
         img = read_raw_image(image_path, image_raw_format);
-    } else if (verify_png_image(image_path)) {
+    } else {
+        enum IMAGE_FORMAT image_format = verify_image(image_path);
         /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
-            img = NULL;
+        switch (image_format) {
+            case IMAGE_FORMAT_PNG:
+                img = cairo_image_surface_create_from_png(image_path);
+                /* In case loading failed, we just pretend no -i was specified. */
+                if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+                    fprintf(stderr, "Could not load image \"%s\": %s\n",
+                            image_path, cairo_status_to_string(cairo_surface_status(img)));
+                    img = NULL;
+                }
+                break;
+            case IMAGE_FORMAT_GIF:
+                img = read_gif_image(image_path);
+                break;
+            default:
+                fprintf(stderr, "Image format of the file %s is unknown\n", image_path);
         }
     }
 
@@ -1283,6 +1484,7 @@ int main(int argc, char *argv[]) {
     struct ev_io *xcb_watcher = calloc(sizeof(struct ev_io), 1);
     struct ev_check *xcb_check = calloc(sizeof(struct ev_check), 1);
     struct ev_prepare *xcb_prepare = calloc(sizeof(struct ev_prepare), 1);
+    struct ev_timer *xcb_timer = calloc(sizeof(struct ev_timer), 1);
 
     ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(conn), EV_READ);
     ev_io_start(main_loop, xcb_watcher);
@@ -1292,6 +1494,9 @@ int main(int argc, char *argv[]) {
 
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
     ev_prepare_start(main_loop, xcb_prepare);
+
+    ev_timer_init(xcb_timer, gif_anim_loop, gif_img[0].delay_sec, 0.);
+    ev_timer_start(main_loop, xcb_timer);
 
     /* Invoke the event callback once to catch all the events which were
      * received up until now. ev will only pick up new events (when the X11
