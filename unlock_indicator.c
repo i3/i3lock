@@ -102,14 +102,15 @@ static void check_modifier_keys(void) {
             continue;
 
         /* Replace certain xkb names with nicer, human-readable ones. */
-        if (strcmp(mod_name, XKB_MOD_NAME_CAPS) == 0)
+        if (strcmp(mod_name, XKB_MOD_NAME_CAPS) == 0) {
             mod_name = "Caps Lock";
-        else if (strcmp(mod_name, XKB_MOD_NAME_ALT) == 0)
-            mod_name = "Alt";
-        else if (strcmp(mod_name, XKB_MOD_NAME_NUM) == 0)
+        } else if (strcmp(mod_name, XKB_MOD_NAME_NUM) == 0) {
             mod_name = "Num Lock";
-        else if (strcmp(mod_name, XKB_MOD_NAME_LOGO) == 0)
-            mod_name = "Super";
+        } else {
+            /* Show only Caps Lock and Num Lock, other modifiers (e.g. Shift)
+             * leak state about the password. */
+            continue;
+        }
 
         char *tmp;
         if (modifier_string == NULL) {
