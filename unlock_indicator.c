@@ -49,6 +49,8 @@ extern bool unlock_indicator;
 
 /* List of pressed modifiers, or NULL if none are pressed. */
 extern char *modifier_string;
+/* Name of the current keyboard layout or NULL if not initialized. */
+char *layout_string = NULL;
 
 /* A Cairo surface containing the specified image (-i), if any. */
 extern cairo_surface_t *img;
@@ -85,6 +87,47 @@ static xcb_visualtype_t *vistype;
 unlock_state_t unlock_state;
 auth_state_t auth_state;
 
+static void string_append(char** string_ptr, const char* appended) {
+    char *tmp = NULL;
+    if (*string_ptr == NULL) {
+        if (asprintf(&tmp, "%s", appended) != -1) {
+            *string_ptr = tmp;
+        }
+    } else if (asprintf(&tmp, "%s, %s", *string_ptr, appended) != -1) {
+        free(*string_ptr);
+        *string_ptr = tmp;
+    }
+}
+
+static void display_button_text(cairo_t *ctx, const char* text, double y_offset) {
+    cairo_text_extents_t extents;
+    double x, y;
+
+    cairo_text_extents(ctx, text, &extents);
+    x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
+    y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + y_offset;
+
+    cairo_move_to(ctx, x, y);
+    cairo_show_text(ctx, text);
+    cairo_close_path(ctx);
+}
+
+static void update_layout_string() {
+    if (layout_string) {
+        free(layout_string);
+        layout_string = NULL;
+    }
+    xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(xkb_keymap);
+    for (xkb_layout_index_t i = 0; i < num_layouts; ++i) {
+        if (xkb_state_layout_index_is_active(xkb_state, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
+            const char* name = xkb_keymap_layout_get_name(xkb_keymap, i);
+            if (name) {
+                string_append(&layout_string, name);
+            }
+        }
+    }
+}
+
 /* check_modifier_keys describes the currently active modifiers (Caps Lock, Alt,
    Num Lock or Super) in the modifier_string variable. */
 static void check_modifier_keys(void) {
@@ -111,15 +154,7 @@ static void check_modifier_keys(void) {
              * leak state about the password. */
             continue;
         }
-
-        char *tmp;
-        if (modifier_string == NULL) {
-            if (asprintf(&tmp, "%s", mod_name) != -1)
-                modifier_string = tmp;
-        } else if (asprintf(&tmp, "%s, %s", modifier_string, mod_name) != -1) {
-            free(modifier_string);
-            modifier_string = tmp;
-        }
+        string_append(&modifier_string, mod_name);
     }
 }
 
@@ -280,31 +315,16 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         }
 
         if (text) {
-            cairo_text_extents_t extents;
-            double x, y;
-
-            cairo_text_extents(ctx, text, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing);
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, text);
-            cairo_close_path(ctx);
+            display_button_text(ctx, text, 0.);
         }
 
         if (modifier_string != NULL) {
-            cairo_text_extents_t extents;
-            double x, y;
-
             cairo_set_font_size(ctx, 14.0);
-
-            cairo_text_extents(ctx, modifier_string, &extents);
-            x = BUTTON_CENTER - ((extents.width / 2) + extents.x_bearing);
-            y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + 28.0;
-
-            cairo_move_to(ctx, x, y);
-            cairo_show_text(ctx, modifier_string);
-            cairo_close_path(ctx);
+            display_button_text(ctx, modifier_string, 28.);
+        }
+        if (layout_string != NULL) {
+            cairo_set_font_size(ctx, 14.0);
+            display_button_text(ctx, layout_string, -28.);
         }
 
         /* After the user pressed any valid key or the backspace key, we
@@ -399,6 +419,7 @@ void redraw_screen(void) {
         modifier_string = NULL;
     }
     check_modifier_keys();
+    update_layout_string();
 
     if (bg_pixmap == XCB_NONE) {
         DEBUG("allocating pixmap for %d x %d px\n", last_resolution[0], last_resolution[1]);
