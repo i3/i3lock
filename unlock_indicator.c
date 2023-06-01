@@ -99,7 +99,8 @@ static void string_append(char** string_ptr, const char* appended) {
     }
 }
 
-static void display_button_text(cairo_t *ctx, const char* text, double y_offset) {
+static void display_button_text(
+        cairo_t *ctx, const char* text, double y_offset, bool use_dark_text) {
     cairo_text_extents_t extents;
     double x, y;
 
@@ -108,6 +109,11 @@ static void display_button_text(cairo_t *ctx, const char* text, double y_offset)
     y = BUTTON_CENTER - ((extents.height / 2) + extents.y_bearing) + y_offset;
 
     cairo_move_to(ctx, x, y);
+    if (use_dark_text) {
+        cairo_set_source_rgb(ctx, 0., 0., 0.);
+    } else {
+        cairo_set_source_rgb(ctx, 1., 1., 1.);
+    }
     cairo_show_text(ctx, text);
     cairo_close_path(ctx);
 }
@@ -243,6 +249,8 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         }
         cairo_fill_preserve(ctx);
 
+        bool use_dark_text = true;
+
         switch (auth_state) {
             case STATE_AUTH_VERIFY:
             case STATE_AUTH_LOCK:
@@ -259,6 +267,7 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
                 }
 
                 cairo_set_source_rgb(ctx, 51.0 / 255, 125.0 / 255, 0);
+                use_dark_text = false;
                 break;
         }
         cairo_stroke(ctx);
@@ -315,16 +324,16 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
         }
 
         if (text) {
-            display_button_text(ctx, text, 0.);
+            display_button_text(ctx, text, 0., use_dark_text);
         }
 
         if (modifier_string != NULL) {
             cairo_set_font_size(ctx, 14.0);
-            display_button_text(ctx, modifier_string, 28.);
+            display_button_text(ctx, modifier_string, 28., use_dark_text);
         }
         if (layout_string != NULL) {
             cairo_set_font_size(ctx, 14.0);
-            display_button_text(ctx, layout_string, -28.);
+            display_button_text(ctx, layout_string, -28., use_dark_text);
         }
 
         /* After the user pressed any valid key or the backspace key, we
