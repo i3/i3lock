@@ -87,7 +87,7 @@ static xcb_visualtype_t *vistype;
 unlock_state_t unlock_state;
 auth_state_t auth_state;
 
-static void string_append(char** string_ptr, const char* appended) {
+static void string_append(char **string_ptr, const char *appended) {
     char *tmp = NULL;
     if (*string_ptr == NULL) {
         if (asprintf(&tmp, "%s", appended) != -1) {
@@ -100,7 +100,7 @@ static void string_append(char** string_ptr, const char* appended) {
 }
 
 static void display_button_text(
-        cairo_t *ctx, const char* text, double y_offset, bool use_dark_text) {
+    cairo_t *ctx, const char *text, double y_offset, bool use_dark_text) {
     cairo_text_extents_t extents;
     double x, y;
 
@@ -126,7 +126,7 @@ static void update_layout_string() {
     xkb_layout_index_t num_layouts = xkb_keymap_num_layouts(xkb_keymap);
     for (xkb_layout_index_t i = 0; i < num_layouts; ++i) {
         if (xkb_state_layout_index_is_active(xkb_state, i, XKB_STATE_LAYOUT_EFFECTIVE)) {
-            const char* name = xkb_keymap_layout_get_name(xkb_keymap, i);
+            const char *name = xkb_keymap_layout_get_name(xkb_keymap, i);
             if (name) {
                 string_append(&layout_string, name);
             }
