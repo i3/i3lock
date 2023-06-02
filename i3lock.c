@@ -902,6 +902,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
             default:
                 if (type == xkb_base_event) {
                     process_xkb_event(event);
+                    redraw_screen();
                 }
                 if (randr_base > -1 &&
                     type == randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
