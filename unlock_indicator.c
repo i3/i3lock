@@ -62,6 +62,8 @@ extern char color[7];
 
 /* Whether the failed attempts should be displayed. */
 extern bool show_failed_attempts;
+/* Whether keyboard layout should be displayed. */
+extern bool show_keyboard_layout;
 /* Number of failed unlock attempts. */
 extern int failed_attempts;
 
@@ -331,7 +333,7 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
             cairo_set_font_size(ctx, 14.0);
             display_button_text(ctx, modifier_string, 28., use_dark_text);
         }
-        if (layout_string != NULL) {
+        if (show_keyboard_layout && layout_string != NULL) {
             cairo_set_font_size(ctx, 14.0);
             display_button_text(ctx, layout_string, -28., use_dark_text);
         }
