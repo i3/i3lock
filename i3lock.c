@@ -81,6 +81,7 @@ extern unlock_state_t unlock_state;
 extern auth_state_t auth_state;
 int failed_attempts = 0;
 bool show_failed_attempts = false;
+bool show_keyboard_layout = false;
 bool retry_verification = false;
 
 struct xkb_state *xkb_state;
@@ -902,6 +903,7 @@ static void xcb_check_cb(EV_P_ ev_check *w, int revents) {
             default:
                 if (type == xkb_base_event) {
                     process_xkb_event(event);
+                    redraw_screen();
                 }
                 if (randr_base > -1 &&
                     type == randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
@@ -997,6 +999,7 @@ int main(int argc, char *argv[]) {
         {"ignore-empty-password", no_argument, NULL, 'e'},
         {"inactivity-timeout", required_argument, NULL, 'I'},
         {"show-failed-attempts", no_argument, NULL, 'f'},
+        {"show-keyboard-layout", no_argument, NULL, 'k'},
         {NULL, no_argument, NULL, 0}};
 
     if ((pw = getpwuid(getuid())) == NULL)
@@ -1006,7 +1009,7 @@ int main(int argc, char *argv[]) {
     if (getenv("WAYLAND_DISPLAY") != NULL)
         errx(EXIT_FAILURE, "i3lock is a program for X11 and does not work on Wayland. Try https://github.com/swaywm/swaylock instead");
 
-    char *optstring = "hvnbdc:p:ui:teI:f";
+    char *optstring = "hvnbdc:p:ui:teI:fk";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1066,9 +1069,12 @@ int main(int argc, char *argv[]) {
             case 'f':
                 show_failed_attempts = true;
                 break;
+            case 'k':
+                show_keyboard_layout = true;
+                break;
             default:
                 errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f]");
+                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-k]");
         }
     }
 
