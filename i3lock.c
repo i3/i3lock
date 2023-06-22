@@ -74,6 +74,7 @@ bool unlock_indicator = true;
 char *modifier_string = NULL;
 static bool dont_fork = false;
 struct ev_loop *main_loop;
+static bool space_mode = true;
 static struct ev_timer *clear_auth_wrong_timeout;
 static struct ev_timer *clear_indicator_timeout;
 static struct ev_timer *discard_passwd_timeout;
@@ -420,6 +421,15 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     }
 
     switch (ksym) {
+        case XKB_KEY_space:
+            if (space_mode)
+            {
+                if (unlock_indicator)
+                    clear_indicator();
+                return;
+            }
+            break;
+
         case XKB_KEY_u:
         case XKB_KEY_Escape:
             if ((ksym == XKB_KEY_u && ctrl) ||
@@ -440,7 +450,6 @@ static void handle_key_press(xcb_key_press_event_t *event) {
              * key press so that it won’t be treated as part of the password,
              * see issue #50. */
             return;
-
         case XKB_KEY_h:
         case XKB_KEY_BackSpace:
             if (ksym == XKB_KEY_h && !ctrl)
@@ -486,6 +495,8 @@ static void handle_key_press(xcb_key_press_event_t *event) {
     /* store it in the password array as UTF-8 */
     memcpy(password + input_position, buffer, n - 1);
     input_position += n - 1;
+
+    space_mode = false;// A character has been processed
     DEBUG("current password = %.*s\n", input_position, password);
 
     if (unlock_indicator) {
@@ -988,6 +999,7 @@ int main(int argc, char *argv[]) {
         {"nofork", no_argument, NULL, 'n'},
         {"beep", no_argument, NULL, 'b'},
         {"dpms", no_argument, NULL, 'd'},
+        {"space-mode", no_argument, NULL, 's'},
         {"color", required_argument, NULL, 'c'},
         {"pointer", required_argument, NULL, 'p'},
         {"debug", no_argument, NULL, 0},
@@ -1009,7 +1021,7 @@ int main(int argc, char *argv[]) {
     if (getenv("WAYLAND_DISPLAY") != NULL)
         errx(EXIT_FAILURE, "i3lock is a program for X11 and does not work on Wayland. Try https://github.com/swaywm/swaylock instead");
 
-    char *optstring = "hvnbdc:p:ui:teI:fk";
+    char *optstring = "hvnbdsc:p:ui:teI:fk";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
             case 'v':
@@ -1041,6 +1053,9 @@ int main(int argc, char *argv[]) {
             }
             case 'u':
                 unlock_indicator = false;
+                break;
+            case 's':
+                space_mode = true;
                 break;
             case 'i':
                 image_path = strdup(optarg);

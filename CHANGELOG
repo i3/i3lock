@@ -1,3 +1,8 @@
+2023-06-21 i3lock 2.14.2
+
+ • added Space Mode: mode where space presses aren't
+   registered until a password character is taken.
+
 2022-06-21 i3lock 2.14.1
 
  • unlock indicator: display only caps lock and num lock,
