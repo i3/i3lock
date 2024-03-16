@@ -1,3 +1,8 @@
+2024-03-16 i3lock 2.15
+
+ • unlock indicator: display current keyboard layout when
+   user types password (with --show-keyboard-layout flag).
+
 2022-06-21 i3lock 2.14.1
 
  • unlock indicator: display only caps lock and num lock,
