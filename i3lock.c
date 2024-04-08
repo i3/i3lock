@@ -114,6 +114,9 @@ static void u8_dec(char *s, int *i) {
  * Necessary so that we can properly let xkbcommon track the keyboard state and
  * translate keypresses to utf-8.
  *
+ * This function can be called when the user changes the XKB configuration,
+ * so it must not leave unusable global state behind
+ *
  */
 static bool load_keymap(void) {
     if (xkb_context == NULL) {
@@ -123,25 +126,26 @@ static bool load_keymap(void) {
         }
     }
 
-    xkb_keymap_unref(xkb_keymap);
-
     int32_t device_id = xkb_x11_get_core_keyboard_device_id(conn);
     DEBUG("device = %d\n", device_id);
-    if ((xkb_keymap = xkb_x11_keymap_new_from_device(xkb_context, conn, device_id, 0)) == NULL) {
+    struct xkb_keymap *new_keymap = xkb_x11_keymap_new_from_device(xkb_context, conn, device_id, 0);
+    if (new_keymap == NULL) {
         fprintf(stderr, "[i3lock] xkb_x11_keymap_new_from_device failed\n");
         return false;
     }
 
     struct xkb_state *new_state =
-        xkb_x11_state_new_from_device(xkb_keymap, conn, device_id);
+        xkb_x11_state_new_from_device(new_keymap, conn, device_id);
     if (new_state == NULL) {
         fprintf(stderr, "[i3lock] xkb_x11_state_new_from_device failed\n");
         return false;
     }
 
+    /* Only update global state on success */
     xkb_state_unref(xkb_state);
+    xkb_keymap_unref(xkb_keymap);
     xkb_state = new_state;
-
+    xkb_keymap = new_keymap;
     return true;
 }
 
