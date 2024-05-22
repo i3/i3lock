@@ -1006,13 +1006,7 @@ int main(int argc, char *argv[]) {
         {"show-keyboard-layout", no_argument, NULL, 'k'},
         {NULL, no_argument, NULL, 0}};
 
-    if ((pw = getpwuid(getuid())) == NULL)
-        err(EXIT_FAILURE, "getpwuid() failed");
-    if ((username = pw->pw_name) == NULL)
-        errx(EXIT_FAILURE, "pw->pw_name is NULL.");
-    if (getenv("WAYLAND_DISPLAY") != NULL)
-        errx(EXIT_FAILURE, "i3lock is a program for X11 and does not work on Wayland. Try https://github.com/swaywm/swaylock instead");
-
+    int code = EXIT_FAILURE;
     char *optstring = "hvnbdc:p:ui:teI:fk";
     while ((o = getopt_long(argc, argv, optstring, longopts, &longoptind)) != -1) {
         switch (o) {
@@ -1076,10 +1070,23 @@ int main(int argc, char *argv[]) {
             case 'k':
                 show_keyboard_layout = true;
                 break;
+            case 'h':
+                code = EXIT_SUCCESS;
+                /* fallthrough */
             default:
-                errx(EXIT_FAILURE, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
-                                   " [-i image.png] [-t] [-e] [-I timeout] [-f] [-k]");
+                errx(code, "Syntax: i3lock [-v] [-n] [-b] [-d] [-c color] [-u] [-p win|default]"
+                           " [-i image.png] [-t] [-e] [-I timeout] [-f] [-k]");
         }
+    }
+
+    if ((pw = getpwuid(getuid())) == NULL) {
+        err(EXIT_FAILURE, "getpwuid() failed");
+    }
+    if ((username = pw->pw_name) == NULL) {
+        errx(EXIT_FAILURE, "pw->pw_name is NULL.");
+    }
+    if (getenv("WAYLAND_DISPLAY") != NULL) {
+        errx(EXIT_FAILURE, "i3lock is a program for X11 and does not work on Wayland. Try https://github.com/swaywm/swaylock instead");
     }
 
     /* We need (relatively) random numbers for highlighting a random part of
