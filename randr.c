@@ -58,8 +58,9 @@ void randr_init(int *event_base, xcb_window_t root) {
 
     free(randr_version);
 
-    if (event_base != NULL)
+    if (event_base != NULL) {
         *event_base = extreply->first_event;
+    }
 
     xcb_randr_select_input(conn, root,
                            XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
@@ -81,8 +82,9 @@ void _xinerama_init(void) {
 
     cookie = xcb_xinerama_is_active(conn);
     reply = xcb_xinerama_is_active_reply(conn, cookie, NULL);
-    if (!reply)
+    if (!reply) {
         return;
+    }
 
     if (!reply->state) {
         free(reply);
