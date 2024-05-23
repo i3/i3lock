@@ -8,5 +8,5 @@ cd "${MESON_DIST_ROOT}"
 rm -rf \
    .clang-format \
    .editorconfig \
-   travis \
+   ci \
    .github
