@@ -145,12 +145,14 @@ static void check_modifier_keys(void) {
     num_mods = xkb_keymap_num_mods(xkb_keymap);
 
     for (idx = 0; idx < num_mods; idx++) {
-        if (!xkb_state_mod_index_is_active(xkb_state, idx, XKB_STATE_MODS_EFFECTIVE))
+        if (!xkb_state_mod_index_is_active(xkb_state, idx, XKB_STATE_MODS_EFFECTIVE)) {
             continue;
+        }
 
         mod_name = xkb_keymap_mod_get_name(xkb_keymap, idx);
-        if (mod_name == NULL)
+        if (mod_name == NULL) {
             continue;
+        }
 
         /* Replace certain xkb names with nicer, human-readable ones. */
         if (strcmp(mod_name, XKB_MOD_NAME_CAPS) == 0) {
@@ -177,8 +179,9 @@ void draw_image(xcb_pixmap_t bg_pixmap, uint32_t *resolution) {
     DEBUG("scaling_factor is %.f, physical diameter is %d px\n",
           scaling_factor, button_diameter_physical);
 
-    if (!vistype)
+    if (!vistype) {
         vistype = get_root_visual_type(screen);
+    }
 
     /* Initialize cairo: Create one in-memory surface to render the unlock
      * indicator on, create one XCB surface to actually draw (one or more,
@@ -453,7 +456,8 @@ void redraw_screen(void) {
 void clear_indicator(void) {
     if (input_position == 0) {
         unlock_state = STATE_STARTED;
-    } else
+    } else {
         unlock_state = STATE_KEY_PRESSED;
+    }
     redraw_screen();
 }
