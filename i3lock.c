@@ -205,7 +205,7 @@ ev_timer *start_timer(ev_timer *timer_obj, ev_tstamp timeout, ev_callback_t call
     } else {
         /* When there is no memory, we just don’t have a timeout. We cannot
          * exit() here, since that would effectively unlock the screen. */
-        timer_obj = calloc(sizeof(struct ev_timer), 1);
+        timer_obj = calloc(1, sizeof(struct ev_timer));
         if (timer_obj) {
             ev_timer_init(timer_obj, callback, timeout, 0.);
             ev_timer_start(main_loop, timer_obj);
@@ -1301,9 +1301,9 @@ int main(int argc, char *argv[]) {
     auth_state = STATE_AUTH_IDLE;
     redraw_screen();
 
-    struct ev_io *xcb_watcher = calloc(sizeof(struct ev_io), 1);
-    struct ev_check *xcb_check = calloc(sizeof(struct ev_check), 1);
-    struct ev_prepare *xcb_prepare = calloc(sizeof(struct ev_prepare), 1);
+    struct ev_io *xcb_watcher = calloc(1, sizeof(struct ev_io));
+    struct ev_check *xcb_check = calloc(1, sizeof(struct ev_check));
+    struct ev_prepare *xcb_prepare = calloc(1, sizeof(struct ev_prepare));
 
     ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(conn), EV_READ);
     ev_io_start(main_loop, xcb_watcher);
