@@ -47,6 +47,9 @@
 #include "randr.h"
 #include "dpi.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #define TSTAMP_N_SECS(n) (n * 1.0)
 #define TSTAMP_N_MINS(n) (60 * TSTAMP_N_SECS(n))
 #define START_TIMER(timer_obj, timeout, callback) \
@@ -680,6 +683,37 @@ static const struct raw_pixel_format raw_fmt_bgr = {3, 2, 1, 0};
 static const struct raw_pixel_format raw_fmt_bgrx = {4, 2, 1, 0};
 static const struct raw_pixel_format raw_fmt_xbgr = {4, 3, 2, 1};
 
+static cairo_surface_t *read_image(const char *image_path) {
+    cairo_surface_t *img;
+
+    int w, h, old_comp, comp = 4;
+    unsigned char *image_data = stbi_load(image_path, &w, &h, &old_comp, comp);
+    if (image_path == NULL) {
+        fprintf(stderr, "Could not load image from \"%s\".\n", image_path);
+        return NULL;
+    }
+    DEBUG("\"%s\": %dx%dx%d.\n", image_path, w, h, comp);
+
+    img = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+    if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
+        fprintf(stderr, "Could not create surface: %s\n",
+                cairo_status_to_string(cairo_surface_status(img)));
+        return NULL;
+    }
+    cairo_surface_flush(img);
+
+    /* Use uint32_t* because cairo uses native endianness */
+    uint32_t *data = (uint32_t *)cairo_image_surface_get_data(img);
+    for (size_t i = 0; i < w*h; i++) {
+        // NOTE: i have not tested this on big endian machine
+        //       it may not work correctly
+        data[i] = (image_data[i*4] << 16) | (image_data[i*4+1] << 8) | (image_data[i*4+2] << 0);
+    }
+
+    stbi_image_free(image_data);
+    return img;
+}
+
 static cairo_surface_t *read_raw_image(const char *image_path, const char *image_raw_format) {
     cairo_surface_t *img;
 
@@ -772,36 +806,6 @@ static cairo_surface_t *read_raw_image(const char *image_path, const char *image
 
     fclose(f);
     return img;
-}
-
-static bool verify_png_image(const char *image_path) {
-    if (!image_path) {
-        return false;
-    }
-
-    /* Check file exists and has correct PNG header */
-    FILE *png_file = fopen(image_path, "r");
-    if (png_file == NULL) {
-        fprintf(stderr, "Image file path \"%s\" cannot be opened: %s\n", image_path, strerror(errno));
-        return false;
-    }
-    unsigned char png_header[8];
-    memset(png_header, '\0', sizeof(png_header));
-    int bytes_read = fread(png_header, 1, sizeof(png_header), png_file);
-    fclose(png_file);
-    if (bytes_read != sizeof(png_header)) {
-        fprintf(stderr, "Could not read PNG header from \"%s\"\n", image_path);
-        return false;
-    }
-
-    // Check PNG header according to the specification, available at:
-    // https://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
-    static unsigned char PNG_REFERENCE_HEADER[8] = {137, 80, 78, 71, 13, 10, 26, 10};
-    if (memcmp(PNG_REFERENCE_HEADER, png_header, sizeof(png_header)) != 0) {
-        fprintf(stderr, "File \"%s\" does not start with a PNG header. i3lock currently only supports loading PNG files.\n", image_path);
-        return false;
-    }
-    return true;
 }
 
 #ifndef __OpenBSD__
@@ -1227,15 +1231,8 @@ int main(int argc, char *argv[]) {
         /* Read image. 'read_raw_image' returns NULL on error,
          * so we don't have to handle errors here. */
         img = read_raw_image(image_path, image_raw_format);
-    } else if (verify_png_image(image_path)) {
-        /* Create a pixmap to render on, fill it with the background color */
-        img = cairo_image_surface_create_from_png(image_path);
-        /* In case loading failed, we just pretend no -i was specified. */
-        if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS) {
-            fprintf(stderr, "Could not load image \"%s\": %s\n",
-                    image_path, cairo_status_to_string(cairo_surface_status(img)));
-            img = NULL;
-        }
+    } else if (image_path != NULL) {
+        img = read_image(image_path);
     }
 
     free(image_path);
