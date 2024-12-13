@@ -69,7 +69,7 @@ commands (might need to be adapted to your OS):
 rm -rf build/
 mkdir -p build && cd build/
 
-meson .. -Dprefix=/usr
+meson setup -Dprefix=/usr
 ninja
 ```
 
