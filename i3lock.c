@@ -317,7 +317,11 @@ static void input_done(void) {
     }
 
     auth_state = STATE_AUTH_WRONG;
-    failed_attempts += 1;
+    /* The unlock indicator displays the number of failed attempts,
+     * but caps the attempts to 999, so only increment up to 999. */
+    if (failed_attempts < 999) {
+        failed_attempts += 1;
+    }
     clear_input();
     if (unlock_indicator) {
         redraw_screen();
