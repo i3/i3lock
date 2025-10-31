@@ -6,7 +6,7 @@
 project(
   'i3lock',
   'c',
-  version: '2.15',
+  version: '2.16',
   default_options: [
     'c_std=c11',
     'warning_level=1',  # enable all warnings (-Wall)

@@ -1,3 +1,17 @@
+2025-10-31 i3lock 2.16
+
+ • fix crash when the user changes the XKB configuration
+ • when started on Wayland, display an error and usage
+ • switch to clang-format 15 (with InsertBraces)
+ • fix -Werror=calloc-transposed-args by swapping calloc args
+ • reword: remove "dynamic" TWM
+ • update meson setup command in README
+ • do not increase failed_attempts beyond 999
+ • i3lock.1 man page: fix acute accent
+ • declare a development shell in flake.nix
+ • fix in_dpi variable checking
+ • meson: use explicit_bzero if it is available
+
 2024-03-16 i3lock 2.15
 
  • unlock indicator: display current keyboard layout when
